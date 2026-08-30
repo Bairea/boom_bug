@@ -223,11 +223,19 @@ export function processExplosions(sim) {
         b.angVel += sim.rng.sign() * sim.rng.range(4, 14) * falloff;
       }
 
-      // 连锁引燃：范围内的未点燃爆炸物
-      if (b.kind === 'explosive' && !b.data.lit) {
-        b.data.chainDepth = depth + 1;
-        igniteExplosive(sim, b, sim.rng.range(0.04, 0.1));
-        sim._record({ type: 'chainIgnite', id: b.id, x: b.x, y: b.y, depth: depth + 1 });
+      // 连锁引燃：范围内的爆炸物 —— 未点燃的点着（连锁），已点燃的殉爆（立即引爆，代际+1）
+      if (b.kind === 'explosive' && !b.data.exploded) {
+        if (!b.data.lit) {
+          b.data.chainDepth = depth + 1;
+          igniteExplosive(sim, b, sim.rng.range(0.04, 0.1));
+          sim._record({ type: 'chainIgnite', id: b.id, x: b.x, y: b.y, depth: depth + 1 });
+        } else if ((b.data.chainDepth ?? 0) < depth + 1) {
+          // 殉爆：冲击波引爆已点燃的炮仗/截断火箭推进，连锁向四周传播
+          b.data.chainDepth = depth + 1;
+          if (b.data.fuse !== Infinity) b.data.fuse = Math.min(b.data.fuse, 0.02 + sim.rng.range(0, 0.03));
+          if (b.data.burn > 0) b.data.burn = Math.min(b.data.burn, 0.04);
+          sim._record({ type: 'chainIgnite', id: b.id, x: b.x, y: b.y, depth: depth + 1, sympathetic: true });
+        }
       }
 
       // 伤害虫子

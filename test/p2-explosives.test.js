@@ -129,3 +129,22 @@ test('P2: 窜天猴沿瞄准方向飞行并撞击爆炸', () => {
   assert.ok(exp[0].x > 240, `应飞到右侧才爆, x=${exp[0].x}`);
   assert.ok(['impact', 'burnout'].includes(exp[0].cause));
 });
+
+test('P2+: 殉爆 —— 分批点燃的炮仗阵仍能传播连锁代际', () => {
+  // 案例1 的真实阵型：0.35s 间隔依次点燃，间距 45 < 爆炸半径 60
+  const sim = new Simulation({
+    seed: 2024,
+    entities: [
+      { t: 'firecracker', x: 60, y: 176, delay: 0.15 },
+      { t: 'firecracker', x: 105, y: 176, delay: 0.5 },
+      { t: 'firecracker', x: 150, y: 176, delay: 0.85 },
+      { t: 'firecracker', x: 195, y: 176, delay: 1.2 },
+    ],
+  });
+  sim.runFor(4);
+  const exps = sim.eventLog.filter((e) => e.type === 'explosion');
+  assert.equal(exps.length, 4, '全部爆炸');
+  assert.ok(sim.stats.chainMax >= 3, `殉爆应把连锁推向 ≥3, 实际=${sim.stats.chainMax}`);
+  const sym = sim.eventLog.filter((e) => e.type === 'chainIgnite' && e.sympathetic);
+  assert.ok(sym.length >= 1, '应出现殉爆事件');
+});
