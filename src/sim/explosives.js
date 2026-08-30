@@ -4,7 +4,7 @@
 import { createBody } from './body.js';
 import { EXPLOSIVES, PROP } from '../game/catalog.js';
 import { tipEffect, tipMassMul } from './accessories.js';
-import { applyDamage } from './bugs.js';
+import { applyDamage, spawnBug } from './bugs.js';
 import { dirOf, perp, norm, dist } from './math.js';
 
 export function spawnExplosive(sim, type, x, y, angle = -Math.PI / 2, acc = []) {
@@ -50,17 +50,38 @@ export function spawnProp(sim, type, x, y) {
     static: true,
     restitution: spec.soft ? 0.02 : spec.brittle ? 0.1 : 0.2,
     friction: spec.soft ? 1.4 : 0.8,
-    data: { propType: type, hp: spec.hp, maxHp: spec.hp ?? 0, waterZone: !!spec.water },
+    data: {
+      propType: type,
+      hp: spec.hp,
+      maxHp: spec.hp ?? 0,
+      waterZone: !!spec.water,
+      // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
+      children: spec.children
+        ? [sim.rng.pick(['roach', 'locust']), sim.rng.pick(['roach', 'locust']), 'firecracker']
+        : null,
+    },
   });
   sim.world.add(body);
   sim.ents.push(body);
   return body;
 }
 
-// 玻璃砖碎裂：化作 3 块动态碎片飞散
+// 玻璃砖碎裂：化作 3 块动态碎片飞散；礼盒炸开：弹出内胆（PRD §15 套娃）
 function shatterProp(sim, body) {
   body.alive = false;
   sim._record({ type: 'propBreak', x: body.x, y: body.y, propType: body.data.propType });
+  const children = body.data.children;
+  if (children) {
+    // 礼盒：内胆在原地弹出（内胆炮仗未点燃 —— 会被同一波冲击波殉爆点燃）
+    for (const childType of children) {
+      if (['roach', 'locust', 'scarab', 'snail', 'fly'].includes(childType)) {
+        spawnBug(sim, childType, body.x + sim.rng.range(-6, 6), body.y - 4);
+      } else if (EXPLOSIVES[childType]) {
+        const inner = spawnExplosive(sim, childType, body.x + sim.rng.range(-5, 5), body.y - 3, -Math.PI / 2, []);
+      }
+    }
+    return;
+  }
   for (let i = 0; i < 3; i++) {
     const angle = -Math.PI / 2 + (i - 1) * 0.8;
     const shard = spawnProp(sim, 'debris', body.x + (i - 1) * 4, body.y - 2);

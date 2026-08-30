@@ -224,6 +224,7 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'glass') drawGlass(ctx, it, s);
   else if (it.t === 'sponge') drawSponge(ctx, it, s);
   else if (it.t === 'water') drawWater(ctx, it, s, time);
+  else if (it.t === 'giftbox') drawGiftbox(ctx, it, s);
   else if (it.t === 'debris') drawDebris(ctx, it, s);
   ctx.restore();
   // 受损血条
@@ -569,6 +570,29 @@ function drawWater(ctx, it, s, time) {
   ctx.ellipse(0, 2 * s, w, w * 0.42, 0, 0, Math.PI * 2);
   ctx.stroke();
 }
+function drawGiftbox(ctx, it, s) {
+  const w = 8 * s;
+  ctx.fillStyle = it.cracked ? '#d8788a' : '#d4526e';
+  roundRect(ctx, -w, -w * 0.8, w * 2, w * 1.6, 1.2 * s);
+  ctx.fill();
+  ctx.fillStyle = '#f5d06a';
+  ctx.fillRect(-w * 0.22, -w * 0.8, w * 0.44, w * 1.6);
+  ctx.fillRect(-w, -w * 0.12, w * 2, w * 0.28);
+  ctx.beginPath();
+  ctx.arc(-w * 0.3, -w * 0.85, w * 0.24, 0, Math.PI * 2);
+  ctx.arc(w * 0.3, -w * 0.85, w * 0.24, 0, Math.PI * 2);
+  ctx.fill();
+  if (it.cracked) {
+    ctx.strokeStyle = 'rgba(60,20,30,0.8)';
+    ctx.lineWidth = 0.5 * s;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.7, -w * 0.5);
+    ctx.lineTo(-w * 0.2, 0);
+    ctx.lineTo(-w * 0.5, w * 0.5);
+    ctx.stroke();
+  }
+}
+
 
 function drawSponge(ctx, it, s) {
   const w = 10 * s;
