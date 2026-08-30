@@ -165,15 +165,16 @@ function isGroundedExplosive(w, b) {
 }
 
 function hitSomething(w, b) {
-  // 撞墙（位置被墙解算夹住即视为接触）
-  const m = 1.2;
-  if (b.x <= b.radius + m || b.x >= w.width - b.radius - m) return true;
-  if (b.y <= b.radius + m || b.y >= w.height - b.radius - m) return true;
-  // 撞物体（含虫子：大头钉扎进装甲壳/窜天猴直击蟑螂是核心玩法）
+  // 炮仗（燃烧弹）：只算撞到"东西"——地面/天花板是正常滚动面，不算撞击
   for (const o of w.bodies) {
     if (o === b || !o.alive) continue;
     if (dist(b.x, b.y, o.x, o.y) < b.radius + o.radius + 0.5) return true;
   }
+  if (b.data.etype === 'firecracker') return false;
+  // 火箭：撞墙（位置被墙解算夹住即视为接触）
+  const m = 1.2;
+  if (b.x <= b.radius + m || b.x >= w.width - b.radius - m) return true;
+  if (b.y <= b.radius + m || b.y >= w.height - b.radius - m) return true;
   return false;
 }
 
