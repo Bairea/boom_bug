@@ -591,35 +591,36 @@ function drawAim(ctx, it, s) {
   ctx.stroke();
 }
 
-// 运行中拖拽投掷点燃炮仗的预览：起投点画一根点着的炮仗 + 投掷方向箭
+// 运行中拖拽投掷点燃炮仗的预览：起投点画一根点着的炮仗 + 重力弹道预测点
 function drawThrowPreview(ctx, t, s) {
   const l = Math.hypot(t.vx, t.vy);
   if (l < 10) return;
-  const ux = t.vx / l;
-  const uy = t.vy / l;
-  const ex = t.x + ux * Math.min(26, 6 + l * 0.03);
-  const ey = t.y + uy * Math.min(26, 6 + l * 0.03);
-  ctx.strokeStyle = 'rgba(255,179,71,0.9)';
-  ctx.lineWidth = 0.6 * s;
-  ctx.setLineDash([1.5 * s, 1.5 * s]);
-  ctx.beginPath();
-  ctx.moveTo(t.x * s, t.y * s);
-  ctx.lineTo(ex * s, ey * s);
-  ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.beginPath();
-  ctx.moveTo(ex * s, ey * s);
-  ctx.lineTo((ex - ux * 2 + uy * 1) * s, (ey - uy * 2 - ux * 1) * s);
-  ctx.moveTo(ex * s, ey * s);
-  ctx.lineTo((ex - ux * 2 - uy * 1) * s, (ey - uy * 2 + ux * 1) * s);
-  ctx.stroke();
+  // 弹道预测：粗积分重力（与模拟同 g=560）
+  let px = t.x;
+  let py = t.y;
+  let vx = t.vx;
+  let vy = t.vy;
+  const stepDt = 1 / 20;
+  ctx.fillStyle = 'rgba(255,217,160,0.85)';
+  for (let i = 0; i < 8; i++) {
+    vy += 560 * stepDt;
+    px += vx * stepDt;
+    py += vy * stepDt;
+    if (px < 2 || px > 298 || py < 2 || py > 178) break;
+    ctx.globalAlpha = 0.8 - i * 0.09;
+    ctx.beginPath();
+    ctx.arc(px * s, py * s, 0.9 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // 起投点：一根点着的炮仗
   ctx.fillStyle = '#c0392b';
   ctx.beginPath();
   ctx.arc(t.x * s, t.y * s, 1.6 * s, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#ffd166';
   ctx.beginPath();
-  ctx.arc((t.x + ux * 2.4) * s, (t.y + uy * 2.4) * s, 0.7 * s, 0, Math.PI * 2);
+  ctx.arc((t.x + (t.vx / l) * 2.4) * s, (t.y + (t.vy / l) * 2.4) * s, 0.7 * s, 0, Math.PI * 2);
   ctx.fill();
 }
 

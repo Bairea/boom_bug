@@ -242,6 +242,12 @@ export function processExplosions(sim) {
       sim.stats.multiKills++;
       sim._record({ type: 'multiKill', x: ex.x, y: ex.y, count: blastKills });
     }
+    // 爆炸烧掉范围内的黏液（世界逻辑自洽，确定性保持）
+    const before = sim.world.slime.length;
+    sim.world.slime = sim.world.slime.filter((p) => dist(p.x, p.y, ex.x, ex.y) > ex.blastRadius * 0.9);
+    if (sim.world.slime.length < before) {
+      sim._record({ type: 'slimeBurn', x: ex.x, y: ex.y, count: before - sim.world.slime.length });
+    }
     sim._record({
       type: 'explosion',
       x: ex.x,
