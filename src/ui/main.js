@@ -269,6 +269,12 @@ function showReport(rep) {
   }
   els.reportBody.innerHTML = html;
   els.report.hidden = false;
+  // 报告卡内加一个分享入口（生成刚才这场事故的分享码）
+  const shareInReport = document.getElementById('btn-overlay-share');
+  if (shareInReport && !shareInReport._wired) {
+    shareInReport._wired = true;
+    shareInReport.addEventListener('click', () => els.share.click());
+  }
 }
 
 function causeName(c) {
@@ -369,7 +375,7 @@ function tick() {
 
   // 连锁慢镜头：真实时间变慢，模拟 tick 内容不变（不破坏确定性）
   if (state.slowmo > 0) {
-    state.slowmo -= dt;
+    state.slowmo = Math.max(0, state.slowmo - dt);
     state.zoomPunch += (1 - state.zoomPunch) * Math.min(1, dt * 3);
   } else {
     state.zoomPunch += (1 - state.zoomPunch) * Math.min(1, dt * 6);
