@@ -84,6 +84,25 @@ export const SCENARIOS = [
     ],
     goal: (sim) => ({ label: '一爆双响（一次爆炸击倒 ≥ 2）', done: sim.stats.multiKills >= 1 }),
   },
+  {
+    id: 'case5',
+    label: '案例5 · 空中狩猎',
+    desc: '三只玩具苍蝇在半空乱飞。窜天猴上仰对空射击，被击落的苍蝇会坠机。目标：击落 ≥ 2 只苍蝇。',
+    seed: 555,
+    entities: [
+      { t: 'fly', x: 100, y: 80 }, // 0
+      { t: 'fly', x: 170, y: 70 }, // 1
+      { t: 'fly', x: 240, y: 90 }, // 2
+      { t: 'bottle', x: 40, y: 150, angle: -0.55, acc: ['pin'], delay: 0.2 }, // 3 对空炮
+      { t: 'bottle', x: 150, y: 165, angle: -1.0, acc: ['pin'], delay: 0.8 }, // 4
+      { t: 'bottle', x: 262, y: 150, angle: -Math.PI + 0.55, acc: ['pin'], delay: 1.4 }, // 5
+    ],
+    goal: (sim) => ({
+      label: '击落 ≥ 2 只苍蝇',
+      done: (sim.stats.koByType?.fly ?? 0) >= 2,
+      bonus: (sim.stats.koByType?.fly ?? 0) >= 3 ? '全空域清空 ✓' : null,
+    }),
+  },
 ];
 
 export function getScenario(id) {

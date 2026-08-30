@@ -451,6 +451,9 @@ function handleEvents(events) {
       sfx.fuse();
     } else if (e.type === 'slimeBurn') {
       state.particles.puff(e.x, e.y);
+    } else if (e.type === 'propBreak') {
+      state.particles.spark(e.x, e.y, 10);
+      sfx.glassBreak();
     }
     if (['explosion', 'knockout', 'ropeBreak', 'multiKill', 'armorCrack', 'pinStick', 'glueStick'].includes(e.type)) {
       state.lastEventTick = e.tick;

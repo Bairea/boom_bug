@@ -115,6 +115,35 @@ export class Sfx {
     src.stop(t0 + 0.22);
   }
 
+  // 玻璃碎裂：高频脆响
+  glassBreak() {
+    const ac = this.ensure();
+    if (!ac || this._throttled('glass', 0.08)) return;
+    const t0 = ac.currentTime;
+    const src = ac.createBufferSource();
+    src.buffer = this._noiseBuffer(ac);
+    src.playbackRate.value = 2.2;
+    const hp = ac.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 4500;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.22, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3);
+    src.connect(hp).connect(gain).connect(ac.destination);
+    src.start(t0);
+    src.stop(t0 + 0.32);
+    const osc = ac.createOscillator();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2400, t0);
+    osc.frequency.exponentialRampToValueAtTime(900, t0 + 0.18);
+    const g2 = ac.createGain();
+    g2.gain.setValueAtTime(0.1, t0);
+    g2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+    osc.connect(g2).connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.22);
+  }
+
   // 击倒（玩具故障）：下滑的金属叮
   knockout() {
     const ac = this.ensure();
