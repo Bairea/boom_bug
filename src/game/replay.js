@@ -46,6 +46,7 @@ export function makeTitle(stats, eventLog) {
   if ((stats.multiKills ?? 0) >= 2) return '连环车祸现场';
   if ((stats.knockouts ?? 0) === 0) return '只炸坏了氛围';
   if ((stats.knockouts ?? 0) === 1 && (stats.explosions ?? 0) <= 2) return `我本来只想炸一只${koLabel}`;
+  if ((stats.knockouts ?? 0) === 2 && (stats.explosions ?? 0) <= 2) return '一爆双响纪念';
   if ((stats.knockouts ?? 0) >= 6) return '虫虫灭绝日';
   if ((stats.ropesBroken ?? 0) >= 1 && (stats.knockouts ?? 0) >= 2) return '绳子营救行动失败';
   return '大型失控现场';

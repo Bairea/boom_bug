@@ -47,6 +47,18 @@ export const BUGS = {
     speed: [8, 14], // 龟速爬行
     leavesSlime: true, // 爬过之处留下黏液：物体落地打滑
   },
+  fly: {
+    label: '玩具苍蝇',
+    icon: '🪰',
+    radius: 2,
+    mass: 0.3,
+    hp: 14,
+    armor: 0,
+    restitution: 0.5,
+    friction: 0.5,
+    speed: [90, 130], // 悬飞 + 随机急变向，最难命中
+    flies: true, // 持续飞行（悬空带）
+  },
 };
 
 export const BUG_TYPES = Object.keys(BUGS);

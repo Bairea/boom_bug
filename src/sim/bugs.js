@@ -69,7 +69,38 @@ export function stepBugs(sim, dt) {
     else if (d.bugType === 'locust') stepLocust(sim, b, d, threat, dt, w);
     else if (d.bugType === 'scarab') stepScarab(sim, b, d, dt, w);
     else if (d.bugType === 'snail') stepSnail(sim, b, d, dt, w);
+    else if (d.bugType === 'fly') stepFly(sim, b, d, dt, w);
   }
+}
+
+// 苍蝇：永远悬飞在半空带，随机急变向 —— 最难命中的移动靶（PRD §5 高机动）
+function stepFly(sim, b, d, dt, w) {
+  const BAND_LO = 40;
+  const BAND_HI = w.height - 50;
+  d.stateT -= dt;
+  if (d.stateT <= 0) {
+    // 急变向：完全随机的目标方向
+    d.heading = sim.rng.range(0, Math.PI * 2);
+    d.stateT = sim.rng.range(0.15, 0.5);
+    sim._record({ type: 'flyTurn', id: b.id, x: b.x, y: b.y });
+  }
+  const threat = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
+  if (threat) d.heading = Math.atan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.8, 0.8);
+  // 悬停升力抵消重力 + 向悬空带中线回归
+  b.vy -= 560 * dt;
+  const midY = (BAND_LO + BAND_HI) / 2;
+  b.vy += ((midY - b.y) * 5 + Math.sin(sim.time * 13 + b.id * 7) * 130) * dt;
+  b.vx += Math.cos(d.heading) * 700 * dt;
+  b.vx += Math.sin(sim.time * 17 + b.id * 3) * 60 * dt;
+  // 限速与边界
+  const sp = Math.hypot(b.vx, b.vy);
+  const max = d.speed * (threat ? 1.5 : 1);
+  if (sp > max) {
+    b.vx = (b.vx / sp) * max;
+    b.vy = (b.vy / sp) * max;
+  }
+  if (b.y < BAND_LO) b.vy += 320 * dt;
+  if (b.y > BAND_HI) b.vy -= 320 * dt;
 }
 
 function steer(b, heading, speed, dt, accel = 520) {

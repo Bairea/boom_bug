@@ -205,6 +205,7 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'locust') drawLocust(ctx, it, s, time);
   else if (it.t === 'scarab') drawScarab(ctx, it, s, time);
   else if (it.t === 'snail') drawSnail(ctx, it, s, time);
+  else if (it.t === 'fly') drawFly(ctx, it, s, time);
   else if (it.t === 'firecracker') drawFirecracker(ctx, it, s, time);
   else if (it.t === 'skyrocket') drawSkyrocket(ctx, it, s, time);
   else if (it.t === 'bottle') drawBottle(ctx, it, s, time);
@@ -542,6 +543,31 @@ function drawSnail(ctx, it, s, time) {
       ctx.arc(-face * r * 1.7, -r * 0.55, 0.22 * s, 0, Math.PI * 2);
       ctx.fill();
     }
+  });
+}
+
+function drawFly(ctx, it, s, time) {
+  const r = 2 * s;
+  const dirX = it.speedX >= 0 ? 1 : -1;
+  knockedTint(ctx, it, s, () => {
+    // 翅膀（高频扇动）
+    const flap = Math.sin(time * 60) * 0.8;
+    ctx.fillStyle = 'rgba(200,220,255,0.5)';
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(-dirX * r * 0.3, side * r * 0.5, r * 0.9, r * (0.35 + Math.abs(flap) * 0.3), flap * side * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 身体
+    ctx.fillStyle = it.knocked ? '#7d8896' : '#4a4f58';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, r * 1.05, r * 0.75, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 复眼
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    ctx.arc(dirX * r * 0.8, -r * 0.2, r * 0.32, 0, Math.PI * 2);
+    ctx.fill();
   });
 }
 
