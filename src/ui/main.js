@@ -71,6 +71,20 @@ canvas.addEventListener(
   { once: true }
 );
 
+// ---- 实验手册 ----
+const helpEl = document.getElementById('help');
+document.getElementById('btn-help')?.addEventListener('click', () => (helpEl.hidden = false));
+document.getElementById('btn-help-close')?.addEventListener('click', () => (helpEl.hidden = true));
+// 首次到访自动弹出（localStorage 记忆）
+try {
+  if (!localStorage.getItem('bbl-help-seen')) {
+    helpEl.hidden = false;
+    localStorage.setItem('bbl-help-seen', '1');
+  }
+} catch {
+  // 无 localStorage：不弹
+}
+
 // ---- 工具箱 ----
 for (const btn of els.toolButtons) {
   btn.addEventListener('click', () => {

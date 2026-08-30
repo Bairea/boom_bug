@@ -190,6 +190,29 @@
     z-index: 9;
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #help {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,12,16,0.88);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #help h2 { color: var(--accent); margin: 0 0 6px; }
+  #help .hint { color: var(--dim); font-size: 13px; margin: 0 0 12px; }
+  #help .cols { display: flex; gap: 28px; max-width: 760px; }
+  #help h3 { color: var(--hot); font-size: 13px; margin: 10px 0 4px; }
+  #help ul { margin: 0; padding-left: 18px; color: var(--text); font-size: 12.5px; line-height: 1.7; }
+  #help button {
+    margin-top: 16px;
+    background: linear-gradient(180deg, #ff9a5c, #ff6a3c);
+    border: none; border-radius: 8px;
+    color: #241109; font-weight: 700;
+    padding: 9px 26px; cursor: pointer; font-size: 14px;
+  }
 </style>
 </head>
 <body>
@@ -197,6 +220,7 @@
   <h1>🧨 擦炮虫虫实验室</h1>
   <span class="sub">微型灾难实验室 · 摆放 → 点燃 → 目睹失控 → 回放分享</span>
   <select id="scenario"></select>
+  <button id="btn-help" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:5px 10px;cursor:pointer">？</button>
   <button id="btn-mute" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:5px 10px;cursor:pointer">🔊</button>
   <button id="btn-share" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:5px 12px;cursor:pointer">🔗 分享</button>
 </header>
@@ -246,6 +270,50 @@
   </div>
 </div>
 <div id="toast"></div>
+<div id="help" hidden>
+  <h2>实验手册</h2>
+  <p class="hint">这里的每样东西都只有<b>物理属性</b>，没有特化规则 —— 组合它们，发明你自己的灾难。</p>
+  <div class="cols">
+    <div>
+      <h3>玩具虫</h3>
+      <ul>
+        <li>🪳 蟑螂：高速逃窜、急转弯，hp 30</li>
+        <li>🦗 蝗虫：随机跳跃、高弹性，hp 22</li>
+        <li>🪲 清道夫：装甲减伤 60%，hp 90，可固定</li>
+        <li>🐌 蜗牛：龟速，沿途留黏液（摩擦 ×0.12），hp 80</li>
+        <li>🪰 苍蝇：半空乱飞、极难命中，hp 14</li>
+      </ul>
+      <h3>爆炸物</h3>
+      <ul>
+        <li>🧨 小炮仗：随机引信 0.9-1.5s，末期乱蹦，r60</li>
+        <li>🎆 冲天炮：竖直上冲 0.55s 燃尽即爆，r70</li>
+        <li>🚀 窜天猴：发射初速+摆动，撞什么炸什么，r50</li>
+      </ul>
+    </div>
+    <div>
+      <h3>配件（点爆炸物安装，最多 2 个）</h3>
+      <ul>
+        <li>🥢 牙签：穿透 0.6，更轻</li>
+        <li>📌 大头针：穿透 0.95，命中钉住 0.25s</li>
+        <li>🫙 胶水：命中粘附原地起爆</li>
+        <li>🪢 绳子：连接两物，超载拉断</li>
+      </ul>
+      <h3>道具</h3>
+      <ul>
+        <li>🧱 砖头：永固平台</li>
+        <li>🪟 玻璃砖：可炸碎成飞散碎片</li>
+      </ul>
+      <h3>操作</h3>
+      <ul>
+        <li>同款火箭工具点已放置的火箭 = 重新瞄准</li>
+        <li>运行中：点未点燃物=点火；空白处拖拽=扔点燃的炮仗</li>
+        <li>空格=点燃/重来 · R=重来 · N=新种子 · Esc=结束</li>
+        <li>殉爆：冲击波会引爆已点燃的炮仗，连锁靠它传播</li>
+      </ul>
+    </div>
+  </div>
+  <button id="btn-help-close">明白，开炸</button>
+</div>
 <script type="module" src="./src/ui/main.js"></script>
 </body>
 </html>
