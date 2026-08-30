@@ -13,7 +13,8 @@ test('R14: 事故标题规则覆盖各种战局', () => {
   assert.equal(makeTitle({ ...base, explosions: 2 }, []), '只炸坏了氛围');
   assert.equal(makeTitle({ ...base, explosions: 1, knockouts: 1 }, [{ type: 'knockout', bugType: 'locust' }]), '我本来只想炸一只蝗虫');
   assert.equal(makeTitle({ ...base, explosions: 6, knockouts: 7 }, []), '虫虫灭绝日');
-  assert.equal(makeTitle({ ...base, explosions: 3, knockouts: 3, ropesBroken: 1 }, []), '大型失控现场');
+  assert.equal(makeTitle({ ...base, explosions: 3, knockouts: 3, ropesBroken: 1 }, []), '绳子营救行动失败');
+  assert.equal(makeTitle({ ...base, explosions: 3, knockouts: 3 }, []), '大型失控现场');
 });
 
 test('R14: 案例4 黏液保龄球馆可玩且结构合法', () => {
