@@ -48,7 +48,8 @@ export function spawnProp(sim, type, x, y) {
     radius: spec.radius,
     mass: spec.mass,
     static: true,
-    restitution: spec.brittle ? 0.1 : 0.2,
+    restitution: spec.soft ? 0.02 : spec.brittle ? 0.1 : 0.2,
+    friction: spec.soft ? 1.4 : 0.8,
     data: { propType: type, hp: spec.hp, maxHp: spec.hp ?? 0 },
   });
   sim.world.add(body);
@@ -275,10 +276,19 @@ export function processExplosions(sim) {
         }
       }
 
-      // 伤害虫子
+      // 伤害虫子（贴着海绵垫的虫被缓冲：伤害减半 —— PRD 案例2 的海绵板构想）
       if (b.kind === 'bug') {
         const before = b.data.knocked;
-        applyDamage(sim, b, ex.dmg * falloff, ex.pierce, ex.cause);
+        let dmg = ex.dmg * falloff;
+        for (const o of sim.world.bodies) {
+          if (o.alive && o.kind === 'prop' && o.data?.propType === 'sponge') {
+            if (dist(b.x, b.y, o.x, o.y) < o.radius + b.radius + 1) {
+              dmg *= 0.5;
+              break;
+            }
+          }
+        }
+        applyDamage(sim, b, dmg, ex.pierce, ex.cause);
         if (!before && b.data.knocked) blastKills++;
       }
       // 可破坏道具（玻璃砖）：受伤 → 裂纹 → 碎裂

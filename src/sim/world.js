@@ -135,8 +135,7 @@ export class World {
         const vn = rvx * nx + rvy * ny;
         if (vn < 0) {
           const e = Math.min(a.restitution, b.restitution);
-          const jImp = (-(1 + e) * vn) / invSum;
-          a.vx -= jImp * nx * a.invMass;
+          const jImp = (-(1 + e) * vn) / invSum;          a.vx -= jImp * nx * a.invMass;
           a.vy -= jImp * ny * a.invMass;
           b.vx += jImp * nx * b.invMass;
           b.vy += jImp * ny * b.invMass;

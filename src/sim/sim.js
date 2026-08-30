@@ -63,7 +63,7 @@ export class Simulation {
         if (e.delay != null && e.delay >= 0) {
           this.schedule(Math.round(e.delay * 60), { op: 'ignite', id: body.id });
         }
-      } else if (['brick', 'glass'].includes(e.t)) {
+      } else if (['brick', 'glass', 'sponge'].includes(e.t)) {
         spawnProp(this, e.t, e.x, e.y);
       }
     }

@@ -45,7 +45,7 @@ export function viewFromSim(sim) {
 export function viewFromSpecs(specs, ropeList = []) {
   const items = specs.map((s) => ({
     t: s.t,
-    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' || s.t === 'glass' ? 'prop' : 'explosive',
+    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' || s.t === 'glass' || s.t === 'sponge' ? 'prop' : 'explosive',
     x: s.x,
     y: s.y,
     angle: s.angle ?? (s.t === 'skyrocket' ? -Math.PI / 2 : 0),
@@ -220,6 +220,7 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'bottle') drawBottle(ctx, it, s, time);
   else if (it.t === 'brick') drawBrick(ctx, it, s);
   else if (it.t === 'glass') drawGlass(ctx, it, s);
+  else if (it.t === 'sponge') drawSponge(ctx, it, s);
   else if (it.t === 'debris') drawDebris(ctx, it, s);
   ctx.restore();
   // 受损血条
@@ -545,6 +546,26 @@ function drawGlass(ctx, it, s) {
     ctx.moveTo(-w * 0.3, w * 0.1);
     ctx.lineTo(w * 0.4, -w * 0.2);
     ctx.stroke();
+  }
+}
+
+function drawSponge(ctx, it, s) {
+  const w = 10 * s;
+  ctx.fillStyle = '#e8d06a';
+  roundRect(ctx, -w, -w * 0.5, w * 2, w, 2 * s);
+  ctx.fill();
+  // 气孔
+  ctx.fillStyle = 'rgba(140,110,40,0.5)';
+  for (const [px, py, pr] of [
+    [-0.6, -0.2, 0.1],
+    [0.2, 0.15, 0.13],
+    [0.55, -0.25, 0.09],
+    [-0.15, 0.25, 0.11],
+    [0.65, 0.2, 0.08],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(px * w, py * w, pr * w, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
