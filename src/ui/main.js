@@ -73,6 +73,7 @@ function loadScenario(id) {
   const sc = getScenario(id);
   state.scenarioId = id;
   state.seed = sc.seed;
+  els.scenario.value = id;
   editor.clear();
   loadEntitiesIntoEditor(sc.entities);
   state.mode = 'edit';
@@ -90,8 +91,10 @@ function loadEntitiesIntoEditor(entities) {
 
 // ---- 运行控制 ----
 function startRun(useRecordedCommands = false) {
-  const entities = editor.buildEntities(!useRecordedCommands);
-  const commands = useRecordedCommands && state.runExperiment ? state.runExperiment.commands : [];
+  // 重跑/重放：完整复用上一次（或分享码）的输入，保证同一灾难；新跑：从编辑器取当前布置
+  const prev = useRecordedCommands && state.runExperiment ? state.runExperiment : null;
+  const entities = prev ? prev.entities : editor.buildEntities(true);
+  const commands = prev ? prev.commands : [];
   state.runExperiment = {
     seed: state.seed,
     width: VIEW_W,

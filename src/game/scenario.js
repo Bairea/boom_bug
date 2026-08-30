@@ -39,9 +39,9 @@ export const SCENARIOS = [
     seed: 777,
     entities: [
       ...roachRow(8, 40, 30), // 0-7
-      { t: 'bottle', x: 25, y: 120, angle: -0.15, acc: ['pin'] }, // 8
-      { t: 'bottle', x: 150, y: 50, angle: 0.5, acc: ['pin'] }, // 9
-      { t: 'bottle', x: 275, y: 120, angle: Math.PI + 0.15, acc: ['pin'] }, // 10
+      { t: 'bottle', x: 25, y: 110, angle: 0.3, acc: ['pin'] }, // 8 斜下扫射
+      { t: 'bottle', x: 150, y: 40, angle: 0.9, acc: ['pin'] }, // 9 俯射虫群
+      { t: 'bottle', x: 275, y: 110, angle: Math.PI - 0.3, acc: ['pin'] }, // 10
       { t: 'firecracker', x: 120, y: FLOOR }, // 11 陷阱
       { t: 'firecracker', x: 190, y: FLOOR }, // 12 陷阱
     ],
@@ -58,9 +58,9 @@ export const SCENARIOS = [
     entities: [
       { t: 'brick', x: 150, y: 171 }, // 0
       { t: 'scarab', x: 150, y: 157, fixed: true }, // 1 蹲在砖上
-      { t: 'bottle', x: 50, y: 140, angle: -0.5, acc: ['toothpick'] }, // 2
-      { t: 'bottle', x: 250, y: 140, angle: -Math.PI + 0.5, acc: ['toothpick'] }, // 3
-      { t: 'bottle', x: 150, y: 40, angle: Math.PI / 2, acc: ['pin'] }, // 4 俯冲
+      { t: 'bottle', x: 60, y: 150, angle: 0.1, acc: ['toothpick'] }, // 2 平射装甲
+      { t: 'bottle', x: 240, y: 150, angle: Math.PI - 0.1, acc: ['toothpick'] }, // 3
+      { t: 'bottle', x: 150, y: 60, angle: Math.PI / 2, acc: ['pin'] }, // 4 俯冲顶甲
       { t: 'firecracker', x: 110, y: FLOOR }, // 5
       { t: 'firecracker', x: 190, y: FLOOR }, // 6
     ],

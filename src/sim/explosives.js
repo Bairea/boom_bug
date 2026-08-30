@@ -166,9 +166,9 @@ function hitSomething(w, b) {
   const m = 1.2;
   if (b.x <= b.radius + m || b.x >= w.width - b.radius - m) return true;
   if (b.y <= b.radius + m || b.y >= w.height - b.radius - m) return true;
-  // 撞物体
+  // 撞物体（含虫子：大头钉扎进装甲壳/窜天猴直击蟑螂是核心玩法）
   for (const o of w.bodies) {
-    if (o === b || !o.alive || o.kind === 'bug') continue; // 虫子由伤害/冲量处理，擦边不算撞击
+    if (o === b || !o.alive) continue;
     if (dist(b.x, b.y, o.x, o.y) < b.radius + o.radius + 0.5) return true;
   }
   return false;

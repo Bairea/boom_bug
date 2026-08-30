@@ -58,6 +58,17 @@ test('P5: 运行视图渲染冒烟（模拟中真实状态）', () => {
   assert.ok(view.items.every((it) => it.t && Number.isFinite(it.x) && Number.isFinite(it.y)));
 });
 
+test('P5: 击倒状态的虫子渲染不抛错（knockedTint 回归）', () => {
+  const sc = SCENARIOS.find((s) => s.id === 'case1');
+  const sim = new Simulation({ seed: sc.seed, entities: sc.entities });
+  sim.runFor(2);
+  // 强制把所有虫子置为击倒态，覆盖 knockedTint 分支
+  for (const b of sim.world.bodies) if (b.kind === 'bug') b.data.knocked = true;
+  const ctx = fakeCtx();
+  drawScene(ctx, 960, 576, viewFromSim(sim), { recDot: true });
+  assert.ok(ctx.__calls.includes('stroke'));
+});
+
 test('P5: 粒子系统更新与绘制不抛错且有衰减', () => {
   const p = new Particles();
   p.explosion(150, 90, 55);

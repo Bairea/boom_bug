@@ -203,7 +203,7 @@ function drawItem(ctx, it, s, time) {
   }
 }
 
-function knockedTint(ctx, it, draw) {
+function knockedTint(ctx, it, s, draw) {
   if (!it.knocked) {
     draw();
     return;
@@ -228,7 +228,7 @@ function drawRoach(ctx, it, s, time) {
   // 活着时朝向固定（顶视角靠腿动表现移动），被击倒后随物理角度翻滚
   ctx.rotate(it.knocked ? it.angle : 0);
   const wig = it.speed > 12 ? Math.sin(time * 20) * 0.35 : 0;
-  knockedTint(ctx, it, () => {
+  knockedTint(ctx, it, s, () => {
     // 腿
     ctx.strokeStyle = '#5d3a17';
     ctx.lineWidth = 0.5 * s;
@@ -270,7 +270,7 @@ function drawRoach(ctx, it, s, time) {
 
 function drawLocust(ctx, it, s, time) {
   const r = 2.4 * s;
-  knockedTint(ctx, it, () => {
+  knockedTint(ctx, it, s, () => {
     ctx.rotate(it.knocked ? it.angle : -0.35);
     // 后腿
     ctx.strokeStyle = '#4c7028';
@@ -308,7 +308,7 @@ function drawLocust(ctx, it, s, time) {
 
 function drawScarab(ctx, it, s, time) {
   const r = 5 * s;
-  knockedTint(ctx, it, () => {
+  knockedTint(ctx, it, s, () => {
     // 壳
     ctx.fillStyle = '#39424f';
     ctx.beginPath();
