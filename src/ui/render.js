@@ -45,7 +45,7 @@ export function viewFromSim(sim) {
 export function viewFromSpecs(specs, ropeList = []) {
   const items = specs.map((s) => ({
     t: s.t,
-    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' || s.t === 'glass' || s.t === 'sponge' ? 'prop' : 'explosive',
+    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' || s.t === 'glass' || s.t === 'sponge' || s.t === 'water' ? 'prop' : 'explosive',
     x: s.x,
     y: s.y,
     angle: s.angle ?? (s.t === 'skyrocket' ? -Math.PI / 2 : 0),
@@ -221,6 +221,7 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'brick') drawBrick(ctx, it, s);
   else if (it.t === 'glass') drawGlass(ctx, it, s);
   else if (it.t === 'sponge') drawSponge(ctx, it, s);
+  else if (it.t === 'water') drawWater(ctx, it, s, time);
   else if (it.t === 'debris') drawDebris(ctx, it, s);
   ctx.restore();
   // 受损血条
@@ -547,6 +548,24 @@ function drawGlass(ctx, it, s) {
     ctx.lineTo(w * 0.4, -w * 0.2);
     ctx.stroke();
   }
+}
+
+function drawWater(ctx, it, s, time) {
+  const w = it.radius * s;
+  const wob = Math.sin(time * 2.2) * 1.2 * s;
+  ctx.fillStyle = 'rgba(70, 140, 200, 0.35)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2 * s, w, w * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(120, 190, 235, 0.4)';
+  ctx.beginPath();
+  ctx.ellipse(-w * 0.15, (2.6 + wob * 0.04) * s, w * 0.62, w * 0.24, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(190, 230, 255, 0.7)';
+  ctx.lineWidth = 0.45 * s;
+  ctx.beginPath();
+  ctx.ellipse(0, 2 * s, w, w * 0.42, 0, 0, Math.PI * 2);
+  ctx.stroke();
 }
 
 function drawSponge(ctx, it, s) {

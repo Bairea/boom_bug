@@ -50,7 +50,7 @@ export function spawnProp(sim, type, x, y) {
     static: true,
     restitution: spec.soft ? 0.02 : spec.brittle ? 0.1 : 0.2,
     friction: spec.soft ? 1.4 : 0.8,
-    data: { propType: type, hp: spec.hp, maxHp: spec.hp ?? 0 },
+    data: { propType: type, hp: spec.hp, maxHp: spec.hp ?? 0, waterZone: !!spec.water },
   });
   sim.world.add(body);
   sim.ents.push(body);
@@ -121,6 +121,14 @@ export function stepExplosives(sim, dt) {
 
     if (d.etype === 'firecracker') {
       d.fuse -= dt;
+      // 落水：引信熄灭成哑弹（可被再次点燃/殉爆）
+      if (inWater(w, b)) {
+        d.lit = false;
+        d.fuse = -1;
+        d.doused = true;
+        sim._record({ type: 'douse', id: b.id, x: b.x, y: b.y });
+        continue;
+      }
       // 末期乱蹦：引信火花让它抽跳（不可预测感）
       if (d.fuse > 0 && d.fuse < 0.45 && !d.glued && isGroundedExplosive(w, b)) {
         if (sim.rng.float() < 0.18) {
@@ -133,6 +141,15 @@ export function stepExplosives(sim, dt) {
         continue;
       }
       // 被扔出去的燃烧弹：高速飞行中撞上任何东西即刻起爆（不穿透虫子）
+    }
+
+    // 火箭类：落水直接熄火坠毁（不再推进/起爆）
+    if (inWater(w, b) && d.burn > 0) {
+      d.burn = 0;
+      d.fuse = Infinity;
+      d.doused = true;
+      sim._record({ type: 'douse', id: b.id, x: b.x, y: b.y });
+      continue;
     }
 
     // 火箭类：推力飞行
@@ -176,6 +193,20 @@ export function stepExplosives(sim, dt) {
   }
 }
 
+function inWater(w, b) {
+  for (const z of w.bodies) {
+    if (z.alive && z.data?.waterZone && dist(b.x, b.y, z.x, z.y) < z.radius) return true;
+  }
+  return false;
+}
+
+function inWaterPos(w, x, y) {
+  for (const z of w.bodies) {
+    if (z.alive && z.data?.waterZone && dist(x, y, z.x, z.y) < z.radius) return true;
+  }
+  return false;
+}
+
 function isGroundedExplosive(w, b) {
   return b.y >= w.height - b.radius - 1.5;
 }
@@ -183,7 +214,7 @@ function isGroundedExplosive(w, b) {
 function hitSomething(w, b) {
   // 炮仗（燃烧弹）：只算撞到"东西"——地面/天花板是正常滚动面，不算撞击
   for (const o of w.bodies) {
-    if (o === b || !o.alive) continue;
+    if (o === b || !o.alive || o.data?.waterZone) continue; // 水盆是非实体区域
     if (dist(b.x, b.y, o.x, o.y) < b.radius + o.radius + 0.5) return true;
   }
   if (b.data.etype === 'firecracker') return false;
@@ -241,6 +272,11 @@ export function processExplosions(sim) {
   sim.pendingExplosions = [];
   for (const ex of queue) {
     const depth = ex.depth;
+    // 水下爆炸被闷熄：威力与伤害大减
+    if (inWaterPos(sim.world, ex.x, ex.y)) {
+      ex.power *= 0.45;
+      ex.dmg *= 0.45;
+    }
     sim.stats.explosions++;
     if (depth > sim.stats.chainMax) sim.stats.chainMax = depth;
     if (ex.power > sim.stats.maxPower) sim.stats.maxPower = ex.power;

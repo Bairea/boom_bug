@@ -58,6 +58,7 @@ export class World {
     this.events = [];
     for (const s of this.slime) s.age += dt;
     this.slime = this.slime.filter((s) => s.age < s.ttl);
+    this.applyWaterPhysics(dt);
     if (hooks?.pre) hooks.pre(this, dt);
 
     for (const b of this.bodies) {
@@ -69,6 +70,24 @@ export class World {
     this.solveWalls(dt);
 
     if (hooks?.post) hooks.post(this, dt);
+  }
+
+  // 水盆物理：浸入水中的物体受浮力与强阻力（慢动作下沉/上浮）
+  applyWaterPhysics(dt) {
+    const zones = this.bodies.filter((b) => b.alive && b.data?.waterZone);
+    if (!zones.length) return;
+    for (const b of this.bodies) {
+      if (!b.alive || b.data?.waterZone) continue;
+      for (const z of zones) {
+        if (dist(b.x, b.y, z.x, z.y) < z.radius + b.radius * 0.3) {
+          // 浮力抵消大半重力 + 强阻力
+          b.vy += this.gravity * 0.72 * dt;
+          b.vx *= Math.max(0, 1 - 3.2 * dt);
+          b.vy *= Math.max(0, 1 - 3.2 * dt);
+          break;
+        }
+      }
+    }
   }
 
   solveRopes() {
@@ -108,6 +127,8 @@ export class World {
       for (let j = i + 1; j < bodies.length; j++) {
         const b = bodies[j];
         if (!b.alive) continue;
+        // 水盆是非实体区域，不参与碰撞
+        if (a.data?.waterZone || b.data?.waterZone) continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const minD = a.radius + b.radius;
