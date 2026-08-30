@@ -264,9 +264,21 @@ export function stepProps(sim, dt) {
       b.data.fireTick = 0.4;
       sim._record({ type: 'fireTick', x: b.x, y: b.y });
       for (const o of w.bodies) {
-        if (o.kind !== 'bug' || !o.alive || o.data?.knocked) continue;
-        if (dist(b.x, b.y, o.x, o.y) < 14 + o.radius) {
-          applyDamage(sim, o, 8, 0.15, 'fire');
+        if (!o.alive || o === b) continue;
+        if (dist(b.x, b.y, o.x, o.y) >= 14 + o.radius) continue;
+        if (o.kind === 'bug') {
+          if (!o.data?.knocked) applyDamage(sim, o, 8, 0.15, 'fire');
+        } else if (o.kind === 'prop' && o.data?.hp != null) {
+          // 火势蔓延：灼烧范围内的可破坏道具（木板续燃/玻璃炸裂/礼盒弹胆）
+          o.data.hp -= 8;
+          if (o.data.hp <= 0) {
+            shatterProp(sim, o);
+          } else if (PROP[o.data.propType]?.flammable && !o.data.burning) {
+            o.data.burning = true;
+            o.data.burnT = 2.5;
+            o.data.fireTick = 0.3;
+            sim._record({ type: 'fireTick', x: o.x, y: o.y });
+          }
         }
       }
     }

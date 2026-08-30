@@ -75,3 +75,25 @@ test('R40: 燃烧的木板落水熄灭', () => {
   assert.equal(wood.data.burning, false, '落水应熄灭');
   assert.ok(sim.eventLog.some((e) => e.type === 'douse'), '应有熄灭事件');
 });
+
+test('R40b: 火焰传播 —— 燃烧木板点着相邻木板、灼裂玻璃', () => {
+  const sim = new Simulation({
+    seed: 808,
+    entities: [
+      { t: 'wood', x: 100, y: 174 },
+      { t: 'wood', x: 118, y: 174 }, // 相邻（范围内）
+      { t: 'glass', x: 136, y: 174 },
+      { t: 'firecracker', x: 112, y: 174, delay: 0 }, // 引燃第一块
+    ],
+  });
+  sim.runFor(4);
+  const fires = sim.eventLog.filter((e) => e.type === 'fireTick');
+  assert.ok(fires.length >= 2, '应有多次灼烧');
+  // 第二块木板被引燃或烧尽；玻璃被灼伤（碎裂或出现裂纹）
+  const wood2 = sim.ents[1];
+  const glass = sim.ents[2];
+  const wood2Burned = wood2.data?.burning || !wood2.alive;
+  const glassHurt = !glass.alive || glass.data?.cracked || glass.data?.hp < 55;
+  assert.ok(wood2Burned, '相邻木板应被蔓延点燃');
+  assert.ok(glassHurt, `玻璃应被灼伤, hp=${glass.data?.hp}`);
+});
