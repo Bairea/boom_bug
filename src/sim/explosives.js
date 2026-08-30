@@ -55,6 +55,7 @@ export function spawnProp(sim, type, x, y) {
       hp: spec.hp,
       maxHp: spec.hp ?? 0,
       waterZone: !!spec.water,
+      oilZone: !!spec.oil,
       slippery: !!spec.slippery,
       bouncy: !!spec.bouncy,
       // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
@@ -237,7 +238,7 @@ function isGroundedExplosive(w, b) {
 function hitSomething(w, b) {
   // 炮仗（燃烧弹）：只算撞到"东西"——地面/天花板是正常滚动面，不算撞击
   for (const o of w.bodies) {
-    if (o === b || !o.alive || o.data?.waterZone) continue; // 水盆是非实体区域
+    if (o === b || !o.alive || o.data?.waterZone || o.data?.oilZone) continue; // 水/油盆是非实体区域
     if (dist(b.x, b.y, o.x, o.y) < b.radius + o.radius + 0.5) return true;
   }
   if (b.data.etype === 'firecracker') return false;
@@ -268,6 +269,10 @@ export function stepProps(sim, dt) {
         if (dist(b.x, b.y, o.x, o.y) >= 14 + o.radius) continue;
         if (o.kind === 'bug') {
           if (!o.data?.knocked) applyDamage(sim, o, 8, 0.15, 'fire');
+        } else if (o.kind === 'prop' && o.data?.oilZone && !o.data.burning) {
+          o.data.burning = true;
+          o.data.burnT = 3;
+          o.data.fireTick = 0;
         } else if (o.kind === 'prop' && o.data?.hp != null) {
           // 火势蔓延：灼烧范围内的可破坏道具（木板续燃/玻璃炸裂/礼盒弹胆）
           o.data.hp -= 8;
@@ -336,10 +341,24 @@ export function processExplosions(sim) {
   sim.pendingExplosions = [];
   for (const ex of queue) {
     const depth = ex.depth;
-    // 水下爆炸被闷熄：威力与伤害大减
+    // 水下爆炸被闷熄：威力与伤害大减；油区爆炸则被轰然放大
     if (inWaterPos(sim.world, ex.x, ex.y)) {
       ex.power *= 0.45;
       ex.dmg *= 0.45;
+    }
+    for (const z of sim.world.bodies) {
+      if (z.alive && z.data?.oilZone && dist(z.x, z.y, ex.x, ex.y) < z.radius + ex.blastRadius) {
+        if (dist(z.x, z.y, ex.x, ex.y) < z.radius) {
+          ex.power *= 1.4;
+          ex.dmg *= 1.4;
+        }
+        if (!z.data.burning) {
+          z.data.burning = true;
+          z.data.burnT = 3;
+          z.data.fireTick = 0;
+          sim._record({ type: 'fireTick', x: z.x, y: z.y });
+        }
+      }
     }
     sim.stats.explosions++;
     if (depth > sim.stats.chainMax) sim.stats.chainMax = depth;

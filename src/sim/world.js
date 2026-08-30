@@ -131,7 +131,7 @@ export class World {
         const b = bodies[j];
         if (!b.alive) continue;
         // 水盆是非实体区域，不参与碰撞
-        if (a.data?.waterZone || b.data?.waterZone) continue;
+        if (a.data?.waterZone || a.data?.oilZone || b.data?.waterZone || b.data?.oilZone) continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const minD = a.radius + b.radius;

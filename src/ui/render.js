@@ -236,6 +236,7 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'glass') drawGlass(ctx, it, s);
   else if (it.t === 'sponge') drawSponge(ctx, it, s);
   else if (it.t === 'water') drawWater(ctx, it, s, time);
+  else if (it.t === 'oil') drawOil(ctx, it, s, time);
   else if (it.t === 'giftbox') drawGiftbox(ctx, it, s);
   else if (it.t === 'wood') drawWood(ctx, it, s);
   else if (it.t === 'ice') drawIce(ctx, it, s);
@@ -668,6 +669,29 @@ function drawMetal(ctx, it, s) {
   ]) {
     ctx.beginPath();
     ctx.arc(px * w, py * w, 0.32 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawOil(ctx, it, s, time) {
+  const w = it.radius * s;
+  ctx.fillStyle = 'rgba(60, 45, 75, 0.55)';
+  ctx.beginPath();
+  ctx.ellipse(0, 2 * s, w, w * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 虹彩高光
+  ctx.strokeStyle = 'rgba(180, 140, 220, 0.5)';
+  ctx.lineWidth = 0.4 * s;
+  ctx.beginPath();
+  ctx.ellipse(-w * 0.2, 1.6 * s, w * 0.4, w * 0.14, -0.2, 0, Math.PI * 2);
+  ctx.stroke();
+  if (it.onFire) {
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w);
+    g.addColorStop(0, 'rgba(255,150,40,0.6)');
+    g.addColorStop(1, 'rgba(255,60,20,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w * (0.9 + Math.sin(time * 18) * 0.1), w * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 }

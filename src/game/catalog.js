@@ -117,6 +117,7 @@ export const PROP = {
   glass: { label: '玻璃砖', radius: 9, mass: 3, hp: 55, brittle: true }, // 可碎裂
   sponge: { label: '海绵垫', radius: 10, mass: 2, hp: null, soft: true }, // 吸收冲击：不弹、爆炸伤害减半
   water: { label: '水盆', radius: 16, mass: 1, hp: null, water: true }, // 浮力区：浇灭引信、闷熄爆炸
+  oil: { label: '油盆', radius: 14, mass: 1, hp: null, oil: true }, // 可燃油区：遇火爆燃，持续灼烧区内
   giftbox: { label: '礼物盒', radius: 8, mass: 2.5, hp: 30, children: true }, // 套娃：炸开弹出内含物
   wood: { label: '木板', radius: 10, mass: 4, hp: 45, flammable: true }, // 可燃：引燃后持续灼烧周围
   ice: { label: '冰面', radius: 12, mass: 5, hp: null, slippery: true }, // 永久光滑（同黏液）

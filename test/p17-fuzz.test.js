@@ -4,7 +4,7 @@ import { Simulation } from '../src/sim/sim.js';
 import { Rng } from '../src/sim/rng.js';
 import { SCENARIOS } from '../src/game/scenario.js';
 
-const TYPES = ['roach', 'locust', 'scarab', 'snail', 'fly', 'firecracker', 'skyrocket', 'bottle', 'brick', 'glass', 'sponge', 'water', 'giftbox', 'wood', 'ice', 'metal'];
+const TYPES = ['roach', 'locust', 'scarab', 'snail', 'fly', 'firecracker', 'skyrocket', 'bottle', 'brick', 'glass', 'sponge', 'water', 'oil', 'giftbox', 'wood', 'ice', 'metal'];
 const TIPS_POOL = [[], ['toothpick'], ['pin'], ['glue'], ['pin', 'glue'], ['toothpick', 'pin']];
 
 // 随机布置生成器（种子化，测试本身可复现）
