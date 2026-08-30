@@ -30,3 +30,14 @@ test('R34: 礼盒内容物由种子决定（确定性/分享可复现）', () =>
   };
   assert.equal(run(), run());
 });
+
+test('R50: 投掷计数与上限（案例4 限 3 次）', () => {
+  const sim = new Simulation({ seed: 5, entities: [] });
+  sim.runFor(0.2);
+  sim.playerThrow(50, 80, 200, 0);
+  sim.playerThrow(50, 80, 200, 0);
+  sim.playerThrow(50, 80, 200, 0);
+  sim.runFor(0.5);
+  assert.equal(sim.stats.throws, 3);
+  assert.equal(sim.commandLog.filter((c) => c.op === 'throw').length, 3);
+});

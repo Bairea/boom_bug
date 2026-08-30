@@ -281,6 +281,11 @@ window.addEventListener('pointerup', () => {
   const d = runDrag;
   runDrag = null;
   if (Math.hypot(d.vx, d.vy) > 60) {
+    const cap = getScenario(state.scenarioId).maxThrows;
+    if (cap && (state.sim.stats.throws ?? 0) >= cap) {
+      editor.onStatus(`投掷机会用完了（${cap} 次）—— 想想怎么一发命中`);
+      return;
+    }
     state.sim.playerThrow(d.wx, d.wy, d.vx, d.vy);
     sfx.whoosh();
     editor.onStatus('扔进去一根点着的炮仗 💣');
@@ -589,11 +594,13 @@ function render() {
     const st = state.sim.stats;
     const goalFn = getScenario(state.scenarioId).goal;
     const goal = goalFn && state.sim ? goalFn(state.sim) : null; // goal 是函数，需求值
+    const throwCap = getScenario(state.scenarioId).maxThrows;
     ctx.fillStyle = 'rgba(10,12,16,0.55)';
     ctx.fillRect(12, 12, 236, goal ? 46 : 30);
     ctx.fillStyle = '#ffd166';
     ctx.font = 'bold 15px ui-monospace, monospace';
-    ctx.fillText(`💥${st.explosions}  连锁×${st.chainMax}  击倒${st.knockouts}`, 22, 33);
+    const throwInfo = throwCap ? `  投掷${st.throws ?? 0}/${throwCap}` : '';
+    ctx.fillText(`💥${st.explosions}  连锁×${st.chainMax}  击倒${st.knockouts}${throwInfo}`, 22, 33);
     if (goal) {
       ctx.fillStyle = 'rgba(215,221,230,0.75)';
       ctx.font = '12px system-ui, sans-serif';

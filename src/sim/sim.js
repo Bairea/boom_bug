@@ -115,6 +115,7 @@ export class Simulation {
       body.vy = op.vy;
       igniteExplosive(this, body, this.rng.range(0.7, 1.1)); // 短引信：扔进去就是找炸
       body.angVel = this.rng.range(-18, 18);
+      this.stats.throws = (this.stats.throws ?? 0) + 1;
       this.commandLog.push({ op: 'throw', tick: this.tick, x: op.x, y: op.y, vx: op.vx, vy: op.vy });
     }
   }

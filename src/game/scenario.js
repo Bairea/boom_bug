@@ -75,8 +75,9 @@ export const SCENARIOS = [
   {
     id: 'case4',
     label: '案例4 · 黏液保龄球馆',
-    desc: '固定球瓶阵已就位：低平掷出点着的炮仗炸它个一爆双响。进阶：放一只蜗牛铺黏液道，让炮仗滑得更远。',
+    desc: '固定球瓶阵已就位，只有 3 次投掷机会：低平掷出点着的炮仗炸它个一爆双响。',
     seed: 1234,
+    maxThrows: 3,
     entities: [
       { t: 'roach', x: 225, y: 176, fixed: true }, // 0-4 球瓶（固定，被击倒后解除）
       { t: 'roach', x: 235, y: 176, fixed: true }, // 1
