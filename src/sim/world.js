@@ -73,12 +73,12 @@ export class World {
       if (d <= rope.rest) continue;
       const invSum = a.invMass + b.invMass;
       if (invSum <= 0) continue;
-      const corr = (d - rope.rest) / d;
+      const corr = (d - rope.rest) / d; // 拉伸比例
       const [ux, uy] = [dx / d, dy / d];
-      a.x += ux * corr * (a.invMass / invSum) * rope.rest * 0.5;
-      a.y += uy * corr * (a.invMass / invSum) * rope.rest * 0.5;
-      b.x -= ux * corr * (b.invMass / invSum) * rope.rest * 0.5;
-      b.y -= uy * corr * (b.invMass / invSum) * rope.rest * 0.5;
+      a.x += ux * corr * d * (a.invMass / invSum) * 0.5;
+      a.y += uy * corr * d * (a.invMass / invSum) * 0.5;
+      b.x -= ux * corr * d * (b.invMass / invSum) * 0.5;
+      b.y -= uy * corr * d * (b.invMass / invSum) * 0.5;
     }
   }
 
@@ -153,20 +153,20 @@ export class World {
 
       if (b.x - r < 0) {
         b.x = r;
-        if (b.vx < 0) b.vx = -b.vx * e;
+        if (b.vx < 0) b.vx = -b.vx * Math.min(e, b.restitution);
         b.vy *= 0.98;
       } else if (b.x + r > w) {
         b.x = w - r;
-        if (b.vx > 0) b.vx = -b.vx * e;
+        if (b.vx > 0) b.vx = -b.vx * Math.min(e, b.restitution);
         b.vy *= 0.98;
       }
       if (b.y - r < 0) {
         b.y = r;
-        if (b.vy < 0) b.vy = -b.vy * e;
+        if (b.vy < 0) b.vy = -b.vy * Math.min(e, b.restitution);
         b.vx *= 0.98;
       } else if (b.y + r > h) {
         b.y = h - r;
-        if (b.vy > 0) b.vy = -b.vy * e;
+        if (b.vy > 0) b.vy = -b.vy * Math.min(0.95, b.restitution); // 地面弹性由物体自身决定
         // 地面滚动阻力
         b.vx *= Math.max(0, 1 - b.friction * dt);
         if (Math.abs(b.vy) < 12) b.vy = 0; // 防止无限微弹
