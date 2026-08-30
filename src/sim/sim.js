@@ -14,6 +14,7 @@ import {
   processExplosions,
 } from './explosives.js';
 import { isTip } from './accessories.js';
+import { BUG_TYPES } from '../game/catalog.js';
 import { checksum } from './math.js';
 
 export const DT = 1 / 60;
@@ -53,7 +54,7 @@ export class Simulation {
 
   _spawnEntities(entities) {
     for (const e of entities) {
-      if (['roach', 'locust', 'scarab'].includes(e.t)) {
+      if (BUG_TYPES.includes(e.t)) {
         spawnBug(this, e.t, e.x, e.y, { fixed: !!e.fixed });
       } else if (['firecracker', 'skyrocket', 'bottle'].includes(e.t)) {
         const angle = e.angle ?? -Math.PI / 2;

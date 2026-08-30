@@ -1,7 +1,7 @@
 // Canvas 渲染：玩具实验室风格（PRD §19 极简美术 + "实验录像"感）。
 // 不持有状态：每帧从视图模型重画。视图模型来自 specs(编辑) 或 sim(运行)。
 
-import { BUGS, EXPLOSIVES, PROP } from '../game/catalog.js';
+import { BUGS, EXPLOSIVES, PROP, BUG_TYPES } from '../game/catalog.js';
 
 export const VIEW_W = 300;
 export const VIEW_H = 180;
@@ -27,8 +27,10 @@ export function viewFromSim(sim) {
       hp: b.data.hp,
       maxHp: b.data.maxHp,
       speed: Math.hypot(b.vx, b.vy),
+      speedX: b.vx,
     });
   }
+  const slime = sim.world.slime.map((p) => ({ ...p }));
   const ropes = sim.world.ropes
     .filter((r) => !r.broken)
     .map((r) => {
@@ -37,13 +39,13 @@ export function viewFromSim(sim) {
       return a && b && a.alive && b.alive ? { ax: a.x, ay: a.y, bx: b.x, by: b.y } : null;
     })
     .filter(Boolean);
-  return { items, ropes };
+  return { items, ropes, slime };
 }
 
 export function viewFromSpecs(specs, ropeList = []) {
   const items = specs.map((s) => ({
     t: s.t,
-    kind: ['roach', 'locust', 'scarab'].includes(s.t) ? 'bug' : s.t === 'brick' ? 'prop' : 'explosive',
+    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' ? 'prop' : 'explosive',
     x: s.x,
     y: s.y,
     angle: s.angle ?? (s.t === 'skyrocket' ? -Math.PI / 2 : 0),
@@ -93,6 +95,9 @@ export function drawScene(ctx, W, H, view, opts = {}) {
   ctx.fillRect(0, 0, VIEW_W * s, VIEW_H * s);
   ctx.fillStyle = 'rgba(255,255,255,0.03)';
   ctx.fillRect(0, (VIEW_H - 3) * s, VIEW_W * s, 3 * s); // 底部玻璃厚度感
+
+  // 蜗牛黏液（画在物体脚下）
+  for (const p of view.slime ?? []) drawSlime(ctx, p, s);
 
   // 绳子
   for (const r of view.ropes) drawRope(ctx, r, s);
@@ -199,6 +204,7 @@ function drawItem(ctx, it, s, time) {
   if (it.t === 'roach') drawRoach(ctx, it, s, time);
   else if (it.t === 'locust') drawLocust(ctx, it, s, time);
   else if (it.t === 'scarab') drawScarab(ctx, it, s, time);
+  else if (it.t === 'snail') drawSnail(ctx, it, s, time);
   else if (it.t === 'firecracker') drawFirecracker(ctx, it, s, time);
   else if (it.t === 'skyrocket') drawSkyrocket(ctx, it, s, time);
   else if (it.t === 'bottle') drawBottle(ctx, it, s, time);
@@ -499,6 +505,56 @@ function drawBrick(ctx, it, s) {
   ctx.moveTo(w * 0.33, 0);
   ctx.lineTo(w * 0.33, w * 0.66);
   ctx.stroke();
+}
+
+function drawSnail(ctx, it, s, time) {
+  const r = 3 * s;
+  const face = it.knocked ? 1 : Math.sign(it.speedX ?? 1);
+  knockedTint(ctx, it, s, () => {
+    // 腹足
+    ctx.fillStyle = it.knocked ? '#9aa38a' : '#b7c98a';
+    ctx.beginPath();
+    ctx.ellipse(-face * r * 0.3, r * 0.45, r * 1.25, r * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 壳（螺旋）
+    ctx.fillStyle = it.knocked ? '#8d7f66' : '#c9a15f';
+    ctx.beginPath();
+    ctx.arc(face * r * 0.25, -r * 0.25, r * 0.95, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(90,60,20,0.7)';
+    ctx.lineWidth = 0.4 * s;
+    ctx.beginPath();
+    ctx.arc(face * r * 0.25, -r * 0.25, r * 0.6, 0.5, 4.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(face * r * 0.25, -r * 0.25, r * 0.28, 1, 5);
+    ctx.stroke();
+    // 眼触角
+    if (!it.knocked) {
+      ctx.strokeStyle = '#b7c98a';
+      ctx.lineWidth = 0.3 * s;
+      ctx.beginPath();
+      ctx.moveTo(-face * r * 1.2, r * 0.2);
+      ctx.lineTo(-face * r * 1.7, -r * 0.5);
+      ctx.stroke();
+      ctx.fillStyle = '#b7c98a';
+      ctx.beginPath();
+      ctx.arc(-face * r * 1.7, -r * 0.55, 0.22 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  });
+}
+
+function drawSlime(ctx, p, s) {
+  const fade = Math.max(0, 1 - p.age / p.ttl);
+  ctx.fillStyle = `rgba(150, 220, 140, ${0.3 * fade})`;
+  ctx.beginPath();
+  ctx.ellipse(p.x * s, p.y * s, p.r * s, p.r * 0.42 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(190, 240, 170, ${0.22 * fade})`;
+  ctx.beginPath();
+  ctx.ellipse((p.x + p.r * 0.3) * s, (p.y - 1) * s, p.r * 0.55 * s, p.r * 0.26 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function drawRope(ctx, r, s) {

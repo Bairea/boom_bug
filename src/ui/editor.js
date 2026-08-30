@@ -1,7 +1,7 @@
 // 编辑器：工具箱选择、摆放、瞄准拖拽、配件安装、绳子连接、运行中点燃。
 
 import { VIEW_W, VIEW_H } from './render.js';
-import { TIPS } from '../game/catalog.js';
+import { TIPS, BUG_TYPES } from '../game/catalog.js';
 
 const LIMITS = { bug: 14, explosive: 8, prop: 2, ropes: 4 };
 
@@ -150,10 +150,10 @@ export class Editor {
       }
     }
     // 幽灵预览
-    if (['roach', 'locust', 'scarab', 'firecracker', 'skyrocket', 'bottle', 'brick'].includes(this.tool)) {
+    if (['roach', 'locust', 'scarab', 'snail', 'firecracker', 'skyrocket', 'bottle', 'brick'].includes(this.tool)) {
       this.ghost = {
         t: this.tool,
-        kind: ['roach', 'locust', 'scarab'].includes(this.tool)
+        kind: BUG_TYPES.includes(this.tool)
           ? 'bug'
           : this.tool === 'brick'
             ? 'prop'
@@ -184,7 +184,7 @@ export class Editor {
   }
 
   _canPlace(t) {
-    const kind = ['roach', 'locust', 'scarab'].includes(t) ? 'bug' : t === 'brick' ? 'prop' : 'explosive';
+    const kind = BUG_TYPES.includes(t) ? 'bug' : t === 'brick' ? 'prop' : 'explosive';
     const n = this.specs.filter((s) => s.kind === kind).length;
     if (n >= LIMITS[kind]) {
       this.onStatus(`${kindName(kind)}已达上限（${LIMITS[kind]}）`);
@@ -194,7 +194,7 @@ export class Editor {
   }
 
   addSpec(t, x, y, extra = {}) {
-    const kind = ['roach', 'locust', 'scarab'].includes(t) ? 'bug' : t === 'brick' ? 'prop' : 'explosive';
+    const kind = BUG_TYPES.includes(t) ? 'bug' : t === 'brick' ? 'prop' : 'explosive';
     this.specs.push({
       t,
       x: clampPos(x, 3, VIEW_W - 3),

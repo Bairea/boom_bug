@@ -35,7 +35,21 @@ export const BUGS = {
     speed: [22, 30],
     canFix: true, // 可固定在砖块上（破甲实验靶）
   },
+  snail: {
+    label: '玩具蜗牛',
+    icon: '🐌',
+    radius: 3,
+    mass: 1.2,
+    hp: 80,
+    armor: 0.2,
+    restitution: 0.05,
+    friction: 0.5,
+    speed: [8, 14], // 龟速爬行
+    leavesSlime: true, // 爬过之处留下黏液：物体落地打滑
+  },
 };
+
+export const BUG_TYPES = Object.keys(BUGS);
 
 export const EXPLOSIVES = {
   firecracker: {

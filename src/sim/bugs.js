@@ -27,6 +27,7 @@ export function spawnBug(sim, type, x, y, opts = {}) {
       stateT: sim.rng.range(0.3, 1.2),
       heading: sim.rng.range(0, Math.PI * 2),
       jumpT: sim.rng.range(0.8, 2.2),
+      slimeT: 0,
       knocked: false,
       cracked: false,
       fixed: !!opts.fixed,
@@ -67,6 +68,7 @@ export function stepBugs(sim, dt) {
     if (d.bugType === 'roach') stepRoach(sim, b, d, threat, dt, w);
     else if (d.bugType === 'locust') stepLocust(sim, b, d, threat, dt, w);
     else if (d.bugType === 'scarab') stepScarab(sim, b, d, dt, w);
+    else if (d.bugType === 'snail') stepSnail(sim, b, d, dt, w);
   }
 }
 
@@ -136,6 +138,23 @@ function stepScarab(sim, b, d, dt, w) {
     d.stateT = sim.rng.range(0.8, 2);
   }
   steer(b, d.heading, d.speed, dt, 200);
+}
+
+function stepSnail(sim, b, d, dt, w) {
+  // 蜗牛：极慢爬行，沿途留下黏液（滑溜地形）
+  d.stateT -= dt;
+  if (d.stateT <= 0) {
+    d.heading += sim.rng.sign() * sim.rng.range(0.6, 1.8);
+    d.stateT = sim.rng.range(1.2, 3);
+  }
+  if (isGrounded(w, b)) {
+    steer(b, d.heading, d.speed, dt, 90);
+    d.slimeT -= dt;
+    if (d.slimeT <= 0 && Math.abs(b.vx) > 4) {
+      w.addSlime(b.x, w.height - 2.5, 6.5, 6);
+      d.slimeT = 0.22;
+    }
+  }
 }
 
 // 伤害结算：装甲按穿透率折减；hp 归零 → 玩具故障

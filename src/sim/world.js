@@ -12,7 +12,21 @@ export class World {
     this.wallRestitution = opts.wallRestitution ?? 0.5;
     this.bodies = [];
     this.ropes = []; // {aId, bId, rest, broken}
+    this.slime = []; // 蜗牛黏液 {x, y, r, age, ttl}
     this.events = []; // 每步产生的事件，由上层每步清空
+  }
+
+  addSlime(x, y, r = 6, ttl = 6) {
+    this.slime.push({ x, y, r, age: 0, ttl });
+    if (this.slime.length > 60) this.slime.shift();
+  }
+
+  // 物体脚下是否有黏液（有的话地面摩擦大幅降低）
+  slimeScaleAt(x, y, radius) {
+    for (const s of this.slime) {
+      if (Math.hypot(s.x - x, s.y - y) < s.r + radius * 0.5) return 0.12;
+    }
+    return 1;
   }
 
   add(body) {
@@ -42,6 +56,8 @@ export class World {
   // hooks: { pre(world,dt), post(world,dt) } —— AI/引信在 pre，爆炸结算可在 post
   step(dt, hooks) {
     this.events = [];
+    for (const s of this.slime) s.age += dt;
+    this.slime = this.slime.filter((s) => s.age < s.ttl);
     if (hooks?.pre) hooks.pre(this, dt);
 
     for (const b of this.bodies) {
@@ -169,8 +185,8 @@ export class World {
       } else if (b.y + r > h) {
         b.y = h - r;
         if (b.vy > 0) b.vy = -b.vy * Math.min(0.95, b.restitution); // 地面弹性由物体自身决定
-        // 地面滚动阻力
-        b.vx *= Math.max(0, 1 - b.friction * dt);
+        // 地面滚动阻力（黏液上摩擦大减 → 打滑）
+        b.vx *= Math.max(0, 1 - b.friction * this.slimeScaleAt(b.x, b.y, b.radius) * dt);
         if (Math.abs(b.vy) < 12) b.vy = 0; // 防止无限微弹
       }
     }
