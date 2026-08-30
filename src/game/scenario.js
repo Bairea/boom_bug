@@ -39,11 +39,13 @@ export const SCENARIOS = [
     seed: 777,
     entities: [
       ...roachRow(8, 40, 30), // 0-7
-      { t: 'bottle', x: 25, y: 110, angle: 0.3, acc: ['pin'] }, // 8 斜下扫射
-      { t: 'bottle', x: 150, y: 40, angle: 0.9, acc: ['pin'] }, // 9 俯射虫群
-      { t: 'bottle', x: 275, y: 110, angle: Math.PI - 0.3, acc: ['pin'] }, // 10
-      { t: 'firecracker', x: 120, y: FLOOR }, // 11 陷阱
-      { t: 'firecracker', x: 190, y: FLOOR }, // 12 陷阱
+      { t: 'sponge', x: 130, y: 174 }, // 8 海绵掩体（PRD 案例2 原文：蟑螂放在类似海绵板的地方）
+      { t: 'sponge', x: 205, y: 174 }, // 9
+      { t: 'bottle', x: 25, y: 110, angle: 0.3, acc: ['pin'] }, // 10 斜下扫射
+      { t: 'bottle', x: 150, y: 40, angle: 0.9, acc: ['pin'] }, // 11 俯射虫群
+      { t: 'bottle', x: 275, y: 110, angle: Math.PI - 0.3, acc: ['pin'] }, // 12
+      { t: 'firecracker', x: 95, y: FLOOR }, // 13 陷阱
+      { t: 'firecracker', x: 235, y: FLOOR }, // 14 陷阱
     ],
     goal: (sim) => ({
       label: '击倒 ≥ 4 只蟑螂',

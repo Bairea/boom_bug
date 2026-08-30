@@ -5,6 +5,7 @@ export class Sfx {
   constructor(createCtx = null) {
     this._create = createCtx;
     this.ctx = null;
+    this.master = null;
     this.muted = false;
     this._noise = null;
     this._lastAt = {}; // 按类型节流
@@ -15,6 +16,10 @@ export class Sfx {
     if (!this.ctx && this._create) {
       try {
         this.ctx = this._create();
+        // 主音量总线 0.5：多音叠加时防爆音
+        this.master = this.ctx.createGain();
+        this.master.gain.value = 0.5;
+        this.master.connect(this.ctx.destination);
       } catch {
         this.ctx = null;
       }
@@ -22,6 +27,12 @@ export class Sfx {
     if (!this.ctx) return null;
     if (this.ctx.state === 'suspended') this.ctx.resume?.();
     return this.ctx;
+  }
+
+
+  _out(ac, node) {
+    node.connect(this.master ?? ac.destination);
+    return node;
   }
 
   // 复用一条白噪声缓冲
@@ -58,7 +69,7 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(vol, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
-    src.connect(filter).connect(gain).connect(ac.destination);
+    src.connect(filter).connect(gain).connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.5);
 
@@ -69,7 +80,7 @@ export class Sfx {
     const g2 = ac.createGain();
     g2.gain.setValueAtTime(vol * 0.9, t0);
     g2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3);
-    osc.connect(g2).connect(ac.destination);
+    osc.connect(g2).connect(this.master ?? ac.destination);
     osc.start(t0);
     osc.stop(t0 + 0.32);
   }
@@ -88,7 +99,7 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.12, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
-    src.connect(hp).connect(gain).connect(ac.destination);
+    src.connect(hp).connect(gain).connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.2);
   }
@@ -110,7 +121,7 @@ export class Sfx {
     gain.gain.setValueAtTime(0.001, t0);
     gain.gain.linearRampToValueAtTime(0.16, t0 + 0.06);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
-    src.connect(bp).connect(gain).connect(ac.destination);
+    src.connect(bp).connect(gain).connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.22);
   }
@@ -129,7 +140,7 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.22, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3);
-    src.connect(hp).connect(gain).connect(ac.destination);
+    src.connect(hp).connect(gain).connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.32);
     const osc = ac.createOscillator();
@@ -139,7 +150,7 @@ export class Sfx {
     const g2 = ac.createGain();
     g2.gain.setValueAtTime(0.1, t0);
     g2.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
-    osc.connect(g2).connect(ac.destination);
+    osc.connect(g2).connect(this.master ?? ac.destination);
     osc.start(t0);
     osc.stop(t0 + 0.22);
   }
@@ -158,7 +169,7 @@ export class Sfx {
       gain.gain.setValueAtTime(0.0001, st);
       gain.gain.linearRampToValueAtTime(0.12, st + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.001, st + 0.22);
-      osc.connect(gain).connect(ac.destination);
+      osc.connect(gain).connect(this.master ?? ac.destination);
       osc.start(st);
       osc.stop(st + 0.24);
     });
@@ -176,7 +187,7 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.14, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.24);
-    osc.connect(gain).connect(ac.destination);
+    osc.connect(gain).connect(this.master ?? ac.destination);
     osc.start(t0);
     osc.stop(t0 + 0.26);
   }
@@ -193,7 +204,7 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.2, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
-    osc.connect(gain).connect(ac.destination);
+    osc.connect(gain).connect(this.master ?? ac.destination);
     osc.start(t0);
     osc.stop(t0 + 0.2);
   }
@@ -209,7 +220,7 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.12, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.07);
-    osc.connect(gain).connect(ac.destination);
+    osc.connect(gain).connect(this.master ?? ac.destination);
     osc.start(t0);
     osc.stop(t0 + 0.08);
   }

@@ -44,6 +44,7 @@ const state = {
   runExperiment: null, // {seed,width,height,entities,commands} 本次运行的输入
   replay: null, // 回放游标
   slowmo: 0, // 慢镜头剩余秒数（表现层）
+  slowmoUsed: false, // 一局只慢放第一次大连锁
   zoomPunch: 1, // 镜头推近系数（表现层）
   scorches: [], // 爆炸焦痕（纯表现层）
 };
@@ -160,7 +161,9 @@ function startRun(useRecordedCommands = false) {
   state.particles = new Particles();
   state.lastEventTick = 0;
   state.slowmo = 0;
+  state.slowmoUsed = false;
   state.zoomPunch = 1;
+  state.scorches = [];
   state.mode = 'running';
   editor.locked = true;
   hideReport();
@@ -498,13 +501,19 @@ function handleEvents(events) {
       if (state.scorches.length > 24) state.scorches.shift();
       // 镜头推近一点，随时间回弹
       state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
-      // 连锁 ≥2 或一爆多杀 → 慢镜头欣赏失控瞬间
-      if (e.depth >= 2) state.slowmo = Math.max(state.slowmo, 0.7);
+      // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
+      if (e.depth >= 2 && !state.slowmoUsed) {
+        state.slowmo = Math.max(state.slowmo, 0.7);
+        state.slowmoUsed = true;
+      }
     } else if (e.type === 'knockout') {
       state.particles.spark(e.x, e.y, 8);
       sfx.knockout();
     } else if (e.type === 'multiKill') {
-      state.slowmo = Math.max(state.slowmo, 0.9);
+      if (!state.slowmoUsed) {
+        state.slowmo = Math.max(state.slowmo, 0.9);
+        state.slowmoUsed = true;
+      }
     } else if (e.type === 'pinStick' || e.type === 'glueStick') {
       state.particles.puff(e.x, e.y);
       sfx.stick();
