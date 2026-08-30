@@ -44,7 +44,9 @@ export class World {
     this.events = [];
     if (hooks?.pre) hooks.pre(this, dt);
 
-    for (const b of this.bodies) integrateBody(b, dt, this.gravity);
+    for (const b of this.bodies) {
+      if (b.alive) integrateBody(b, dt, this.gravity);
+    }
 
     this.solveRopes();
     for (let iter = 0; iter < 2; iter++) this.solveCollisions();

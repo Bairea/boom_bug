@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>擦炮虫虫实验室 · Boom Bug Lab</title>
+<style>
+  :root {
+    --bg: #16181d;
+    --panel: #1f232b;
+    --line: #2d3340;
+    --text: #d7dde6;
+    --dim: #8a94a3;
+    --accent: #7ec8ff;
+    --hot: #ff7840;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 17px; margin: 0; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  header select {
+    margin-left: auto;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 8px;
+  }
+  main { display: flex; flex: 1; min-height: 0; }
+  #toolbox {
+    width: 118px;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+  }
+  #toolbox .cat { color: var(--dim); font-size: 11px; margin: 8px 2px 2px; }
+  #toolbox button {
+    display: flex; align-items: center; gap: 6px;
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+  }
+  #toolbox button:hover { border-color: var(--accent); }
+  #toolbox button.active { border-color: var(--accent); background: rgba(126,200,255,0.12); }
+  #toolbox label { color: var(--dim); font-size: 12px; display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+  #stage-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-width: 0;
+    padding: 10px;
+  }
+  canvas {
+    width: min(100%, calc((100vh - 170px) * 1.6667));
+    max-height: 100%;
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    cursor: crosshair;
+    touch-action: none;
+  }
+  #toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  #toolbar button {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  #toolbar button:hover { border-color: var(--accent); }
+  #toolbar button.primary {
+    background: linear-gradient(180deg, #ff9a5c, #ff6a3c);
+    border-color: #ff8a5c;
+    color: #241109;
+    font-weight: 700;
+  }
+  #toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
+  #status {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(22,24,29,0.85);
+    border: 1px solid var(--line);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--dim);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #report {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(430px, 92%);
+    background: rgba(18,20,25,0.96);
+    border: 1px solid #3a4250;
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    z-index: 5;
+  }
+  #report h2 {
+    margin: 0 0 10px;
+    font-size: 17px;
+    color: var(--hot);
+    font-family: ui-monospace, monospace;
+    letter-spacing: 1px;
+  }
+  #report .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+  #report .stat {
+    display: flex; justify-content: space-between;
+    font-size: 13px; color: var(--dim);
+    border-bottom: 1px dashed var(--line);
+    padding: 3px 0;
+  }
+  #report .stat b { color: var(--text); }
+  #report .goal {
+    margin-top: 10px; font-size: 13px;
+    color: #ff9a8a; background: rgba(255,120,64,0.08);
+    border: 1px solid rgba(255,120,64,0.25);
+    border-radius: 8px; padding: 6px 10px;
+  }
+  #report .goal.done { color: #9fe6a0; border-color: rgba(120,230,140,0.3); background: rgba(120,230,140,0.08); }
+  #report .timeline { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px; }
+  #report .timeline span {
+    font-size: 11px; color: var(--dim);
+    background: var(--panel); border-radius: 4px; padding: 2px 6px;
+    font-family: ui-monospace, monospace;
+  }
+  #report .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  #report .actions button {
+    flex: 1;
+    background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 6px; cursor: pointer; font-size: 13px;
+  }
+  #report .actions button:hover { border-color: var(--accent); }
+  #toast {
+    position: fixed;
+    bottom: 74px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(126,200,255,0.15);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.25s;
+    pointer-events: none;
+    z-index: 9;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧨 擦炮虫虫实验室</h1>
+  <span class="sub">微型灾难实验室 · 摆放 → 点燃 → 目睹失控 → 回放分享</span>
+  <select id="scenario"></select>
+  <button id="btn-share" style="background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:6px;padding:5px 12px;cursor:pointer">🔗 分享</button>
+</header>
+<main>
+  <div id="toolbox">
+    <div class="cat">玩具虫</div>
+    <button data-tool="roach" title="蟑螂：高速逃窜、急转弯">🪳 蟑螂</button>
+    <button data-tool="locust" title="蝗虫：随机跳跃、高弹性">🦗 蝗虫</button>
+    <button data-tool="scarab" title="清道夫：装甲厚重，可固定">🪲 清道夫</button>
+    <label><input type="checkbox" id="fix-scarab" checked /> 固定清道夫</label>
+    <div class="cat">爆炸物</div>
+    <button data-tool="firecracker" title="小炮仗：点燃后随机引信爆炸">🧨 小炮仗</button>
+    <button data-tool="skyrocket" title="冲天炮：竖直上冲（拖拽瞄准）">🎆 冲天炮</button>
+    <button data-tool="bottle" title="窜天猴：定向飞行（拖拽瞄准）">🚀 窜天猴</button>
+    <div class="cat">配件（点爆炸物安装）</div>
+    <button data-tool="toothpick" title="牙签：高穿透、更轻">🥢 牙签</button>
+    <button data-tool="pin" title="大头针：极高穿透、命中钉住">📌 大头针</button>
+    <button data-tool="glue" title="胶水：命中粘附原地爆炸">🫙 胶水</button>
+    <button data-tool="rope" title="绳子：连接两个物体，超载会断">🪢 绳子</button>
+    <div class="cat">道具</div>
+    <button data-tool="brick" title="砖头：固定平台">🧱 砖头</button>
+    <button data-tool="eraser" title="删除：点击要移除的物体">🗑 删除</button>
+  </div>
+  <div id="stage-wrap">
+    <div id="status">选择左侧工具，在盒子里摆放你的实验</div>
+    <canvas id="stage" width="960" height="576"></canvas>
+    <div id="toolbar">
+      <button id="btn-ignite" class="primary">🔥 点燃！</button>
+      <button id="btn-end" hidden>⏹ 结束实验</button>
+      <button id="btn-replay-share" hidden>⟲ 重放这场事故</button>
+      <button id="btn-rerun">🔄 再来一次</button>
+      <button id="btn-newseed">🎲 新实验</button>
+    </div>
+  </div>
+</main>
+<div id="report" hidden>
+  <h2 id="report-title">THE INCIDENT</h2>
+  <div id="report-body"></div>
+  <div class="actions">
+    <button id="btn-overlay-replay">🎬 回放</button>
+    <button id="btn-overlay-rerun">🔄 再来一次</button>
+    <button id="btn-overlay-edit">✏️ 继续改造</button>
+  </div>
+</div>
+<div id="toast"></div>
+<script type="module" src="./src/ui/main.js"></script>
+</body>
+</html>

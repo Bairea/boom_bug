@@ -21,6 +21,7 @@ export function spawnExplosive(sim, type, x, y, angle = -Math.PI / 2, acc = []) 
     friction: 0.8,
     data: {
       etype: type,
+      aim: angle, // 玩家的瞄准方向（飞行中 angle 会被物理改变）
       lit: false,
       fuse: -1,
       burn: 0,

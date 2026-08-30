@@ -4,6 +4,7 @@
 
 import { World } from './world.js';
 import { Rng } from './rng.js';
+import { resetBodyIds } from './body.js';
 import { spawnBug, stepBugs, applyDamage } from './bugs.js';
 import {
   spawnExplosive,
@@ -22,6 +23,7 @@ export class Simulation {
     this.seed = seed >>> 0;
     this.width = width;
     this.height = height;
+    resetBodyIds(); // 每个模拟独享 id 空间：分享码里的 id 才能跨会话成立
     this.rng = new Rng(this.seed);
     this.world = new World({ width, height });
     this.ents = []; // 按摆放顺序的实体（与分享码里的索引对应）
@@ -43,6 +45,7 @@ export class Simulation {
       maxPower: 0,
     };
     this.pending = new Map(); // tick -> ops[]
+    this.commandLog = []; // 实际执行的点燃命令（分享码用）
     this._spawnEntities(entities);
     for (const c of commands) this.schedule(c.tick, c);
     this.finished = false;
@@ -84,15 +87,18 @@ export class Simulation {
     const body = this.world.byId(id);
     if (!body || body.kind !== 'explosive' || !body.alive) return false;
     if (body.data.lit) return false;
-    igniteExplosive(this, body);
-    this.schedule(this.tick, { op: 'ignite', id }); // 已执行，登记用于分享
+    // 调度到下一 tick：与分享码重放的执行时点完全一致
+    this.schedule(this.tick + 1, { op: 'ignite', id });
     return true;
   }
 
   _exec(op) {
     if (op.op === 'ignite') {
       const body = this.world.byId(op.id);
-      if (body && body.alive && body.kind === 'explosive') igniteExplosive(this, body);
+      if (body && body.alive && body.kind === 'explosive') {
+        igniteExplosive(this, body);
+        this.commandLog.push({ op: 'ignite', tick: this.tick, id: op.id });
+      }
     }
   }
 
@@ -122,6 +128,11 @@ export class Simulation {
     if (e.type === 'glueStick') this.stats.glues++;
     if (e.type === 'ropeBreak') this.stats.ropesBroken++;
     if (e.type === 'locustJump') this.stats.jumps++;
+    if (e.type === 'armorCrack') this.stats.cracks = (this.stats.cracks ?? 0) + 1;
+    if (e.type === 'knockout') {
+      this.stats.koByType = this.stats.koByType ?? {};
+      this.stats.koByType[e.bugType] = (this.stats.koByType[e.bugType] ?? 0) + 1;
+    }
   }
 
   runFor(seconds) {
