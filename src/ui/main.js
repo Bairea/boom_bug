@@ -580,11 +580,17 @@ function render() {
   // 实况统计 HUD
   if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
     const st = state.sim.stats;
+    const goal = getScenario(state.scenarioId).goal;
     ctx.fillStyle = 'rgba(10,12,16,0.55)';
-    ctx.fillRect(12, 12, 236, 30);
+    ctx.fillRect(12, 12, 236, goal ? 46 : 30);
     ctx.fillStyle = '#ffd166';
     ctx.font = 'bold 15px ui-monospace, monospace';
     ctx.fillText(`💥${st.explosions}  连锁×${st.chainMax}  击倒${st.knockouts}`, 22, 33);
+    if (goal) {
+      ctx.fillStyle = 'rgba(215,221,230,0.75)';
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.fillText('目标：' + goal.label, 22, 50);
+    }
   }
 }
 
