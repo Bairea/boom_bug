@@ -7,6 +7,7 @@ import { Editor } from './editor.js';
 import { Recorder, buildReport, SNAPSHOT_INTERVAL } from '../game/replay.js';
 import { SCENARIOS, getScenario } from '../game/scenario.js';
 import { toHash, experimentFromHash } from '../game/encode.js';
+import { Sfx } from './sounds.js';
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
@@ -47,6 +48,25 @@ const state = {
 
 const editor = new Editor(canvas);
 editor.onStatus = (msg) => (els.status.textContent = msg);
+
+// 音效：首个用户手势（点燃/点击画布）后创建 AudioContext
+const sfx = new Sfx(
+  typeof window !== 'undefined' && window.AudioContext
+    ? () => new AudioContext()
+    : null
+);
+els.mute = document.getElementById('btn-mute');
+els.mute?.addEventListener('click', () => {
+  sfx.muted = !sfx.muted;
+  els.mute.textContent = sfx.muted ? '🔇' : '🔊';
+  if (!sfx.muted) sfx.ensure();
+});
+// 首次任意画布交互时预热音频（自动播放策略要求手势）
+canvas.addEventListener(
+  'pointerdown',
+  () => sfx.ensure(),
+  { once: true }
+);
 
 // ---- 工具箱 ----
 for (const btn of els.toolButtons) {
@@ -392,15 +412,26 @@ function handleEvents(events) {
   for (const e of events) {
     if (e.type === 'explosion') {
       state.particles.explosion(e.x, e.y, e.power);
+      sfx.explosion(e.power);
       // 镜头推近一点，随时间回弹
       state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
       // 连锁 ≥2 或一爆多杀 → 慢镜头欣赏失控瞬间
       if (e.depth >= 2) state.slowmo = Math.max(state.slowmo, 0.7);
-    } else if (e.type === 'knockout') state.particles.spark(e.x, e.y, 8);
-    else if (e.type === 'multiKill') state.slowmo = Math.max(state.slowmo, 0.9);
-    else if (e.type === 'pinStick' || e.type === 'glueStick') state.particles.puff(e.x, e.y);
-    else if (e.type === 'ropeBreak') state.particles.spark(e.x, e.y, 4);
-    else if (e.type === 'ignite') state.particles.spark(e.x, e.y, 2);
+    } else if (e.type === 'knockout') {
+      state.particles.spark(e.x, e.y, 8);
+      sfx.knockout();
+    } else if (e.type === 'multiKill') {
+      state.slowmo = Math.max(state.slowmo, 0.9);
+    } else if (e.type === 'pinStick' || e.type === 'glueStick') {
+      state.particles.puff(e.x, e.y);
+      sfx.stick();
+    } else if (e.type === 'ropeBreak') {
+      state.particles.spark(e.x, e.y, 4);
+      sfx.ropeBreak();
+    } else if (e.type === 'ignite') {
+      state.particles.spark(e.x, e.y, 2);
+      sfx.fuse();
+    }
     if (['explosion', 'knockout', 'ropeBreak', 'multiKill', 'armorCrack', 'pinStick', 'glueStick'].includes(e.type)) {
       state.lastEventTick = e.tick;
     }
