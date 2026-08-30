@@ -82,10 +82,13 @@ export class Editor {
       const spec = this.specs[idx];
       spec.acc = spec.acc ?? [];
       const at = spec.acc.indexOf(t);
-      if (at >= 0) spec.acc.splice(at, 1);
-      else {
+      if (at >= 0) {
+        spec.acc.splice(at, 1);
+        this.onStatus(`已拆除 ${labelOf(t)}`);
+      } else {
         if (spec.acc.length >= 2) return this.onStatus('每个爆炸物最多 2 个配件');
         spec.acc.push(t);
+        this.onStatus(`${labelOf(t)} 已装上 ✓（再点一次可拆除）`);
       }
       return;
     }
@@ -137,15 +140,9 @@ export class Editor {
 
   _commitDrag() {
     const d = this.drag;
-    this.specs.push({
-      t: d.t,
-      x: clampPos(d.x, 3, VIEW_W - 3),
-      y: clampPos(d.y, 2, VIEW_H - 2),
-      angle: d.angle,
-      acc: [],
-      kind: 'explosive',
-    });
-    this.onStatus(`已放置 ${labelOf(d.t)} —— 拖拽可瞄准`);
+    // 统一走 addSpec：kind / fixed（清道夫固定）等属性只有这一个来源
+    this.addSpec(d.t, d.x, d.y, { angle: d.angle });
+    this.onStatus(`已放置 ${labelOf(d.t)}${['skyrocket', 'bottle'].includes(d.t) ? ' —— 拖拽可瞄准' : ''}`);
   }
 
   _canPlace(t) {
@@ -162,8 +159,8 @@ export class Editor {
     const kind = ['roach', 'locust', 'scarab'].includes(t) ? 'bug' : t === 'brick' ? 'prop' : 'explosive';
     this.specs.push({
       t,
-      x,
-      y,
+      x: clampPos(x, 3, VIEW_W - 3),
+      y: clampPos(y, 2, VIEW_H - 2),
       angle: extra.angle ?? (t === 'skyrocket' ? -Math.PI / 2 : t === 'bottle' ? -0.3 : undefined),
       acc: extra.acc ?? [],
       fixed: extra.fixed ?? (t === 'scarab' ? this.fixScarab : undefined),

@@ -388,4 +388,14 @@ if (fromHash) {
 }
 
 els.replayShare.hidden = !fromHash;
+// 调试句柄：自动化试玩与问题排查用
+window.__lab = {
+  editor,
+  state,
+  get sim() {
+    return state.sim;
+  },
+  specs: () => editor.specs.map((s) => ({ ...s })),
+  events: () => (state.sim ? state.sim.eventLog.map((e) => ({ ...e })) : []),
+};
 requestAnimationFrame(frame);
