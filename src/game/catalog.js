@@ -61,6 +61,7 @@ export const BUGS = {
   },
 };
 
+
 export const BUG_TYPES = Object.keys(BUGS);
 
 export const EXPLOSIVES = {
@@ -117,5 +118,10 @@ export const PROP = {
   sponge: { label: '海绵垫', radius: 10, mass: 2, hp: null, soft: true }, // 吸收冲击：不弹、爆炸伤害减半
   water: { label: '水盆', radius: 16, mass: 1, hp: null, water: true }, // 浮力区：浇灭引信、闷熄爆炸
   giftbox: { label: '礼物盒', radius: 8, mass: 2.5, hp: 30, children: true }, // 套娃：炸开弹出内含物
+  wood: { label: '木板', radius: 10, mass: 4, hp: 45, flammable: true }, // 可燃：引燃后持续灼烧周围
+  ice: { label: '冰面', radius: 12, mass: 5, hp: null, slippery: true }, // 永久光滑（同黏液）
+  metal: { label: '金属板', radius: 9, mass: 10, hp: null, bouncy: true }, // 高弹反弹
   debris: { label: '碎片', radius: 3, mass: 0.6, hp: null },
 };
+
+export const PROP_TYPES = Object.keys(PROP).filter((k) => k !== 'debris');

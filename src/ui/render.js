@@ -1,7 +1,7 @@
 // Canvas 渲染：玩具实验室风格（PRD §19 极简美术 + "实验录像"感）。
 // 不持有状态：每帧从视图模型重画。视图模型来自 specs(编辑) 或 sim(运行)。
 
-import { BUGS, EXPLOSIVES, PROP, BUG_TYPES } from '../game/catalog.js';
+import { BUGS, EXPLOSIVES, PROP, BUG_TYPES, PROP_TYPES } from '../game/catalog.js';
 
 export const VIEW_W = 300;
 export const VIEW_H = 180;
@@ -29,6 +29,7 @@ export function viewFromSim(sim) {
       maxHp: b.data.maxHp,
       speed: Math.hypot(b.vx, b.vy),
       speedX: b.vx,
+      onFire: !!b.data.burning,
     });
   }
   const slime = sim.world.slime.map((p) => ({ ...p }));
@@ -225,6 +226,9 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'sponge') drawSponge(ctx, it, s);
   else if (it.t === 'water') drawWater(ctx, it, s, time);
   else if (it.t === 'giftbox') drawGiftbox(ctx, it, s);
+  else if (it.t === 'wood') drawWood(ctx, it, s);
+  else if (it.t === 'ice') drawIce(ctx, it, s);
+  else if (it.t === 'metal') drawMetal(ctx, it, s);
   else if (it.t === 'debris') drawDebris(ctx, it, s);
   ctx.restore();
   // 受损血条
@@ -593,6 +597,69 @@ function drawGiftbox(ctx, it, s) {
   }
 }
 
+
+function drawWood(ctx, it, s, time) {
+  const w = 10 * s;
+  ctx.fillStyle = it.onFire ? '#8a5a2b' : '#9c6b3d';
+  roundRect(ctx, -w, -w * 0.35, w * 2, w * 0.7, 1.5 * s);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(70,40,15,0.6)';
+  ctx.lineWidth = 0.4 * s;
+  for (const gx of [-0.5, 0, 0.5]) {
+    ctx.beginPath();
+    ctx.moveTo(gx * w, -w * 0.3);
+    ctx.lineTo(gx * w, w * 0.3);
+    ctx.stroke();
+  }
+  if (it.onFire) {
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.9);
+    g.addColorStop(0, 'rgba(255,170,60,0.55)');
+    g.addColorStop(1, 'rgba(255,90,30,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(0, 0, w * 0.9 * (0.85 + Math.sin(time * 22) * 0.15), 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawIce(ctx, it, s) {
+  const w = 12 * s;
+  ctx.fillStyle = 'rgba(190, 230, 250, 0.5)';
+  ctx.beginPath();
+  ctx.ellipse(0, 1 * s, w, w * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(230, 250, 255, 0.85)';
+  ctx.lineWidth = 0.5 * s;
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.55, -w * 0.05);
+  ctx.lineTo(-w * 0.15, -w * 0.16);
+  ctx.moveTo(w * 0.1, w * 0.12);
+  ctx.lineTo(w * 0.5, w * 0.02);
+  ctx.stroke();
+}
+
+function drawMetal(ctx, it, s) {
+  const w = 9 * s;
+  const g = ctx.createLinearGradient(0, -w * 0.5, 0, w * 0.5);
+  g.addColorStop(0, '#b8c2cc');
+  g.addColorStop(1, '#7d8894');
+  ctx.fillStyle = g;
+  roundRect(ctx, -w, -w * 0.5, w * 2, w, 1.5 * s);
+  ctx.fill();
+  ctx.fillStyle = '#59626c';
+  for (const [px, py] of [
+    [-0.75, -0.28],
+    [0.75, -0.28],
+    [-0.75, 0.28],
+    [0.75, 0.28],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(px * w, py * w, 0.32 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
 
 function drawSponge(ctx, it, s) {
   const w = 10 * s;

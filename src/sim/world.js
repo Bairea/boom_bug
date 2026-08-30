@@ -21,10 +21,13 @@ export class World {
     if (this.slime.length > 60) this.slime.shift();
   }
 
-  // 物体脚下是否有黏液（有的话地面摩擦大幅降低）
+  // 物体脚下是否有黏液/冰面（有的话地面摩擦大幅降低）
   slimeScaleAt(x, y, radius) {
     for (const s of this.slime) {
       if (Math.hypot(s.x - x, s.y - y) < s.r + radius * 0.5) return 0.12;
+    }
+    for (const b of this.bodies) {
+      if (b.alive && b.data?.slippery && Math.hypot(b.x - x, b.y - y) < b.radius + radius * 0.5) return 0.1;
     }
     return 1;
   }
@@ -155,7 +158,11 @@ export class World {
         const rvy = b.vy - a.vy;
         const vn = rvx * nx + rvy * ny;
         if (vn < 0) {
-          const e = Math.min(a.restitution, b.restitution);
+          // 金属等"高弹面"：取双方较大弹性（普通对仍取较小，保住海绵的软）
+          const e =
+            a.data?.bouncy || b.data?.bouncy
+              ? Math.max(a.restitution, b.restitution)
+              : Math.min(a.restitution, b.restitution);
           const jImp = (-(1 + e) * vn) / invSum;          a.vx -= jImp * nx * a.invMass;
           a.vy -= jImp * ny * a.invMass;
           b.vx += jImp * nx * b.invMass;

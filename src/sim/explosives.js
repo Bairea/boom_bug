@@ -48,13 +48,15 @@ export function spawnProp(sim, type, x, y) {
     radius: spec.radius,
     mass: spec.mass,
     static: true,
-    restitution: spec.soft ? 0.02 : spec.brittle ? 0.1 : 0.2,
+    restitution: spec.soft ? 0.02 : spec.brittle ? 0.1 : spec.bouncy ? 0.85 : 0.2,
     friction: spec.soft ? 1.4 : 0.8,
     data: {
       propType: type,
       hp: spec.hp,
       maxHp: spec.hp ?? 0,
       waterZone: !!spec.water,
+      slippery: !!spec.slippery,
+      bouncy: !!spec.bouncy,
       // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
       children: spec.children
         ? [sim.rng.pick(['roach', 'locust']), sim.rng.pick(['roach', 'locust']), 'firecracker']
@@ -246,6 +248,30 @@ function hitSomething(w, b) {
   return false;
 }
 
+// 道具每步：木板燃烧（周期灼烧周围虫子，烧完化为灰）
+export function stepProps(sim, dt) {
+  const w = sim.world;
+  for (const b of w.bodies) {
+    if (!b.alive || b.kind !== 'prop' || !b.data?.burning) continue;
+    b.data.burnT -= dt;
+    b.data.fireTick -= dt;
+    if (b.data.fireTick <= 0) {
+      b.data.fireTick = 0.4;
+      sim._record({ type: 'fireTick', x: b.x, y: b.y });
+      for (const o of w.bodies) {
+        if (o.kind !== 'bug' || !o.alive || o.data?.knocked) continue;
+        if (dist(b.x, b.y, o.x, o.y) < 14 + o.radius) {
+          applyDamage(sim, o, 8, 0.15, 'fire');
+        }
+      }
+    }
+    if (b.data.burnT <= 0) {
+      b.alive = false;
+      sim._record({ type: 'propBreak', x: b.x, y: b.y, propType: b.data.propType });
+    }
+  }
+}
+
 // 撞击接触的统一处理：大头针钉住 / 胶水粘附 / 直接起爆（供解算时刻的接触事件调用）
 export function handleExplosiveContact(sim, body) {
   if (!body.alive || !body.data.lit || body.data.exploded) return;
@@ -348,14 +374,22 @@ export function processExplosions(sim) {
         applyDamage(sim, b, dmg, ex.pierce, ex.cause);
         if (!before && b.data.knocked) blastKills++;
       }
-      // 可破坏道具（玻璃砖）：受伤 → 裂纹 → 碎裂
+      // 可破坏道具（玻璃砖）：受伤 → 裂纹 → 碎裂；木板：受伤 → 引燃
       if (b.kind === 'prop' && b.data.hp != null) {
         b.data.hp -= ex.dmg * falloff;
         if (b.data.hp <= 0) {
           shatterProp(sim, b);
-        } else if (!b.data.cracked && b.data.maxHp > 0 && b.data.hp < b.data.maxHp * 0.5) {
-          b.data.cracked = true;
-          sim._record({ type: 'propCrack', x: b.x, y: b.y, propType: b.data.propType });
+        } else {
+          if (!b.data.cracked && b.data.maxHp > 0 && b.data.hp < b.data.maxHp * 0.5) {
+            b.data.cracked = true;
+            sim._record({ type: 'propCrack', x: b.x, y: b.y, propType: b.data.propType });
+          }
+          if (b.data.hp < b.data.maxHp && PROP[b.data.propType]?.flammable && !b.data.burning) {
+            b.data.burning = true;
+            b.data.burnT = 2.5;
+            b.data.fireTick = 0;
+            sim._record({ type: 'ignite', id: b.id, x: b.x, y: b.y });
+          }
         }
       }
     }

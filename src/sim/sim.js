@@ -11,11 +11,12 @@ import {
   spawnProp,
   igniteExplosive,
   stepExplosives,
+  stepProps,
   processExplosions,
   handleExplosiveContact,
 } from './explosives.js';
 import { isTip } from './accessories.js';
-import { BUG_TYPES } from '../game/catalog.js';
+import { BUG_TYPES, PROP_TYPES } from '../game/catalog.js';
 import { checksum } from './math.js';
 
 export const DT = 1 / 60;
@@ -63,7 +64,7 @@ export class Simulation {
         if (e.delay != null && e.delay >= 0) {
           this.schedule(Math.round(e.delay * 60), { op: 'ignite', id: body.id });
         }
-      } else if (['brick', 'glass', 'sponge', 'water', 'giftbox'].includes(e.t)) {
+      } else if (PROP_TYPES.includes(e.t)) {
         spawnProp(this, e.t, e.x, e.y);
       }
     }
@@ -130,6 +131,7 @@ export class Simulation {
       pre: () => {
         stepBugs(this, DT);
         stepExplosives(this, DT);
+        stepProps(this, DT);
       },
     });
     // 解算时刻的撞击接触：钉住/粘附/立即起爆（先于事件流 drain 处理）
