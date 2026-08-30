@@ -528,6 +528,9 @@ function handleEvents(events) {
     } else if (e.type === 'douse') {
       state.particles.puff(e.x, e.y);
       sfx.fuse(); // 呲——
+    } else if (e.type === 'fireTick') {
+      // 火焰火星
+      for (let i = 0; i < 3; i++) state.particles.spark(e.x + (Math.random() - 0.5) * 16, e.y - Math.random() * 8, 1);
     } else if (e.type === 'propBreak') {
       state.particles.spark(e.x, e.y, 10);
       sfx.glassBreak();
@@ -550,6 +553,7 @@ function render() {
     time: performance.now() / 1000,
     zoom: state.zoomPunch,
     scorches: state.scorches,
+    slowmoActive: state.slowmo > 0,
   };
 
   if (state.mode === 'edit') {

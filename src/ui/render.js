@@ -138,6 +138,17 @@ export function drawScene(ctx, W, H, view, opts = {}) {
   // 投掷预览（运行中拖拽扔炮仗）
   if (opts.throwPreview) drawThrowPreview(ctx, opts.throwPreview, s);
 
+  // 慢镜头视觉提示：边缘泛蓝光晕
+  if (opts.slowmoActive) {
+    const g = ctx.createLinearGradient(0, 0, 0, VIEW_H * s);
+    g.addColorStop(0, 'rgba(126,200,255,0.16)');
+    g.addColorStop(0.2, 'rgba(126,200,255,0)');
+    g.addColorStop(0.8, 'rgba(126,200,255,0)');
+    g.addColorStop(1, 'rgba(126,200,255,0.16)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, VIEW_W * s, VIEW_H * s);
+  }
+
   // 盒子边框
   ctx.strokeStyle = 'rgba(190,220,255,0.75)';
   ctx.lineWidth = Math.max(2, 1.2 * s);
