@@ -73,18 +73,16 @@ export const SCENARIOS = [
   {
     id: 'case4',
     label: '案例4 · 黏液保龄球馆',
-    desc: '蜗牛铺出打滑球道：把点着的炮仗低平掷出去，看它滑进虫堆。目标：一爆双响（一爆多杀 ≥ 2）。',
+    desc: '固定球瓶阵已就位：低平掷出点着的炮仗炸它个一爆双响。进阶：放一只蜗牛铺黏液道，让炮仗滑得更远。',
     seed: 1234,
     entities: [
-      { t: 'snail', x: 70, y: 176 }, // 0 铺道员
-      { t: 'roach', x: 235, y: 176 }, // 1 球瓶
-      { t: 'roach', x: 245, y: 176 }, // 2
-      { t: 'roach', x: 255, y: 176 }, // 3
-      { t: 'roach', x: 265, y: 176 }, // 4
-      { t: 'firecracker', x: 150, y: 176 }, // 5 备用球
-      { t: 'bottle', x: 270, y: 60, angle: Math.PI - 0.4, acc: ['glue'] }, // 6 空中支援
+      { t: 'roach', x: 225, y: 176, fixed: true }, // 0-4 球瓶（固定，被击倒后解除）
+      { t: 'roach', x: 235, y: 176, fixed: true }, // 1
+      { t: 'roach', x: 245, y: 176, fixed: true }, // 2
+      { t: 'roach', x: 255, y: 176, fixed: true }, // 3
+      { t: 'roach', x: 265, y: 176, fixed: true }, // 4
     ],
-    goal: (sim) => ({ label: '一爆双响（一爆多杀 ≥ 2）', done: sim.stats.multiKills >= 2 }),
+    goal: (sim) => ({ label: '一爆双响（一次爆炸击倒 ≥ 2）', done: sim.stats.multiKills >= 1 }),
   },
 ];
 

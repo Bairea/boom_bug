@@ -24,11 +24,13 @@ test('R14: 案例4 黏液保龄球馆可玩且结构合法', () => {
     assert.ok(e.x > 0 && e.x < 300 && e.y > 0 && e.y < 180);
   }
   // 一局完整模拟：结构不炸、目标判定可用
-  let i = 0;
-  const ents = sc.entities.map((e) => ({ ...e, delay: ['firecracker', 'skyrocket', 'bottle'].includes(e.t) ? +(0.15 + i++ * 0.35).toFixed(2) : undefined }));
-  const sim = new Simulation({ seed: sc.seed, entities: ents });
+  const sim = new Simulation({ seed: sc.seed, entities: sc.entities });
   sim.runFor(6);
   const goal = sc.goal(sim);
   assert.equal(typeof goal.done, 'boolean');
-  assert.ok(sim.world.slime.length > 0, '蜗牛应铺出球道');
+  assert.equal(goal.done, false, '球瓶阵固定，不投掷不应达成');
+  // 投掷直击球瓶阵 → 一爆双响应达成
+  sim.playerThrow(60, 168, 480, 25);
+  sim.runFor(3);
+  assert.equal(sc.goal(sim).done, true, '直掷球瓶阵应一爆双响');
 });

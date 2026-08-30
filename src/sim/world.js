@@ -141,6 +141,21 @@ export class World {
           b.vx += jImp * nx * b.invMass;
           b.vy += jImp * ny * b.invMass;
 
+          // 点燃的爆炸物撞上东西：在解算时刻记录接触（弹性反弹会让下一tick的位置检测漏掉）
+          for (const [self, other] of [
+            [a, b],
+            [b, a],
+          ]) {
+            if (
+              self.kind === 'explosive' &&
+              self.data?.lit &&
+              !self.data?.exploded &&
+              Math.abs(vn) > 40
+            ) {
+              this.events.push({ type: 'explosiveContact', id: self.id, x: self.x, y: self.y });
+            }
+          }
+
           // 切向摩擦（简化库仑：切向冲量 ≤ μ·法向冲量）
           const tx = -ny;
           const ty = nx;

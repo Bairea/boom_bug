@@ -12,6 +12,7 @@ import {
   igniteExplosive,
   stepExplosives,
   processExplosions,
+  handleExplosiveContact,
 } from './explosives.js';
 import { isTip } from './accessories.js';
 import { BUG_TYPES } from '../game/catalog.js';
@@ -131,8 +132,17 @@ export class Simulation {
         stepExplosives(this, DT);
       },
     });
+    // 解算时刻的撞击接触：钉住/粘附/立即起爆（先于事件流 drain 处理）
+    for (const e of this.world.events) {
+      if (e.type === 'explosiveContact') {
+        const body = this.world.byId(e.id);
+        if (body) handleExplosiveContact(this, body);
+      }
+    }
     processExplosions(this);
-    for (const e of this.world.events) this._record(e);
+    for (const e of this.world.events) {
+      if (e.type !== 'explosiveContact') this._record(e);
+    }
   }
 
   _record(e) {

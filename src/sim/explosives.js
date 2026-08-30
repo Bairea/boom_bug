@@ -178,6 +178,27 @@ function hitSomething(w, b) {
   return false;
 }
 
+// 撞击接触的统一处理：大头针钉住 / 胶水粘附 / 直接起爆（供解算时刻的接触事件调用）
+export function handleExplosiveContact(sim, body) {
+  if (!body.alive || !body.data.lit || body.data.exploded) return;
+  const d = body.data;
+  if (d.stuck > 0 || d.glued || d.stuckDone) return; // 已在钉住/粘附流程中
+  const spec = EXPLOSIVES[d.etype];
+  const eff = tipEffect(d.acc);
+  if (eff.stick > 0) {
+    d.stuck = eff.stick;
+    d.stuckDone = true;
+    d.frozen = true;
+    sim._record({ type: 'pinStick', id: body.id, x: body.x, y: body.y });
+  } else if (eff.glue) {
+    d.glued = true;
+    d.frozen = true;
+    sim._record({ type: 'glueStick', id: body.id, x: body.x, y: body.y });
+  } else {
+    queueExplosion(sim, body, spec, 'impact');
+  }
+}
+
 export function queueExplosion(sim, body, spec, cause) {
   if (body.data.exploded) return;
   body.data.exploded = true;
