@@ -45,7 +45,7 @@ export function viewFromSim(sim) {
 export function viewFromSpecs(specs, ropeList = []) {
   const items = specs.map((s) => ({
     t: s.t,
-    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' ? 'prop' : 'explosive',
+    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' || s.t === 'glass' ? 'prop' : 'explosive',
     x: s.x,
     y: s.y,
     angle: s.angle ?? (s.t === 'skyrocket' ? -Math.PI / 2 : 0),
@@ -210,6 +210,8 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'skyrocket') drawSkyrocket(ctx, it, s, time);
   else if (it.t === 'bottle') drawBottle(ctx, it, s, time);
   else if (it.t === 'brick') drawBrick(ctx, it, s);
+  else if (it.t === 'glass') drawGlass(ctx, it, s);
+  else if (it.t === 'debris') drawDebris(ctx, it, s);
   ctx.restore();
   // 受损血条
   if (it.kind === 'bug' && it.hp != null && it.hp < it.maxHp && !it.knocked) {
@@ -506,6 +508,45 @@ function drawBrick(ctx, it, s) {
   ctx.moveTo(w * 0.33, 0);
   ctx.lineTo(w * 0.33, w * 0.66);
   ctx.stroke();
+}
+
+function drawGlass(ctx, it, s) {
+  const w = 9 * s;
+  ctx.fillStyle = 'rgba(150, 200, 235, 0.4)';
+  roundRect(ctx, -w, -w * 0.66, w * 2, w * 1.32, 1 * s);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(200,230,255,0.8)';
+  ctx.lineWidth = 0.45 * s;
+  roundRect(ctx, -w, -w * 0.66, w * 2, w * 1.32, 1 * s);
+  ctx.stroke();
+  // 高光
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.6, -w * 0.4);
+  ctx.lineTo(-w * 0.1, -w * 0.55);
+  ctx.stroke();
+  // 裂纹
+  if (it.cracked) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 0.4 * s;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.8, 0);
+    ctx.lineTo(-w * 0.3, w * 0.1);
+    ctx.lineTo(-w * 0.5, w * 0.45);
+    ctx.moveTo(-w * 0.3, w * 0.1);
+    ctx.lineTo(w * 0.4, -w * 0.2);
+    ctx.stroke();
+  }
+}
+
+function drawDebris(ctx, it, s) {
+  ctx.fillStyle = 'rgba(170, 215, 245, 0.75)';
+  ctx.beginPath();
+  ctx.moveTo(0, -2.4 * s);
+  ctx.lineTo(2 * s, 1.6 * s);
+  ctx.lineTo(-1.8 * s, 1.8 * s);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawSnail(ctx, it, s, time) {

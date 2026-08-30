@@ -93,6 +93,28 @@ export class Sfx {
     src.stop(t0 + 0.2);
   }
 
+  // 投掷破空：短促带通噪声扫频
+  whoosh() {
+    const ac = this.ensure();
+    if (!ac || this._throttled('whoosh', 0.1)) return;
+    const t0 = ac.currentTime;
+    const src = ac.createBufferSource();
+    src.buffer = this._noiseBuffer(ac);
+    src.playbackRate.value = 1.6;
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(700, t0);
+    bp.frequency.exponentialRampToValueAtTime(2400, t0 + 0.16);
+    bp.Q.value = 1.2;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.001, t0);
+    gain.gain.linearRampToValueAtTime(0.16, t0 + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
+    src.connect(bp).connect(gain).connect(ac.destination);
+    src.start(t0);
+    src.stop(t0 + 0.22);
+  }
+
   // 击倒（玩具故障）：下滑的金属叮
   knockout() {
     const ac = this.ensure();

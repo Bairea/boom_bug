@@ -150,12 +150,12 @@ export class Editor {
       }
     }
     // 幽灵预览
-    if (['roach', 'locust', 'scarab', 'snail', 'firecracker', 'skyrocket', 'bottle', 'brick'].includes(this.tool)) {
+    if (['roach', 'locust', 'scarab', 'snail', 'fly', 'firecracker', 'skyrocket', 'bottle', 'brick', 'glass'].includes(this.tool)) {
       this.ghost = {
         t: this.tool,
         kind: BUG_TYPES.includes(this.tool)
           ? 'bug'
-          : this.tool === 'brick'
+          : this.tool === 'brick' || this.tool === 'glass'
             ? 'prop'
             : 'explosive',
         x,
@@ -184,7 +184,7 @@ export class Editor {
   }
 
   _canPlace(t) {
-    const kind = BUG_TYPES.includes(t) ? 'bug' : t === 'brick' ? 'prop' : 'explosive';
+    const kind = BUG_TYPES.includes(t) ? 'bug' : t === 'brick' || t === 'glass' ? 'prop' : 'explosive';
     const n = this.specs.filter((s) => s.kind === kind).length;
     if (n >= LIMITS[kind]) {
       this.onStatus(`${kindName(kind)}已达上限（${LIMITS[kind]}）`);
@@ -194,7 +194,7 @@ export class Editor {
   }
 
   addSpec(t, x, y, extra = {}) {
-    const kind = BUG_TYPES.includes(t) ? 'bug' : t === 'brick' ? 'prop' : 'explosive';
+    const kind = BUG_TYPES.includes(t) ? 'bug' : t === 'brick' || t === 'glass' ? 'prop' : 'explosive';
     this.specs.push({
       t,
       x: clampPos(x, 3, VIEW_W - 3),

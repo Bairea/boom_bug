@@ -63,8 +63,8 @@ export class Simulation {
         if (e.delay != null && e.delay >= 0) {
           this.schedule(Math.round(e.delay * 60), { op: 'ignite', id: body.id });
         }
-      } else if (e.t === 'brick') {
-        spawnProp(this, 'brick', e.x, e.y);
+      } else if (['brick', 'glass'].includes(e.t)) {
+        spawnProp(this, e.t, e.x, e.y);
       }
     }
     // 绳子：按实体索引连接
@@ -154,6 +154,7 @@ export class Simulation {
     if (e.type === 'ropeBreak') this.stats.ropesBroken++;
     if (e.type === 'locustJump') this.stats.jumps++;
     if (e.type === 'armorCrack') this.stats.cracks = (this.stats.cracks ?? 0) + 1;
+    if (e.type === 'propBreak') this.stats.propsBroken = (this.stats.propsBroken ?? 0) + 1;
     if (e.type === 'knockout') {
       this.stats.koByType = this.stats.koByType ?? {};
       this.stats.koByType[e.bugType] = (this.stats.koByType[e.bugType] ?? 0) + 1;

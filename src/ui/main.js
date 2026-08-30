@@ -240,6 +240,7 @@ window.addEventListener('pointerup', () => {
   runDrag = null;
   if (Math.hypot(d.vx, d.vy) > 60) {
     state.sim.playerThrow(d.wx, d.wy, d.vx, d.vy);
+    sfx.whoosh();
     editor.onStatus('扔进去一根点着的炮仗 💣');
   }
 });

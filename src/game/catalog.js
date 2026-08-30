@@ -112,5 +112,7 @@ export const ACCESSORIES = {
 export const TIPS = ['toothpick', 'pin', 'glue'];
 
 export const PROP = {
-  brick: { label: '砖头', radius: 9, mass: 8 },
+  brick: { label: '砖头', radius: 9, mass: 8, hp: null }, // 永固
+  glass: { label: '玻璃砖', radius: 9, mass: 3, hp: 55, brittle: true }, // 可碎裂
+  debris: { label: '碎片', radius: 3, mass: 0.6, hp: null },
 };

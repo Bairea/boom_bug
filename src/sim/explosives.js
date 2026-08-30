@@ -48,12 +48,27 @@ export function spawnProp(sim, type, x, y) {
     radius: spec.radius,
     mass: spec.mass,
     static: true,
-    restitution: 0.2,
-    data: { propType: type },
+    restitution: spec.brittle ? 0.1 : 0.2,
+    data: { propType: type, hp: spec.hp, maxHp: spec.hp ?? 0 },
   });
   sim.world.add(body);
   sim.ents.push(body);
   return body;
+}
+
+// 玻璃砖碎裂：化作 3 块动态碎片飞散
+function shatterProp(sim, body) {
+  body.alive = false;
+  sim._record({ type: 'propBreak', x: body.x, y: body.y, propType: body.data.propType });
+  for (let i = 0; i < 3; i++) {
+    const angle = -Math.PI / 2 + (i - 1) * 0.8;
+    const shard = spawnProp(sim, 'debris', body.x + (i - 1) * 4, body.y - 2);
+    shard.static = false;
+    shard.invMass = 1 / shard.mass;
+    shard.vx = Math.cos(angle) * sim.rng.range(80, 200);
+    shard.vy = Math.sin(angle) * sim.rng.range(120, 260);
+    shard.angVel = sim.rng.range(-10, 10);
+  }
 }
 
 export function igniteExplosive(sim, body, fuseSec = null) {
@@ -265,6 +280,16 @@ export function processExplosions(sim) {
         const before = b.data.knocked;
         applyDamage(sim, b, ex.dmg * falloff, ex.pierce, ex.cause);
         if (!before && b.data.knocked) blastKills++;
+      }
+      // 可破坏道具（玻璃砖）：受伤 → 裂纹 → 碎裂
+      if (b.kind === 'prop' && b.data.hp != null) {
+        b.data.hp -= ex.dmg * falloff;
+        if (b.data.hp <= 0) {
+          shatterProp(sim, b);
+        } else if (!b.data.cracked && b.data.maxHp > 0 && b.data.hp < b.data.maxHp * 0.5) {
+          b.data.cracked = true;
+          sim._record({ type: 'propCrack', x: b.x, y: b.y, propType: b.data.propType });
+        }
       }
     }
 
