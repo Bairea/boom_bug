@@ -155,6 +155,25 @@ export class Sfx {
     osc.stop(t0 + 0.22);
   }
 
+  // 火焰噼啪：极短低通噪声
+  crackle() {
+    const ac = this.ensure();
+    if (!ac || this._throttled('crackle', 0.3)) return;
+    const t0 = ac.currentTime;
+    const src = ac.createBufferSource();
+    src.buffer = this._noiseBuffer(ac);
+    src.playbackRate.value = 0.8;
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 1100;
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.07, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
+    src.connect(lp).connect(gain).connect(this.master ?? ac.destination);
+    src.start(t0);
+    src.stop(t0 + 0.1);
+  }
+
   // 新纪录号角：三连上行音
   fanfare() {
     const ac = this.ensure();

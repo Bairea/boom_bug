@@ -529,8 +529,9 @@ function handleEvents(events) {
       state.particles.puff(e.x, e.y);
       sfx.fuse(); // 呲——
     } else if (e.type === 'fireTick') {
-      // 火焰火星
+      // 火焰火星 + 噼啪声
       for (let i = 0; i < 3; i++) state.particles.spark(e.x + (Math.random() - 0.5) * 16, e.y - Math.random() * 8, 1);
+      sfx.crackle();
     } else if (e.type === 'propBreak') {
       state.particles.spark(e.x, e.y, 10);
       sfx.glassBreak();
