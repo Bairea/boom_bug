@@ -37,6 +37,20 @@ export class Recorder {
   }
 }
 
+// 事故标题生成器：从事件流提炼一句"事故简报"（PRD §3 的分享梗）
+export function makeTitle(stats, eventLog) {
+  const firstKo = eventLog.find((e) => e.type === 'knockout');
+  const koLabel = { roach: '蟑螂', locust: '蝗虫', scarab: '清道夫', snail: '蜗牛' }[firstKo?.bugType] ?? '玩具虫';
+  if ((stats.explosions ?? 0) === 0) return '什么都没发生……再来一次？';
+  if ((stats.chainMax ?? 0) >= 4) return `本世纪连锁惨案 ×${stats.chainMax}`;
+  if ((stats.multiKills ?? 0) >= 2) return '连环车祸现场';
+  if ((stats.knockouts ?? 0) === 0) return '只炸坏了氛围';
+  if ((stats.knockouts ?? 0) === 1 && (stats.explosions ?? 0) <= 2) return `我本来只想炸一只${koLabel}`;
+  if ((stats.knockouts ?? 0) >= 6) return '虫虫灭绝日';
+  if ((stats.ropesBroken ?? 0) >= 1 && (stats.knockouts ?? 0) >= 2) return '绳子营救行动失败';
+  return '大型失控现场';
+}
+
 // 事故报告：连锁、击倒、意外事件、时间线
 export function buildReport(sim, scenario = null) {
   const s = sim.stats;
@@ -53,6 +67,7 @@ export function buildReport(sim, scenario = null) {
   return {
     id: 'BBL-' + (sim.seed >>> 0).toString(36).toUpperCase(),
     seed: sim.seed,
+    title: makeTitle(s, sim.eventLog),
     duration: sim.tick * DT,
     firstBlastAt: (explosions[0]?.tick ?? 0) * DT,
     quietFor: lastEvent ? (sim.tick - lastEvent.tick) * DT : sim.tick * DT,

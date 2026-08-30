@@ -248,7 +248,7 @@ window.addEventListener('pointerup', () => {
 function showReport(rep) {
   const c = rep.counts;
   const sc = rep.goal;
-  els.reportTitle.textContent = `THE INCIDENT · ${rep.id}`;
+  els.reportTitle.innerHTML = `THE INCIDENT · ${rep.id}<div style="font-size:13px;color:var(--dim);font-family:system-ui;margin-top:2px">《${rep.title}》</div>`;
   const rows = [
     ['爆炸次数', c.explosions],
     ['最大连锁', '×' + c.chainMax],

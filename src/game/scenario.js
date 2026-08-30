@@ -70,6 +70,22 @@ export const SCENARIOS = [
       bonus: (sim.stats.koByType?.scarab ?? 0) >= 1 ? '瘫痪清道夫 ✓' : null,
     }),
   },
+  {
+    id: 'case4',
+    label: '案例4 · 黏液保龄球馆',
+    desc: '蜗牛铺出打滑球道：把点着的炮仗低平掷出去，看它滑进虫堆。目标：一爆双响（一爆多杀 ≥ 2）。',
+    seed: 1234,
+    entities: [
+      { t: 'snail', x: 70, y: 176 }, // 0 铺道员
+      { t: 'roach', x: 235, y: 176 }, // 1 球瓶
+      { t: 'roach', x: 245, y: 176 }, // 2
+      { t: 'roach', x: 255, y: 176 }, // 3
+      { t: 'roach', x: 265, y: 176 }, // 4
+      { t: 'firecracker', x: 150, y: 176 }, // 5 备用球
+      { t: 'bottle', x: 270, y: 60, angle: Math.PI - 0.4, acc: ['glue'] }, // 6 空中支援
+    ],
+    goal: (sim) => ({ label: '一爆双响（一爆多杀 ≥ 2）', done: sim.stats.multiKills >= 2 }),
+  },
 ];
 
 export function getScenario(id) {
