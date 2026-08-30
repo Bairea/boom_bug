@@ -8,6 +8,7 @@ import { Recorder, buildReport, SNAPSHOT_INTERVAL } from '../game/replay.js';
 import { SCENARIOS, getScenario } from '../game/scenario.js';
 import { toHash, experimentFromHash } from '../game/encode.js';
 import { Sfx } from './sounds.js';
+import { createRecords } from '../game/records.js';
 
 const canvas = document.getElementById('stage');
 const ctx = canvas.getContext('2d');
@@ -55,6 +56,8 @@ const sfx = new Sfx(
     ? () => new AudioContext()
     : null
 );
+// 本机最佳战绩
+const records = createRecords();
 els.mute = document.getElementById('btn-mute');
 els.mute?.addEventListener('click', () => {
   sfx.muted = !sfx.muted;
@@ -143,6 +146,11 @@ function finishRun() {
   state.mode = 'report';
   editor.locked = false;
   state.report = buildReport(state.sim, getScenario(state.scenarioId));
+  // 本机最佳：分享来的自定义实验记入 custom 键
+  const key = state.runExperiment?.custom ? 'custom' : state.scenarioId;
+  const { best, isNew } = records.update(key, state.report.counts);
+  state.report.best = best;
+  state.report.isNewRecord = isNew;
   showReport(state.report);
   els.ignite.disabled = false;
   els.end.hidden = true;
@@ -254,6 +262,9 @@ function showReport(rep) {
     ['实验时长', rep.duration.toFixed(1) + 's'],
   ];
   let html = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  if (rep.best) {
+    html += `<div class="goal" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07)">本机最佳 · 连锁×${rep.best.chain} · 击倒 ${rep.best.knockouts}${rep.isNewRecord ? ' 🎉 新纪录！' : ''}</div>`;
+  }
   if (sc) {
     html += `<div class="goal ${sc.done ? 'done' : ''}">目标「${sc.label}」：${sc.done ? '达成 ✓' : '未达成'}`;
     if (sc.bonus) html += ` · ${sc.bonus}`;
@@ -497,7 +508,7 @@ if (fromHash) {
   state.seed = fromHash.seed;
   editor.clear();
   loadEntitiesIntoEditor(fromHash.entities);
-  state.runExperiment = fromHash;
+  state.runExperiment = { ...fromHash, custom: true };
   els.scenario.value = 'free';
   editor.onStatus('已加载分享的实验 —— 点「重放这场事故」或自行修改后点燃');
 } else {
