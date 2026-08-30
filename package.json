@@ -1,0 +1,11 @@
+{
+  "name": "boom-bug-lab",
+  "version": "0.1.0",
+  "description": "擦炮虫虫实验室 —— 微型灾难物理沙盒（确定性模拟 + 回放 + 分享码）",
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "start": "node server.js"
+  },
+  "license": "MIT"
+}
