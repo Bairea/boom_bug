@@ -92,6 +92,12 @@ export class Simulation {
     return true;
   }
 
+  // 玩家运行中扔进一根点燃的炮仗（拖拽向量 → 初速）
+  playerThrow(x, y, vx, vy) {
+    this.schedule(this.tick + 1, { op: 'throw', x: +x.toFixed(1), y: +y.toFixed(1), vx: Math.round(vx), vy: Math.round(vy) });
+    return true;
+  }
+
   _exec(op) {
     if (op.op === 'ignite') {
       const body = this.world.byId(op.id);
@@ -99,6 +105,14 @@ export class Simulation {
         igniteExplosive(this, body);
         this.commandLog.push({ op: 'ignite', tick: this.tick, id: op.id });
       }
+    } else if (op.op === 'throw') {
+      // 运行中玩家扔进一根点燃的炮仗（PRD 案例1 的灵魂操作）
+      const body = spawnExplosive(this, 'firecracker', op.x, op.y, 0, []);
+      body.vx = op.vx;
+      body.vy = op.vy;
+      igniteExplosive(this, body, this.rng.range(0.7, 1.1)); // 短引信：扔进去就是找炸
+      body.angVel = this.rng.range(-18, 18);
+      this.commandLog.push({ op: 'throw', tick: this.tick, x: op.x, y: op.y, vx: op.vx, vy: op.vy });
     }
   }
 

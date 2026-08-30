@@ -15,6 +15,7 @@ export class Editor {
     this.drag = null; // {t, x, y, angle} 拖拽瞄准中
     this.reaming = null; // 正在重新瞄准的实体索引
     this.ghost = null;
+    this.locked = false; // 运行中锁定编辑（避免点击污染下一局的布置）
     this.fixScarab = true;
     this.onStatus = () => {};
     this._bind();
@@ -54,6 +55,7 @@ export class Editor {
   _down(ev) {
     const { x, y } = this.toWorld(ev);
     if (ev.button === 2) return;
+    if (this.locked) return; // 实验进行中，编辑器不响应
     const t = this.tool;
 
     if (t === 'eraser') {

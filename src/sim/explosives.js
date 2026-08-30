@@ -112,8 +112,11 @@ export function stepExplosives(sim, dt) {
           b.vy -= sim.rng.range(30, 90);
         }
       }
-      if (d.fuse <= 0) queueExplosion(sim, b, spec, 'fuse');
-      continue;
+      if (d.fuse <= 0) {
+        queueExplosion(sim, b, spec, 'fuse');
+        continue;
+      }
+      // 被扔出去的燃烧弹：高速飞行中撞上任何东西即刻起爆（不穿透虫子）
     }
 
     // 火箭类：推力飞行
@@ -138,8 +141,8 @@ export function stepExplosives(sim, dt) {
       }
     }
 
-    // 撞击检测：武装后（飞离发射点）撞墙或撞到任何物体
-    const flying = d.burn > 0 || d.stuck > 0;
+    // 撞击检测：火箭武装后随时；炮仗仅在被扔出去高速飞行时（撞击即炸）
+    const flying = d.burn > 0 || d.stuck > 0 || (d.etype === 'firecracker' && Math.hypot(b.vx, b.vy) > 120);
     if (!d.exploded && flying && sim.tick > d.armTick && Math.hypot(b.vx, b.vy) > 80 && hitSomething(w, b)) {
       const eff = tipEffect(d.acc);
       if (eff.stick > 0 && d.stuck === 0 && !d.glued && !d.stuckDone) {

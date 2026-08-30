@@ -4,7 +4,9 @@
 const VERSION = 1;
 
 // entities: [{t,x,y,angle,acc,fixed,delay,ropes:[[ai,bi]]}]
-// commands: [{tick, op:'ignite', id}]  —— id 为 bodyId（与实体顺序对应）
+// commands: 运行期玩家命令
+//   {tick, op:'ignite', id}  → [tick,'i',id]
+//   {tick, op:'throw', x,y,vx,vy} → [tick,'t',x,y,vx,vy]
 export function encodeExperiment({ seed, width, height, entities, commands = [] }) {
   const e = entities.map((s) => [
     s.t,
@@ -16,7 +18,11 @@ export function encodeExperiment({ seed, width, height, entities, commands = [] 
     s.delay != null ? +s.delay.toFixed(2) : null,
     s.ropes?.length ? s.ropes : null,
   ]);
-  const c = commands.map((cmd) => [cmd.tick, cmd.id]);
+  const c = commands.map((cmd) =>
+    cmd.op === 'throw'
+      ? [cmd.tick, 't', +cmd.x.toFixed(1), +cmd.y.toFixed(1), Math.round(cmd.vx), Math.round(cmd.vy)]
+      : [cmd.tick, 'i', cmd.id]
+  );
   return b64urlEncode(JSON.stringify({ v: VERSION, s: seed >>> 0, w: width, h: height, e, c }));
 }
 
@@ -37,8 +43,14 @@ export function decodeExperiment(code) {
       delay: row[6] ?? undefined,
       ropes: row[7] ?? undefined,
     })),
-    commands: obj.c.map(([tick, id]) => ({ tick, op: 'ignite', id })),
+    commands: obj.c.map(decodeCommand),
   };
+}
+
+function decodeCommand(row) {
+  if (row.length === 2) return { tick: row[0], op: 'ignite', id: row[1] }; // v1 旧码
+  if (row[1] === 't') return { tick: row[0], op: 'throw', x: row[2], y: row[3], vx: row[4], vy: row[5] };
+  return { tick: row[0], op: 'ignite', id: row[2] };
 }
 
 export function experimentFromHash(hash) {

@@ -77,6 +77,7 @@ function loadScenario(id) {
   editor.clear();
   loadEntitiesIntoEditor(sc.entities);
   state.mode = 'edit';
+  editor.locked = false;
   hideReport();
   editor.onStatus(sc.desc);
 }
@@ -107,14 +108,16 @@ function startRun(useRecordedCommands = false) {
   state.particles = new Particles();
   state.lastEventTick = 0;
   state.mode = 'running';
+  editor.locked = true;
   hideReport();
-  editor.onStatus('实验进行中……（点击未点燃的爆炸物可以随时点火）');
+  editor.onStatus('实验进行中：点未点燃的爆炸物随时点火；空白处拖拽可扔进点燃的炮仗！');
   els.ignite.disabled = true;
   els.end.hidden = false;
 }
 
 function finishRun() {
   state.mode = 'report';
+  editor.locked = false;
   state.report = buildReport(state.sim, getScenario(state.scenarioId));
   showReport(state.report);
   els.ignite.disabled = false;
@@ -123,6 +126,7 @@ function finishRun() {
 
 function backToEdit() {
   state.mode = 'edit';
+  editor.locked = false;
   state.sim = null;
   state.report = null;
   hideReport();
@@ -166,21 +170,45 @@ document.getElementById('btn-overlay-rerun')?.addEventListener('click', () => {
 });
 document.getElementById('btn-overlay-edit')?.addEventListener('click', backToEdit);
 
-// 画布点击 → 运行中点燃
-canvas.addEventListener('click', (ev) => {
-  if (state.mode !== 'running' || !state.sim) return;
+// ---- 运行中输入：点未点燃爆炸物=点燃；空白处拖拽=扔进点燃的炮仗 ----
+let runDrag = null; // {wx, wy, vx, vy} 世界坐标起投点与当前投掷速度
+
+function canvasWorld(ev) {
   const rect = canvas.getBoundingClientRect();
-  const x = ((ev.clientX - rect.left) / rect.width) * VIEW_W;
-  const y = ((ev.clientY - rect.top) / rect.height) * VIEW_H;
+  return {
+    x: ((ev.clientX - rect.left) / rect.width) * VIEW_W,
+    y: ((ev.clientY - rect.top) / rect.height) * VIEW_H,
+  };
+}
+
+canvas.addEventListener('pointerdown', (ev) => {
+  if (state.mode !== 'running' || !state.sim || ev.button !== 0) return;
+  const { x, y } = canvasWorld(ev);
   for (const b of state.sim.world.bodies) {
-    if (b.alive && b.kind === 'explosive' && !b.data.lit) {
-      if (Math.hypot(b.x - x, b.y - y) < 6) {
-        state.sim.playerIgnite(b.id);
-        state.particles.spark(b.x, b.y, 4);
-        editor.onStatus('点燃！');
-        return;
-      }
+    if (b.alive && b.kind === 'explosive' && !b.data.lit && Math.hypot(b.x - x, b.y - y) < 6) {
+      state.sim.playerIgnite(b.id);
+      state.particles.spark(b.x, b.y, 4);
+      editor.onStatus('点燃！');
+      return;
     }
+  }
+  runDrag = { wx: x, wy: y, vx: 0, vy: 0 };
+});
+
+window.addEventListener('pointermove', (ev) => {
+  if (!runDrag) return;
+  const { x, y } = canvasWorld(ev);
+  runDrag.vx = Math.max(-750, Math.min(750, (x - runDrag.wx) * 4));
+  runDrag.vy = Math.max(-750, Math.min(750, (y - runDrag.wy) * 4));
+});
+
+window.addEventListener('pointerup', () => {
+  if (!runDrag) return;
+  const d = runDrag;
+  runDrag = null;
+  if (Math.hypot(d.vx, d.vy) > 60) {
+    state.sim.playerThrow(d.wx, d.wy, d.vx, d.vy);
+    editor.onStatus('扔进去一根点着的炮仗 💣');
   }
 });
 
@@ -374,7 +402,10 @@ function render() {
   } else if (state.mode === 'running' || (state.mode === 'report' && state.sim)) {
     view = viewFromSim(state.sim);
     opts.recDot = state.mode === 'running';
-    if (state.mode === 'running') opts.showAim = true;
+    if (state.mode === 'running') {
+      opts.showAim = true;
+      if (runDrag) opts.throwPreview = { ...runDrag };
+    }
   } else if (state.mode === 'replay') {
     view = viewAtCursor();
     const frames = state.recorder.frames;
