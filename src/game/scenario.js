@@ -18,7 +18,7 @@ export const SCENARIOS = [
     id: 'case1',
     label: '案例1 · 连环风暴',
     desc: '满盒玩具虫 + 冲天炮拖拽蝗虫 + 四散炮仗。目标：连锁 ≥ 3（试试往虫堆里再扔一根点着的！）',
-    seed: 4102,
+    seed: 4103,
     entities: [
       ...roachRow(8, 30, 32), // 0-7 蟑螂
       { t: 'locust', x: 90, y: FLOOR }, // 8
