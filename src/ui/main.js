@@ -289,6 +289,7 @@ function showReport(rep) {
   const c = rep.counts;
   const sc = rep.goal;
   els.reportTitle.innerHTML = `THE INCIDENT · ${rep.id}<div style="font-size:13px;color:var(--dim);font-family:system-ui;margin-top:2px">《${rep.title}》</div>`;
+  if (sc?.done) markGoalDone(state.scenarioId);
   const rows = [
     ['爆炸次数', c.explosions],
     ['最大连锁', '×' + c.chainMax],
@@ -378,10 +379,11 @@ function stepReplay(dt) {
   const rp = state.replay;
   const frames = state.recorder.frames;
   rp.cursor += dt * 60 * 0.5; // 0.5 倍速
-  // 到达的爆炸事件 → 粒子
+  // 到达的爆炸事件 → 粒子 + 声音
   while (rp.flashSeen < rp.flashes.length && rp.flashes[rp.flashSeen].tick <= rp.cursor) {
     const e = rp.flashes[rp.flashSeen++];
     state.particles.explosion(e.x, e.y, e.power);
+    sfx.explosion(e.power);
   }
   if (rp.cursor >= frames[frames.length - 1].tick + 30) {
     state.mode = 'report';
@@ -586,6 +588,7 @@ if (fromHash) {
   } catch {}
   loadScenario(last);
 }
+refreshScenarioLabels();
 
 els.replayShare.hidden = !fromHash;
 // 调试句柄：自动化试玩与问题排查用
@@ -609,6 +612,26 @@ window.__lab = {
     return true;
   },
 };
+
+// ---- 场景目标达成徽章 ----
+function markGoalDone(id) {
+  try {
+    localStorage.setItem('bbl-goal-' + id, '1');
+  } catch {}
+  refreshScenarioLabels();
+}
+
+function refreshScenarioLabels() {
+  for (const opt of els.scenario.options) {
+    const sc = SCENARIOS.find((s) => s.id === opt.value);
+    if (!sc) continue;
+    let done = false;
+    try {
+      done = localStorage.getItem('bbl-goal-' + sc.id) === '1';
+    } catch {}
+    opt.textContent = (done && sc.goal ? '✓ ' : '') + sc.label;
+  }
+}
 
 // ---- 键盘快捷键：空格=点燃/再来一次，R=再来一次，N=新实验，Esc=结束/继续改造 ----
 window.addEventListener('keydown', (ev) => {
