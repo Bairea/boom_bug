@@ -471,6 +471,16 @@ function render() {
     opts.replayProgress = (state.replay.cursor - t0) / Math.max(1, t1 - t0);
   }
   drawScene(ctx, W, H, view, opts);
+
+  // 实况统计 HUD
+  if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
+    const st = state.sim.stats;
+    ctx.fillStyle = 'rgba(10,12,16,0.55)';
+    ctx.fillRect(12, 12, 236, 30);
+    ctx.fillStyle = '#ffd166';
+    ctx.font = 'bold 15px ui-monospace, monospace';
+    ctx.fillText(`💥${st.explosions}  连锁×${st.chainMax}  击倒${st.knockouts}`, 22, 33);
+  }
 }
 
 // ---- 启动 ----
@@ -508,4 +518,26 @@ window.__lab = {
     return true;
   },
 };
+
+// ---- 键盘快捷键：空格=点燃/再来一次，R=再来一次，N=新实验，Esc=结束/继续改造 ----
+window.addEventListener('keydown', (ev) => {
+  const tag = ev.target?.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+  if (ev.code === 'Space') {
+    ev.preventDefault();
+    if (state.mode === 'edit') startRun(false);
+    else if (state.mode === 'report') startRun(true);
+  } else if (ev.key === 'r' || ev.key === 'R') {
+    if (state.runExperiment && state.mode !== 'running') startRun(true);
+  } else if (ev.key === 'n' || ev.key === 'N') {
+    state.seed = (Math.random() * 0x7fffffff) | 0;
+    state.runExperiment = null;
+    toast('新种子 #' + state.seed.toString(36).toUpperCase());
+    if (state.mode !== 'edit') backToEdit();
+  } else if (ev.key === 'Escape') {
+    if (state.mode === 'running') finishRun();
+    else if (state.mode === 'report') backToEdit();
+  }
+});
+
 requestAnimationFrame(frame);
