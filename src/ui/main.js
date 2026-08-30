@@ -165,6 +165,14 @@ function finishRun() {
   const { best, isNew } = records.update(key, state.report.counts);
   state.report.best = best;
   state.report.isNewRecord = isNew;
+  // 对照实验：与上一局的关键数字对比
+  const lastKey = key + ':last';
+  state.report.lastRun = records.load(lastKey);
+  records.save(lastKey, {
+    chain: state.report.counts.chainMax,
+    knockouts: state.report.counts.knockouts,
+    explosions: state.report.counts.explosions,
+  });
   showReport(state.report);
   els.ignite.disabled = false;
   els.end.hidden = true;
@@ -277,6 +285,15 @@ function showReport(rep) {
     ['实验时长', rep.duration.toFixed(1) + 's'],
   ];
   let html = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  // 对照实验：与上一局对比
+  if (rep.lastRun) {
+    const delta = (cur, prev) => {
+      const d = cur - prev;
+      if (d === 0) return '<span style="color:var(--dim)">＝</span>';
+      return d > 0 ? `<span style="color:#9fe6a0">＋${d}</span>` : `<span style="color:#ff9a8a">${d}</span>`;
+    };
+    html += `<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px">连锁${delta(rep.counts.chainMax, rep.lastRun.chain)} · 击倒${delta(rep.counts.knockouts, rep.lastRun.knockouts)} · 爆炸${delta(rep.counts.explosions, rep.lastRun.explosions)}</b></div>`;
+  }
   if (rep.best) {
     html += `<div class="goal" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07)">本机最佳 · 连锁×${rep.best.chain} · 击倒 ${rep.best.knockouts}${rep.isNewRecord ? ' 🎉 新纪录！' : ''}</div>`;
   }
@@ -322,13 +339,21 @@ function toast(msg) {
 function startReplay() {
   if (!state.recorder?.frames.length) return;
   state.mode = 'replay';
+  const frames = state.recorder.frames;
+  // 从第一声爆炸前 1.5s 开始看（跳过冗长的摆放等待）
+  const firstExp = state.sim.eventLog.find((e) => e.type === 'explosion');
+  const startTick = Math.max(frames[0].tick, (firstExp?.tick ?? frames[0].tick) - 90);
   state.replay = {
     idx: 0,
-    cursor: state.recorder.frames[0].tick,
+    cursor: startTick,
+    startTick,
     flashes: state.sim.eventLog.filter((e) => e.type === 'explosion'),
     flashSeen: 0,
-    lastFlashTick: -1,
   };
+  // 快进到起始帧的爆炸进度
+  while (state.replay.flashSeen < state.replay.flashes.length && state.replay.flashes[state.replay.flashSeen].tick < startTick) {
+    state.replay.flashSeen++;
+  }
   hideReport();
 }
 
@@ -502,10 +527,10 @@ function render() {
   } else if (state.mode === 'replay') {
     view = viewAtCursor();
     const frames = state.recorder.frames;
-    const t0 = frames[0].tick;
+    const t0 = state.replay.startTick ?? frames[0].tick;
     const t1 = frames[frames.length - 1].tick;
     opts.replayWatermark = true;
-    opts.replayProgress = (state.replay.cursor - t0) / Math.max(1, t1 - t0);
+    opts.replayProgress = Math.max(0, (state.replay.cursor - t0) / Math.max(1, t1 - t0));
   }
   drawScene(ctx, W, H, view, opts);
 
