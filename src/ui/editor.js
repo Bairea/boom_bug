@@ -13,6 +13,7 @@ export class Editor {
     this.ropeList = []; // {a, b} 实体索引
     this.ropePicking = null; // 第一个选中的实体索引
     this.drag = null; // {t, x, y, angle} 拖拽瞄准中
+    this.reaming = null; // 正在重新瞄准的实体索引
     this.ghost = null;
     this.fixScarab = true;
     this.onStatus = () => {};
@@ -40,12 +41,14 @@ export class Editor {
     const c = this.canvas;
     c.addEventListener('pointerdown', (ev) => this._down(ev));
     c.addEventListener('pointermove', (ev) => this._move(ev));
-    window.addEventListener('pointerup', (ev) => this._up(ev));
-    c.addEventListener('contextmenu', (ev) => {
-      ev.preventDefault();
-      this.ropePicking = null;
-      this.onStatus('已取消绳子选择');
-    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('pointerup', (ev) => this._up(ev));
+      c.addEventListener('contextmenu', (ev) => {
+        ev.preventDefault();
+        this.ropePicking = null;
+        this.onStatus('已取消绳子选择');
+      });
+    }
   }
 
   _down(ev) {
@@ -93,14 +96,43 @@ export class Editor {
       return;
     }
 
+    // 放置类工具：点中同款火箭 → 进入重新瞄准模式（不用删了重摆）
+    if (['skyrocket', 'bottle'].includes(t)) {
+      const hitIdx = this.hitSpec(x, y);
+      if (hitIdx != null && this.specs[hitIdx].t === t) {
+        this.reaming = hitIdx;
+        this._updateAim(hitIdx, x, y);
+        this.onStatus('重新瞄准中……松手确认');
+        return;
+      }
+    }
+
     // 放置类工具：记录起点，火箭类拖拽瞄准
     if (!this._canPlace(t)) return;
     this.drag = { t, x, y, angle: t === 'skyrocket' ? -Math.PI / 2 : t === 'bottle' ? -0.3 : 0 };
     if (!['skyrocket', 'bottle'].includes(t)) this._commitDrag();
   }
 
+  _updateAim(idx, mx, my) {
+    const s = this.specs[idx];
+    const dx = mx - s.x;
+    const dy = my - s.y;
+    if (Math.hypot(dx, dy) < 3) return;
+    let a = Math.atan2(dy, dx);
+    if (s.t === 'skyrocket') {
+      const UP = -Math.PI / 2;
+      a = UP + Math.max(-0.44, Math.min(0.44, a - UP));
+    }
+    s.angle = a;
+  }
+
   _move(ev) {
     const { x, y } = this.toWorld(ev);
+    if (this.reaming != null) {
+      this._updateAim(this.reaming, x, y);
+      this.ghost = null;
+      return;
+    }
     if (this.drag && ['skyrocket', 'bottle'].includes(this.drag.t)) {
       const dx = x - this.drag.x;
       const dy = y - this.drag.y;
@@ -134,6 +166,10 @@ export class Editor {
   }
 
   _up() {
+    if (this.reaming != null) {
+      this.onStatus('瞄准已更新 ✓');
+      this.reaming = null;
+    }
     if (this.drag && ['skyrocket', 'bottle'].includes(this.drag.t)) this._commitDrag();
     this.drag = null;
   }
@@ -213,7 +249,11 @@ function clampPos(v, lo, hi) {
 }
 
 function labelOf(t) {
-  return { roach: '蟑螂', locust: '蝗虫', scarab: '清道夫', firecracker: '小炮仗', skyrocket: '冲天炮', bottle: '窜天猴', brick: '砖头' }[t] ?? t;
+  return {
+    roach: '蟑螂', locust: '蝗虫', scarab: '清道夫',
+    firecracker: '小炮仗', skyrocket: '冲天炮', bottle: '窜天猴', brick: '砖头',
+    toothpick: '牙签', pin: '大头针', glue: '胶水', rope: '绳子',
+  }[t] ?? t;
 }
 
 function kindName(kind) {
