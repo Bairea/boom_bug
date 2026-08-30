@@ -45,6 +45,7 @@ const state = {
   replay: null, // 回放游标
   slowmo: 0, // 慢镜头剩余秒数（表现层）
   zoomPunch: 1, // 镜头推近系数（表现层）
+  scorches: [], // 爆炸焦痕（纯表现层）
 };
 
 const editor = new Editor(canvas);
@@ -59,9 +60,18 @@ const sfx = new Sfx(
 // 本机最佳战绩
 const records = createRecords();
 els.mute = document.getElementById('btn-mute');
+try {
+  if (localStorage.getItem('bbl-muted') === '1') {
+    sfx.muted = true;
+    els.mute.textContent = '🔇';
+  }
+} catch {}
 els.mute?.addEventListener('click', () => {
   sfx.muted = !sfx.muted;
   els.mute.textContent = sfx.muted ? '🔇' : '🔊';
+  try {
+    localStorage.setItem('bbl-muted', sfx.muted ? '1' : '0');
+  } catch {}
   if (!sfx.muted) sfx.ensure();
 });
 // 首次任意画布交互时预热音频（自动播放策略要求手势）
@@ -119,6 +129,9 @@ function loadScenario(id) {
   editor.locked = false;
   hideReport();
   editor.onStatus(sc.desc);
+  try {
+    localStorage.setItem('bbl-last-scenario', id);
+  } catch {}
 }
 
 // 把实体列表装入编辑器（绳子索引对换算成编辑器的绳子表）
@@ -165,6 +178,10 @@ function finishRun() {
   const { best, isNew } = records.update(key, state.report.counts);
   state.report.best = best;
   state.report.isNewRecord = isNew;
+  if (isNew) {
+    sfx.fanfare();
+    toast('🏆 新纪录！');
+  }
   // 对照实验：与上一局的关键数字对比
   const lastKey = key + ':last';
   state.report.lastRun = records.load(lastKey);
@@ -424,6 +441,10 @@ function tick() {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
 
+  // 焦痕老化
+  for (const sc of state.scorches) sc.age += dt;
+  state.scorches = state.scorches.filter((sc) => sc.age < sc.ttl);
+
   // 连锁慢镜头：真实时间变慢，模拟 tick 内容不变（不破坏确定性）
   if (state.slowmo > 0) {
     state.slowmo = Math.max(0, state.slowmo - dt);
@@ -470,6 +491,9 @@ function handleEvents(events) {
     if (e.type === 'explosion') {
       state.particles.explosion(e.x, e.y, e.power);
       sfx.explosion(e.power);
+      // 焦痕：地面战损记忆（最多 24 个，12s 淡去）
+      state.scorches.push({ x: e.x, y: Math.min(e.y + 4, 178), r: 5 + e.power * 0.12, age: 0, ttl: 12 });
+      if (state.scorches.length > 24) state.scorches.shift();
       // 镜头推近一点，随时间回弹
       state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
       // 连锁 ≥2 或一爆多杀 → 慢镜头欣赏失控瞬间
@@ -511,6 +535,7 @@ function render() {
     shakeY,
     time: performance.now() / 1000,
     zoom: state.zoomPunch,
+    scorches: state.scorches,
   };
 
   if (state.mode === 'edit') {
@@ -555,7 +580,11 @@ if (fromHash) {
   els.scenario.value = 'free';
   editor.onStatus('已加载分享的实验 —— 点「重放这场事故」或自行修改后点燃');
 } else {
-  loadScenario('case1'); // 默认进案例1，开门见山
+  let last = 'case1';
+  try {
+    last = getScenario(localStorage.getItem('bbl-last-scenario') || 'case1').id;
+  } catch {}
+  loadScenario(last);
 }
 
 els.replayShare.hidden = !fromHash;

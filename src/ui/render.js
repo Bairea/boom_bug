@@ -99,6 +99,15 @@ export function drawScene(ctx, W, H, view, opts = {}) {
   // 蜗牛黏液（画在物体脚下）
   for (const p of view.slime ?? []) drawSlime(ctx, p, s);
 
+  // 爆炸焦痕（战损记忆，纯表现层）
+  for (const sc of opts.scorches ?? []) {
+    const fade = Math.max(0, 1 - sc.age / sc.ttl);
+    ctx.fillStyle = `rgba(12, 10, 8, ${0.5 * fade})`;
+    ctx.beginPath();
+    ctx.ellipse(sc.x * s, sc.y * s, sc.r * s, sc.r * 0.36 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   // 绳子
   for (const r of view.ropes) drawRope(ctx, r, s);
 

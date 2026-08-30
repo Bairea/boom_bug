@@ -144,6 +144,26 @@ export class Sfx {
     osc.stop(t0 + 0.22);
   }
 
+  // 新纪录号角：三连上行音
+  fanfare() {
+    const ac = this.ensure();
+    if (!ac) return;
+    const t0 = ac.currentTime;
+    [523, 659, 784].forEach((f, i) => {
+      const osc = ac.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = f;
+      const gain = ac.createGain();
+      const st = t0 + i * 0.11;
+      gain.gain.setValueAtTime(0.0001, st);
+      gain.gain.linearRampToValueAtTime(0.12, st + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, st + 0.22);
+      osc.connect(gain).connect(ac.destination);
+      osc.start(st);
+      osc.stop(st + 0.24);
+    });
+  }
+
   // 击倒（玩具故障）：下滑的金属叮
   knockout() {
     const ac = this.ensure();
