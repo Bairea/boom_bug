@@ -284,6 +284,12 @@ window.addEventListener('pointerup', () => {
     state.sim.playerThrow(d.wx, d.wy, d.vx, d.vy);
     sfx.whoosh();
     editor.onStatus('扔进去一根点着的炮仗 💣');
+    try {
+      if (!localStorage.getItem('bbl-threw-once')) {
+        localStorage.setItem('bbl-threw-once', '1');
+        toast('会了！高抛可以越过障碍，平抛可以贴地滑行');
+      }
+    } catch {}
   }
 });
 

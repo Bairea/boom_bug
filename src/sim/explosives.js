@@ -59,7 +59,7 @@ export function spawnProp(sim, type, x, y) {
       bouncy: !!spec.bouncy,
       // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
       children: spec.children
-        ? [sim.rng.pick(['roach', 'locust']), sim.rng.pick(['roach', 'locust']), 'firecracker']
+        ? [sim.rng.pick(['roach', 'locust', 'fly', 'snail']), sim.rng.pick(['roach', 'locust']), 'firecracker']
         : null,
     },
   });
