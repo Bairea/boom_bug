@@ -37,7 +37,7 @@ test('R39: 金属板高弹 —— 反弹显著高于普通地面', () => {
     resetBodyIds();
     const w = new World();
     if (metalX != null) {
-      w.add(createBody({ kind: 'prop', x: metalX, y: 170, radius: 9, restitution: 0.85, static: true, data: { propType: 'metal' } }));
+      w.add(createBody({ kind: 'prop', x: metalX, y: 170, radius: 9, restitution: 0.85, static: true, data: { propType: 'metal', bouncy: true } }));
     }
     const ball = w.add(createBody({ x: metalX ?? 150, y: 60, radius: 3, restitution: 0.2 }));
     let maxBounce = 0;
