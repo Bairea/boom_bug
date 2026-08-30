@@ -593,7 +593,6 @@ function render() {
     }
   }
 }
-
 // ---- 启动 ----
 const fromHash = experimentFromHash(location.hash);
 if (fromHash) {
