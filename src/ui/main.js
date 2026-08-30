@@ -580,7 +580,8 @@ function render() {
   // 实况统计 HUD
   if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
     const st = state.sim.stats;
-    const goal = getScenario(state.scenarioId).goal;
+    const goalFn = getScenario(state.scenarioId).goal;
+    const goal = goalFn && state.sim ? goalFn(state.sim) : null; // goal 是函数，需求值
     ctx.fillStyle = 'rgba(10,12,16,0.55)';
     ctx.fillRect(12, 12, 236, goal ? 46 : 30);
     ctx.fillStyle = '#ffd166';
@@ -589,7 +590,7 @@ function render() {
     if (goal) {
       ctx.fillStyle = 'rgba(215,221,230,0.75)';
       ctx.font = '12px system-ui, sans-serif';
-      ctx.fillText('目标：' + goal.label, 22, 50);
+      ctx.fillText('目标：' + goal.label + (goal.done ? ' ✓' : ''), 22, 50);
     }
   }
 }
