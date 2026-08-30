@@ -622,6 +622,10 @@ window.__lab = {
   },
   specs: () => editor.specs.map((s) => ({ ...s })),
   events: () => (state.sim ? state.sim.eventLog.map((e) => ({ ...e })) : []),
+  // 强制同步渲染一帧（节流标签页里截图前调用）
+  renderNow() {
+    render();
+  },
   // 测试钩子：绕过实时时序，同步推进 N 秒的模拟（走完整管线：录制/特效/报告触发）
   fastForward(seconds) {
     if (state.mode !== 'running' || !state.sim) return false;
