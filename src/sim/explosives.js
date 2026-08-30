@@ -81,11 +81,25 @@ export function stepExplosives(sim, dt) {
     if (!d.lit) continue;
     const spec = EXPLOSIVES[d.etype];
 
-    // 大头针钉住 / 胶水粘附：钉在原地等炸
+    // 大头针钉住 / 胶水粘附：钉在原地，燃料继续烧
     if (d.stuck > 0 || d.glued) {
+      d.frozen = true; // 跳过积分：对抗重力漂移，粘得死死的
       b.vx = 0;
       b.vy = 0;
-      if (d.stuck > 0) d.stuck -= dt;
+      if (d.stuck > 0) {
+        d.stuck -= dt;
+        if (d.stuck <= 0) {
+          queueExplosion(sim, b, spec, 'impact');
+          continue;
+        }
+      } else {
+        d.burn -= dt;
+        if (d.burn <= 0) {
+          queueExplosion(sim, b, spec, 'burnout');
+          continue;
+        }
+      }
+      continue;
     }
 
     if (d.etype === 'firecracker') {

@@ -35,7 +35,7 @@ export function createBody(opts = {}) {
 
 // 半隐式欧拉积分一步
 export function integrateBody(b, dt, gravity) {
-  if (b.static) return;
+  if (b.static || (b.data && b.data.frozen)) return;
   b.vy += gravity * dt;
   const airKeep = Math.max(0, 1 - b.drag * dt);
   b.vx *= airKeep;
