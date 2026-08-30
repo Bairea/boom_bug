@@ -6,9 +6,9 @@ test('R17: 玻璃砖两发炮仗炸碎、产生动态碎片', () => {
   const sim = new Simulation({
     seed: 17,
     entities: [
-      { t: 'glass', x: 150, y: 120 },
-      { t: 'firecracker', x: 161, y: 120, delay: 0 }, // 贴着放（接触距离）
-      { t: 'firecracker', x: 139, y: 120, delay: 1.2 },
+      { t: 'glass', x: 150, y: 171 },
+      { t: 'firecracker', x: 161, y: 176, delay: 0 }, // 贴着放（接触距离）
+      { t: 'firecracker', x: 139, y: 176, delay: 1.2 },
     ],
   });
   sim.runFor(4);
@@ -38,8 +38,8 @@ test('R17: 玻璃砖先裂后碎（裂纹事件）', () => {
   const sim = new Simulation({
     seed: 19,
     entities: [
-      { t: 'glass', x: 150, y: 120 },
-      { t: 'firecracker', x: 161, y: 120, delay: 0 }, // 贴着放
+      { t: 'glass', x: 150, y: 171 },
+      { t: 'firecracker', x: 161, y: 176, delay: 0 }, // 贴着放
     ],
   });
   sim.runFor(2.5);
