@@ -65,10 +65,13 @@ export function buildReport(sim, scenario = null) {
     .reverse()
     .find((e) => ['explosion', 'knockout', 'ropeBreak', 'multiKill', 'armorCrack'].includes(e.type));
   const goalDone = scenario?.goal ? scenario.goal(sim) : null;
+  const title = goalDone?.done
+    ? `实验成功 · ${makeTitle(s, sim.eventLog)}`
+    : makeTitle(s, sim.eventLog);
   return {
     id: 'BBL-' + (sim.seed >>> 0).toString(36).toUpperCase(),
     seed: sim.seed,
-    title: makeTitle(s, sim.eventLog),
+    title,
     duration: sim.tick * DT,
     firstBlastAt: (explosions[0]?.tick ?? 0) * DT,
     quietFor: lastEvent ? (sim.tick - lastEvent.tick) * DT : sim.tick * DT,
