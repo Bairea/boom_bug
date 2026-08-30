@@ -516,6 +516,9 @@ function handleEvents(events) {
       sfx.fuse();
     } else if (e.type === 'slimeBurn') {
       state.particles.puff(e.x, e.y);
+    } else if (e.type === 'douse') {
+      state.particles.puff(e.x, e.y);
+      sfx.fuse(); // 呲——
     } else if (e.type === 'propBreak') {
       state.particles.spark(e.x, e.y, 10);
       sfx.glassBreak();
