@@ -305,10 +305,13 @@ function viewAtCursor() {
 }
 
 // ---- 主循环 ----
+// 时间基准统一：rAF 与兜底 setInterval 都调 tick()，靠真实时间累加器步进，
+// 后台标签页 rAF 被节流时也能以最低 4×4 步/秒推进（真实用户切窗不影响前台帧率）。
 let last = performance.now();
 let acc = 0;
 
-function frame(now) {
+function tick() {
+  const now = performance.now();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   acc += dt;
@@ -318,10 +321,7 @@ function frame(now) {
     while (acc >= DT && steps < 4) {
       acc -= DT;
       steps++;
-      state.sim.step();
-      state.recorder.record(state.sim);
-      handleEvents(state.sim.eventsThisStep);
-      state.particles.update(DT);
+      stepOnce();
     }
     const quiet = state.sim.tick - state.lastEventTick > 180;
     if (quiet) finishRun();
@@ -332,8 +332,20 @@ function frame(now) {
   }
 
   render();
+}
+
+function stepOnce() {
+  state.sim.step();
+  state.recorder.record(state.sim);
+  handleEvents(state.sim.eventsThisStep);
+  state.particles.update(DT);
+}
+
+function frame(now) {
+  tick();
   requestAnimationFrame(frame);
 }
+setInterval(tick, 250); // 后台兜底驱动
 
 function handleEvents(events) {
   for (const e of events) {
@@ -397,5 +409,16 @@ window.__lab = {
   },
   specs: () => editor.specs.map((s) => ({ ...s })),
   events: () => (state.sim ? state.sim.eventLog.map((e) => ({ ...e })) : []),
+  // 测试钩子：绕过实时时序，同步推进 N 秒的模拟（走完整管线：录制/特效/报告触发）
+  fastForward(seconds) {
+    if (state.mode !== 'running' || !state.sim) return false;
+    const target = state.sim.tick + Math.round(seconds * 60);
+    let guard = 0;
+    while (state.mode === 'running' && state.sim.tick < target && guard++ < 60 * 600) {
+      stepOnce();
+      if (state.sim.tick - state.lastEventTick > 180) finishRun();
+    }
+    return true;
+  },
 };
 requestAnimationFrame(frame);

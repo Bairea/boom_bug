@@ -26,7 +26,10 @@ createServer(async (req, res) => {
     const file = normalize(join(ROOT, path));
     if (!file.startsWith(ROOT)) throw new Error('forbidden');
     const data = await readFile(file);
-    res.writeHead(200, { 'Content-Type': MIME[extname(file)] ?? 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[extname(file)] ?? 'application/octet-stream',
+      'Cache-Control': 'no-cache', // 开发迭代期间杜绝陈旧模块
+    });
     res.end(data);
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
