@@ -41,6 +41,8 @@ const state = {
   report: null,
   runExperiment: null, // {seed,width,height,entities,commands} 本次运行的输入
   replay: null, // 回放游标
+  slowmo: 0, // 慢镜头剩余秒数（表现层）
+  zoomPunch: 1, // 镜头推近系数（表现层）
 };
 
 const editor = new Editor(canvas);
@@ -107,6 +109,8 @@ function startRun(useRecordedCommands = false) {
   state.recorder = new Recorder();
   state.particles = new Particles();
   state.lastEventTick = 0;
+  state.slowmo = 0;
+  state.zoomPunch = 1;
   state.mode = 'running';
   editor.locked = true;
   hideReport();
@@ -342,7 +346,16 @@ function tick() {
   const now = performance.now();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
-  acc += dt;
+
+  // 连锁慢镜头：真实时间变慢，模拟 tick 内容不变（不破坏确定性）
+  if (state.slowmo > 0) {
+    state.slowmo -= dt;
+    state.zoomPunch += (1 - state.zoomPunch) * Math.min(1, dt * 3);
+  } else {
+    state.zoomPunch += (1 - state.zoomPunch) * Math.min(1, dt * 6);
+  }
+  const scale = state.slowmo > 0 ? 0.35 : 1;
+  acc += dt * scale;
 
   if (state.mode === 'running') {
     let steps = 0;
@@ -377,8 +390,14 @@ setInterval(tick, 250); // 后台兜底驱动
 
 function handleEvents(events) {
   for (const e of events) {
-    if (e.type === 'explosion') state.particles.explosion(e.x, e.y, e.power);
-    else if (e.type === 'knockout') state.particles.spark(e.x, e.y, 8);
+    if (e.type === 'explosion') {
+      state.particles.explosion(e.x, e.y, e.power);
+      // 镜头推近一点，随时间回弹
+      state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
+      // 连锁 ≥2 或一爆多杀 → 慢镜头欣赏失控瞬间
+      if (e.depth >= 2) state.slowmo = Math.max(state.slowmo, 0.7);
+    } else if (e.type === 'knockout') state.particles.spark(e.x, e.y, 8);
+    else if (e.type === 'multiKill') state.slowmo = Math.max(state.slowmo, 0.9);
     else if (e.type === 'pinStick' || e.type === 'glueStick') state.particles.puff(e.x, e.y);
     else if (e.type === 'ropeBreak') state.particles.spark(e.x, e.y, 4);
     else if (e.type === 'ignite') state.particles.spark(e.x, e.y, 2);
@@ -393,7 +412,13 @@ function render() {
   const shakeX = (Math.random() - 0.5) * shake;
   const shakeY = (Math.random() - 0.5) * shake;
   let view;
-  let opts = { particles: state.particles, shakeX, shakeY, time: performance.now() / 1000 };
+  let opts = {
+    particles: state.particles,
+    shakeX,
+    shakeY,
+    time: performance.now() / 1000,
+    zoom: state.zoomPunch,
+  };
 
   if (state.mode === 'edit') {
     view = viewFromSpecs(editor.specs, editor.ropeList);

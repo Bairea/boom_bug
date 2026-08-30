@@ -78,8 +78,16 @@ export function drawScene(ctx, W, H, view, opts = {}) {
   // 盒子
   const ox = (W - VIEW_W * s) / 2;
   const oy = (H - VIEW_H * s) / 2;
+  const zoom = opts.zoom ?? 1;
+  const cx = (VIEW_W * s) / 2;
+  const cy = (VIEW_H * s) / 2;
   ctx.save();
   ctx.translate(ox + (opts.shakeX ?? 0), oy + (opts.shakeY ?? 0));
+  if (zoom !== 1) {
+    ctx.translate(cx, cy);
+    ctx.scale(zoom, zoom);
+    ctx.translate(-cx, -cy);
+  }
 
   ctx.fillStyle = 'rgba(140,180,220,0.07)';
   ctx.fillRect(0, 0, VIEW_W * s, VIEW_H * s);
