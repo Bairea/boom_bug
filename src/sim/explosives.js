@@ -248,11 +248,16 @@ function hitSomething(w, b) {
   return false;
 }
 
-// 道具每步：木板燃烧（周期灼烧周围虫子，烧完化为灰）
+// 道具每步：木板燃烧（周期灼烧周围虫子，烧完化为灰；落水熄灭）
 export function stepProps(sim, dt) {
   const w = sim.world;
   for (const b of w.bodies) {
     if (!b.alive || b.kind !== 'prop' || !b.data?.burning) continue;
+    if (inWater(w, b)) {
+      b.data.burning = false;
+      sim._record({ type: 'douse', id: b.id, x: b.x, y: b.y });
+      continue;
+    }
     b.data.burnT -= dt;
     b.data.fireTick -= dt;
     if (b.data.fireTick <= 0) {

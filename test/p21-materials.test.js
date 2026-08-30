@@ -54,3 +54,24 @@ test('R39: 金属板高弹 —— 反弹显著高于普通地面', () => {
   const onMetal = bounce(150);
   assert.ok(onMetal > onFloor * 1.4, `金属板应弹更高: floor=${onFloor.toFixed(0)} metal=${onMetal.toFixed(0)}`);
 });
+
+test('R40: 燃烧的木板落水熄灭', () => {
+  const sim = new Simulation({
+    seed: 707,
+    entities: [
+      { t: 'wood', x: 150, y: 174 },
+      { t: 'firecracker', x: 162, y: 174, delay: 0 },
+      { t: 'water', x: 250, y: 150 }, // 水先放远处
+    ],
+  });
+  sim.runFor(2.2);
+  const wood = sim.ents[0];
+  const water = sim.ents[2];
+  assert.ok(wood.data.burning === true, '木板应被引燃');
+  // 把水盆挪过来（模拟玩家布置/推动）
+  water.x = 150;
+  water.y = 170;
+  sim.runFor(0.5);
+  assert.equal(wood.data.burning, false, '落水应熄灭');
+  assert.ok(sim.eventLog.some((e) => e.type === 'douse'), '应有熄灭事件');
+});
