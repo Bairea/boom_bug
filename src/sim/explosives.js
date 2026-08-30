@@ -107,9 +107,9 @@ export function stepExplosives(sim, dt) {
       d.fuse -= dt;
       // 末期乱蹦：引信火花让它抽跳（不可预测感）
       if (d.fuse > 0 && d.fuse < 0.45 && !d.glued && isGroundedExplosive(w, b)) {
-        if (sim.rng.float() < 0.3) {
-          b.vx += sim.rng.range(-55, 55);
-          b.vy -= sim.rng.range(30, 90);
+        if (sim.rng.float() < 0.18) {
+          b.vx += sim.rng.range(-45, 45);
+          b.vy -= sim.rng.range(25, 70);
         }
       }
       if (d.fuse <= 0) {
