@@ -237,6 +237,7 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'sponge') drawSponge(ctx, it, s);
   else if (it.t === 'water') drawWater(ctx, it, s, time);
   else if (it.t === 'oil') drawOil(ctx, it, s, time);
+  else if (it.t === 'sand') drawSand(ctx, it, s);
   else if (it.t === 'giftbox') drawGiftbox(ctx, it, s);
   else if (it.t === 'wood') drawWood(ctx, it, s);
   else if (it.t === 'ice') drawIce(ctx, it, s);
@@ -669,6 +670,25 @@ function drawMetal(ctx, it, s) {
   ]) {
     ctx.beginPath();
     ctx.arc(px * w, py * w, 0.32 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawSand(ctx, it, s) {
+  const w = 13 * s;
+  ctx.fillStyle = '#e2c98f';
+  ctx.beginPath();
+  ctx.ellipse(0, 1.5 * s, w, w * 0.42, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(160,130,70,0.6)';
+  for (const [px, py] of [
+    [-0.5, -0.1],
+    [0.1, 0.1],
+    [0.5, -0.05],
+    [-0.1, 0.2],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(px * w, py * w, 0.05 * w, 0, Math.PI * 2);
     ctx.fill();
   }
 }

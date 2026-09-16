@@ -52,11 +52,15 @@ export function spawnProp(sim, type, x, y) {
     friction: spec.soft ? 1.4 : 0.8,
     data: {
       propType: type,
+      // 初始位置在舞台顶部的道具（礼盒等）永远是静态地形；其余落到地面后转静态，
+      // 使地面上形成稳定的材质/平台层（见爆炸结算里的"落地转静态"）
+      staticPinned: y < 168,
       hp: spec.hp,
       maxHp: spec.hp ?? 0,
       waterZone: !!spec.water,
       oilZone: !!spec.oil,
       slippery: !!spec.slippery,
+      sand: !!spec.sand,
       bouncy: !!spec.bouncy,
       // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
       children: spec.children
@@ -250,9 +254,21 @@ function hitSomething(w, b) {
 }
 
 // 道具每步：木板燃烧（周期灼烧周围虫子，烧完化为灰；落水熄灭）
+// + 被炸飞的地面道具重新落地 → 转回静态，恢复"稳定材质层"语义
 export function stepProps(sim, dt) {
   const w = sim.world;
   for (const b of w.bodies) {
+    // 落地沉降：仅在静止贴地时才固化，避免把还在飞的碎片钉在半空
+    if (b.alive && b.data?.airborne && sim.tick >= (b.data.settleAfterTick ?? 0)) {
+      if (b.y >= w.height - b.radius - 0.6 && Math.hypot(b.vx, b.vy) < 25) {
+        b.vx = 0;
+        b.vy = 0;
+        b.angVel = 0;
+        b.static = true;
+        b.invMass = 0;
+        b.data.airborne = false;
+      }
+    }
     if (!b.alive || b.kind !== 'prop' || !b.data?.burning) continue;
     if (inWater(w, b)) {
       b.data.burning = false;
@@ -378,6 +394,19 @@ export function processExplosions(sim) {
         b.vx += ux * dv;
         b.vy += uy * dv - dv * 0.25; // 稍微向上抬，视觉更好看
         b.angVel += sim.rng.sign() * sim.rng.range(4, 14) * falloff;
+      }
+      // 地面道具被炸离地面 → 转为动态：既有的"重物被推走/掀翻"观感得以保留，
+      // 又让地面形成稳定材质层（冰面/沙坑/金属板不再能被爆炸随意推走）
+      if (b.static && b.kind === 'prop' && b.data?.propType !== 'debris' && !b.data?.staticPinned) {
+        b.static = false;
+        b.invMass = 1 / Math.max(b.mass, 1e-6);
+        b.vx += ux * dv * 0.35;
+        b.vy += uy * dv * 0.35 - dv * 0.1;
+        b.angVel += sim.rng.sign() * sim.rng.range(2, 7) * falloff;
+        b.data.airborne = true;
+        // 冲量在本步末尾才被积分，下一步才真正离开地面。若在同一 tick 就允许沉降判定，
+        // 会把"刚被轰飞的板"原地固化回去 —— 记一个最短滞空，避免这一步被吃掉。
+        b.data.settleAfterTick = sim.tick + 2;
       }
 
       // 连锁引燃：范围内的爆炸物 —— 未点燃的点着（连锁），已点燃的殉爆（立即引爆，代际+1）

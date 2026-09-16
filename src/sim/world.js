@@ -21,13 +21,20 @@ export class World {
     if (this.slime.length > 60) this.slime.shift();
   }
 
-  // 物体脚下是否有黏液/冰面（有的话地面摩擦大幅降低）
+  // 物体脚下地面材质：黏液/冰 → 打滑；沙坑 → 陷入减速
   slimeScaleAt(x, y, radius) {
     for (const s of this.slime) {
       if (Math.hypot(s.x - x, s.y - y) < s.r + radius * 0.5) return 0.12;
     }
     for (const b of this.bodies) {
-      if (b.alive && b.data?.slippery && Math.hypot(b.x - x, b.y - y) < b.radius + radius * 0.5) return 0.1;
+      if (!b.alive) continue;
+      // 地面材质区（冰面/沙坑）是静态地形，不能跳过 —— 它们永远不参与积分，
+      // 但脚下摩擦必须认它们。waterZone/oilZone 是非实体区，不提供材质。
+      if (b.data?.waterZone || b.data?.oilZone) continue;
+      const near = Math.hypot(b.x - x, b.y - y) < b.radius + radius * 0.5;
+      if (!near) continue;
+      if (b.data?.slippery) return 0.1;
+      if (b.data?.sand) return 2.5;
     }
     return 1;
   }
