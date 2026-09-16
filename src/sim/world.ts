@@ -171,8 +171,16 @@ export class World {
       for (let j = i + 1; j < bodies.length; j++) {
         const b = bodies[j];
         if (!b.alive) continue;
-        // 水盆是非实体区域，不参与碰撞
-        if (a.data.waterZone || a.data.oilZone || b.data.waterZone || b.data.oilZone) continue;
+        // 水盆/油盆/冰面/沙坑是非实体区域（材质区），不参与碰撞
+        if (
+          a.data.waterZone ||
+          a.data.oilZone ||
+          a.data.materialZone ||
+          b.data.waterZone ||
+          b.data.oilZone ||
+          b.data.materialZone
+        )
+          continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const minD = a.radius + b.radius;

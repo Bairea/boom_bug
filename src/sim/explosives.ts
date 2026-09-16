@@ -63,6 +63,7 @@ export function spawnProp(sim: Simulation, type: PropName, x: number, y: number)
     maxHp: spec.hp ?? 0,
     waterZone: !!spec.water,
     oilZone: !!spec.oil,
+    materialZone: !!(spec.slippery || spec.sand), // 冰面/沙坑是"地面材质"，不是障碍物
     slippery: !!spec.slippery,
     sand: !!spec.sand,
     bouncy: !!spec.bouncy,
@@ -256,7 +257,7 @@ function isGroundedExplosive(w: { height: number }, b: { y: number; radius: numb
 function hitSomething(w: { bodies: Body[]; width: number; height: number }, b: ExplosiveBody): boolean {
   // 炮仗（燃烧弹）：只算撞到"东西"——地面/天花板是正常滚动面，不算撞击
   for (const o of w.bodies) {
-    if (o === b || !o.alive || o.data.waterZone || o.data.oilZone) continue; // 水/油盆是非实体区域
+    if (o === b || !o.alive || o.data.waterZone || o.data.oilZone || o.data.materialZone) continue; // 水/油盆/冰面/沙坑是非实体区域
     if (dist(b.x, b.y, o.x, o.y) < b.radius + o.radius + 0.5) return true;
   }
   if (b.data.etype === 'firecracker') return false;
@@ -414,7 +415,13 @@ export function processExplosions(sim: Simulation): void {
       }
       // 地面道具被炸离地面 → 转为动态：既有的"重物被推走/掀翻"观感得以保留，
       // 又让地面形成稳定材质层（冰面/沙坑/金属板不再能被爆炸随意推走）
-      if (b.static && b.kind === 'prop' && b.data.propType !== 'debris' && !b.data.staticPinned) {
+      if (
+        b.static &&
+        b.kind === 'prop' &&
+        b.data.propType !== 'debris' &&
+        !b.data.staticPinned &&
+        !b.data.materialZone
+      ) {
         b.static = false;
         b.invMass = 1 / Math.max(b.mass, 1e-6);
         b.vx += ux * dv * 0.35;

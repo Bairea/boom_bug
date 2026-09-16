@@ -127,6 +127,29 @@ export const SCENARIOS: Scenario[] = [
       bonus: (sim.stats.koByType?.fly ?? 0) >= 3 ? '全空域清空 ✓' : null,
     }),
   },
+  {
+    id: 'case6',
+    label: '案例6 · 擦炮冰壶',
+    desc: '水盆会浇灭低平的炮仗；抡出有力的弧线（别太高——引信会在半空烧完），落冰滑行撞进瓶阵。2 次机会：一击掀翻 ≥ 3 只。',
+    seed: 4242,
+    maxThrows: 2,
+    entities: [
+      { t: 'water', x: 120, y: 172 }, // 0 中场水障：低平投掷会熄火
+      { t: 'ice', x: 185, y: 172 }, // 1-2 落冰区：摩擦 ×0.1，滑得远
+      { t: 'ice', x: 205, y: 172 }, // 2
+      { t: 'sand', x: 272, y: 172 }, // 3 缓冲沙坑：滑过头的炮仗陷在这里
+      { t: 'roach', x: 222, y: 176, fixed: true }, // 4-8 瓶阵（固定，被击倒后解除）
+      { t: 'roach', x: 228, y: 176, fixed: true }, // 5
+      { t: 'roach', x: 234, y: 176, fixed: true }, // 6
+      { t: 'roach', x: 240, y: 176, fixed: true }, // 7
+      { t: 'roach', x: 246, y: 176, fixed: true }, // 8
+    ],
+    goal: (sim) => ({
+      label: '一击掀翻 ≥ 3 只球瓶',
+      done: sim.stats.knockouts >= 3,
+      bonus: sim.stats.knockouts >= 5 ? '全瓶清台 ✓' : null,
+    }),
+  },
 ];
 
 export function getScenario(id: string | null): Scenario {

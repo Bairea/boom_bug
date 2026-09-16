@@ -23,6 +23,7 @@ export interface EntityDataBase {
   settleAfterTick?: number; // 最早允许落地固化的 tick
   waterZone?: boolean; // 水盆：非实体浮力区
   oilZone?: boolean; // 油盆：非实体可燃区
+  materialZone?: boolean; // 冰面/沙坑：非实体地面材质区（只改脚下摩擦，不挡路）
   slippery?: boolean; // 冰面：脚下打滑
   sand?: boolean; // 沙坑：脚下陷入减速
   bouncy?: boolean; // 金属板：高弹反弹
