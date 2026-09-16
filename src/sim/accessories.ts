@@ -3,11 +3,17 @@
 
 import { ACCESSORIES, TIPS } from '../game/catalog.js';
 
+export interface TipEffect {
+  pierce: number;
+  stick: number;
+  glue: boolean;
+}
+
 // 计算一组头部配件的合成效果
-export function tipEffect(acc = []) {
+export function tipEffect(acc: readonly string[] = []): TipEffect {
   const eff = { pierce: 0.15, stick: 0, glue: false }; // 0.15 = 裸爆的基础穿透
   for (const a of acc) {
-    const def = ACCESSORIES[a];
+    const def = ACCESSORIES[a as keyof typeof ACCESSORIES];
     if (!def) continue;
     if (def.pierce != null) eff.pierce = Math.max(eff.pierce, def.pierce);
     if (def.stick != null) eff.stick = Math.max(eff.stick, def.stick);
@@ -17,15 +23,15 @@ export function tipEffect(acc = []) {
 }
 
 // 配件对质量的影响（在生成爆炸物时应用）
-export function tipMassMul(acc = []) {
+export function tipMassMul(acc: readonly string[] = []): number {
   let mul = 1;
   for (const a of acc) {
-    const def = ACCESSORIES[a];
+    const def = ACCESSORIES[a as keyof typeof ACCESSORIES];
     if (def?.massMul != null) mul *= def.massMul;
   }
   return mul;
 }
 
-export function isTip(name) {
-  return TIPS.includes(name);
+export function isTip(name: string): boolean {
+  return (TIPS as readonly string[]).includes(name);
 }

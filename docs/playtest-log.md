@@ -41,3 +41,5 @@
 
 
 
+| R54 | 03:40 | ✅ 地面材质闭环：`slimeScaleAt` 不再跳过静态地形（冰面/沙坑真实生效）；沙坑新材料（摩擦×2.5+编辑器入口）；道具"落地转静态/被炸离地转动态"闭环（材质层稳定+掀翻观感保留）；p23 集成回归补上"裸 World 之外的真实验证"。 | sand + settle + p23（97 全绿） | R54 commit |
+| R55 | 04:05 | 🛠 **TypeScript 迁移**（严格模式，tsc 仅类型擦除、原地输出原生 ESM，无打包器）：Body 按 kind 判别联合（ExplosiveData/BugData/PropData 各自收紧必需字段，跨类状态放 EntityDataBase）；SimEvent 17 种事件联合；命令流 Ignite/Throw 判别；目录表 satisfies+拓宽。<br>🐞 **类型检查抓到 2 个真 bug**：① 投掷弹道预览坐标 NaN（runDrag 字段是 wx/wy，绘制读 x/y → 预览一直没画出来）② 分享按钮把 throw 命令映射成 id=undefined 的 ignite → 对方重放丢投掷。<br>✅ 验证：tsc 0 错误 + 97/97 全绿（行为零变化：case1 连锁×4/击倒9 与基线一致）+ 浏览器实机全链路（点燃→报告→渲染像素采样）。 | 全仓 .ts + tsconfig + 2 bug 修复（97 全绿） | R55 commit |

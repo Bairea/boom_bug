@@ -1,17 +1,43 @@
 // 粒子与震屏：纯表现层，允许用 Math.random（不参与模拟确定性）。
 
-export class Particles {
-  constructor() {
-    this.list = [];
-    this.shake = 0;
-  }
+interface ParticleBase {
+  x: number;
+  y: number;
+  life: number;
+  age: number;
+}
+interface SparkParticle extends ParticleBase {
+  type: 'spark';
+  vx: number;
+  vy: number;
+}
+interface SmokeParticle extends ParticleBase {
+  type: 'smoke';
+  vx: number;
+  vy: number;
+  r: number;
+}
+interface FlashParticle extends ParticleBase {
+  type: 'flash';
+  r: number;
+}
+interface RingParticle extends ParticleBase {
+  type: 'ring';
+  r: number;
+  vr: number;
+}
+type Particle = SparkParticle | SmokeParticle | FlashParticle | RingParticle;
 
-  add(p) {
+export class Particles {
+  list: Particle[] = [];
+  shake = 0;
+
+  add(p: Particle): void {
     if (this.list.length > 500) this.list.splice(0, this.list.length - 500);
     this.list.push(p);
   }
 
-  explosion(x, y, power) {
+  explosion(x: number, y: number, power: number): void {
     const r = 6 + power * 0.18;
     this.add({ type: 'flash', x, y, r: r * 0.8, life: 0.12, age: 0 });
     this.add({ type: 'ring', x, y, r: r * 0.4, vr: r * 7, life: 0.45, age: 0 });
@@ -44,7 +70,7 @@ export class Particles {
     this.shake = Math.min(14, this.shake + 3 + power * 0.09);
   }
 
-  spark(x, y, n = 6) {
+  spark(x: number, y: number, n = 6): void {
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = 30 + Math.random() * 90;
@@ -60,7 +86,7 @@ export class Particles {
     }
   }
 
-  puff(x, y) {
+  puff(x: number, y: number): void {
     for (let i = 0; i < 4; i++) {
       this.add({
         type: 'smoke',
@@ -75,7 +101,7 @@ export class Particles {
     }
   }
 
-  update(dt) {
+  update(dt: number): void {
     this.shake = Math.max(0, this.shake - dt * 26);
     for (const p of this.list) {
       p.age += dt;
@@ -94,7 +120,7 @@ export class Particles {
     this.list = this.list.filter((p) => p.age < p.life);
   }
 
-  draw(ctx, s) {
+  draw(ctx: CanvasRenderingContext2D, s: number): void {
     for (const p of this.list) {
       const k = 1 - p.age / p.life;
       ctx.save();

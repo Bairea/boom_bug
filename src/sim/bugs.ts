@@ -2,12 +2,37 @@
 // 被击倒 = 玩具机械故障（翻壳、冒火花、抽搐），不是死亡 —— 玩具世界观（PRD §18）。
 
 import { createBody } from './body.js';
+import type { BugBody, BugData } from './body.js';
+
+import type { Simulation, ThreatInfo } from './sim.js';
+import type { World } from './world.js';
 import { BUGS } from '../game/catalog.js';
+import type { BugName } from '../game/catalog.js';
+import type { Cause } from './events.js';
 import { clamp, norm } from './math.js';
 
-export function spawnBug(sim, type, x, y, opts = {}) {
+export interface BugSpawnOptions {
+  fixed?: boolean;
+}
+
+export function spawnBug(sim: Simulation, type: BugName, x: number, y: number, opts: BugSpawnOptions = {}): BugBody {
   const spec = BUGS[type];
   if (!spec) throw new Error(`未知虫子类型: ${type}`);
+  const data: BugData = {
+    bugType: type,
+    hp: spec.hp,
+    maxHp: spec.hp,
+    armor: spec.armor ?? 0,
+    speed: sim.rng.range(spec.speed[0], spec.speed[1]),
+    state: 'wander',
+    stateT: sim.rng.range(0.3, 1.2),
+    heading: sim.rng.range(0, Math.PI * 2),
+    jumpT: sim.rng.range(0.8, 2.2),
+    slimeT: 0,
+    knocked: false,
+    cracked: false,
+    fixed: !!opts.fixed,
+  };
   const body = createBody({
     kind: 'bug',
     x,
@@ -17,34 +42,19 @@ export function spawnBug(sim, type, x, y, opts = {}) {
     restitution: spec.restitution,
     friction: spec.friction,
     static: !!opts.fixed, // 构造期决定，invMass 才会正确归零
-    data: {
-      bugType: type,
-      hp: spec.hp,
-      maxHp: spec.hp,
-      armor: spec.armor ?? 0,
-      speed: sim.rng.range(spec.speed[0], spec.speed[1]),
-      state: 'wander',
-      stateT: sim.rng.range(0.3, 1.2),
-      heading: sim.rng.range(0, Math.PI * 2),
-      jumpT: sim.rng.range(0.8, 2.2),
-      slimeT: 0,
-      knocked: false,
-      cracked: false,
-      fixed: !!opts.fixed,
-    },
-  });
+    data,
+  }) as BugBody;
   sim.world.add(body);
   sim.ents.push(body);
   return body;
 }
 
-export function isGrounded(world, b) {
+export function isGrounded(world: World, b: { y: number; radius: number }): boolean {
   return b.y >= world.height - b.radius - 1.5;
 }
 
-export function stepBugs(sim, dt) {
+export function stepBugs(sim: Simulation, dt: number): void {
   const w = sim.world;
-  const floor = w.height;
   for (const b of w.bodies) {
     if (!b.alive || b.kind !== 'bug') continue;
     const d = b.data;
@@ -55,7 +65,7 @@ export function stepBugs(sim, dt) {
     }
     if (d.fixed || b.static) continue;
 
-    const threat = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
+    const threat: ThreatInfo | null = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
     const grounded = isGrounded(w, b);
     const speed = Math.hypot(b.vx, b.vy);
 
@@ -74,24 +84,24 @@ export function stepBugs(sim, dt) {
 }
 
 // 苍蝇：永远悬飞在半空带，随机急变向 —— 最难命中的移动靶（PRD §5 高机动）
-function stepFly(sim, b, d, dt, w) {
+function stepFly(sim: Simulation, b: BugBody, d: BugData, _dt: number, w: World): void {
   const BAND_LO = 40;
   const BAND_HI = w.height - 50;
-  d.stateT -= dt;
+  d.stateT -= _dt;
   if (d.stateT <= 0) {
     // 急变向：完全随机的目标方向
     d.heading = sim.rng.range(0, Math.PI * 2);
     d.stateT = sim.rng.range(0.15, 0.5);
     sim._record({ type: 'flyTurn', id: b.id, x: b.x, y: b.y });
   }
-  const threat = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
+  const threat: ThreatInfo | null = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
   if (threat) d.heading = Math.atan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.8, 0.8);
   // 悬停升力抵消重力 + 向悬空带中线回归
-  b.vy -= 560 * dt;
+  b.vy -= 560 * _dt;
   const midY = (BAND_LO + BAND_HI) / 2;
-  b.vy += ((midY - b.y) * 5 + Math.sin(sim.time * 13 + b.id * 7) * 130) * dt;
-  b.vx += Math.cos(d.heading) * 700 * dt;
-  b.vx += Math.sin(sim.time * 17 + b.id * 3) * 60 * dt;
+  b.vy += ((midY - b.y) * 5 + Math.sin(sim.time * 13 + b.id * 7) * 130) * _dt;
+  b.vx += Math.cos(d.heading) * 700 * _dt;
+  b.vx += Math.sin(sim.time * 17 + b.id * 3) * 60 * _dt;
   // 限速与边界
   const sp = Math.hypot(b.vx, b.vy);
   const max = d.speed * (threat ? 1.5 : 1);
@@ -99,11 +109,11 @@ function stepFly(sim, b, d, dt, w) {
     b.vx = (b.vx / sp) * max;
     b.vy = (b.vy / sp) * max;
   }
-  if (b.y < BAND_LO) b.vy += 320 * dt;
-  if (b.y > BAND_HI) b.vy -= 320 * dt;
+  if (b.y < BAND_LO) b.vy += 320 * _dt;
+  if (b.y > BAND_HI) b.vy -= 320 * _dt;
 }
 
-function steer(b, heading, speed, dt, accel = 520) {
+function steer(b: BugBody, heading: number, speed: number, dt: number, accel = 520): void {
   const [dx, dy] = norm(Math.cos(heading), Math.sin(heading));
   const wantX = dx * speed;
   const wantY = dy * speed * 0.35; // 地面虫主要横向爬
@@ -111,7 +121,7 @@ function steer(b, heading, speed, dt, accel = 520) {
   b.vy += clamp(wantY - b.vy, -accel * dt, accel * dt);
 }
 
-function stepRoach(sim, b, d, threat, dt, w) {
+function stepRoach(sim: Simulation, b: BugBody, d: BugData, threat: ThreatInfo | null, dt: number, w: World): void {
   // 受惊逃离：远离威胁方向 + 抖动
   if (threat) {
     const distT = Math.hypot(b.x - threat.x, b.y - threat.y);
@@ -142,14 +152,14 @@ function stepRoach(sim, b, d, threat, dt, w) {
   steer(b, d.heading, panic ? d.speed * 1.6 : d.speed, dt);
 }
 
-function stepLocust(sim, b, d, threat, dt, w) {
+function stepLocust(sim: Simulation, b: BugBody, d: BugData, threat: ThreatInfo | null, dt: number, w: World): void {
   if (!isGrounded(w, b)) return; // 空中随物理
   d.jumpT -= dt;
   const scared = threat && Math.hypot(b.x - threat.x, b.y - threat.y) < 70;
   if (d.jumpT <= 0 || scared) {
     // 随机方向跳；受惊则背向威胁
-    let vx;
-    if (scared) {
+    let vx: number;
+    if (scared && threat) {
       vx = Math.sign(b.x - threat.x || sim.rng.sign()) * sim.rng.range(100, 180);
     } else {
       vx = sim.rng.range(-120, 120);
@@ -161,7 +171,7 @@ function stepLocust(sim, b, d, threat, dt, w) {
   }
 }
 
-function stepScarab(sim, b, d, dt, w) {
+function stepScarab(sim: Simulation, b: BugBody, d: BugData, dt: number, _w: World): void {
   // 清道夫：厚重缓慢
   d.stateT -= dt;
   if (d.stateT <= 0) {
@@ -171,7 +181,7 @@ function stepScarab(sim, b, d, dt, w) {
   steer(b, d.heading, d.speed, dt, 200);
 }
 
-function stepSnail(sim, b, d, dt, w) {
+function stepSnail(sim: Simulation, b: BugBody, d: BugData, dt: number, w: World): void {
   // 蜗牛：极慢爬行，沿途留下黏液（滑溜地形）
   d.stateT -= dt;
   if (d.stateT <= 0) {
@@ -189,7 +199,7 @@ function stepSnail(sim, b, d, dt, w) {
 }
 
 // 伤害结算：装甲按穿透率折减；hp 归零 → 玩具故障
-export function applyDamage(sim, body, amount, pierce, cause) {
+export function applyDamage(sim: Simulation, body: BugBody, amount: number, pierce: number, cause: Cause): number {
   const d = body.data;
   if (!body.alive || d.knocked) return 0;
   const eff = amount * (1 - (d.armor || 0) * (1 - clamp(pierce, 0, 1)));

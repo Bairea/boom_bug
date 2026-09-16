@@ -5,6 +5,7 @@
 import { World } from './world.js';
 import { Rng } from './rng.js';
 import { resetBodyIds } from './body.js';
+import type { Body } from './body.js';
 import { spawnBug, stepBugs, applyDamage } from './bugs.js';
 import {
   spawnExplosive,
@@ -15,27 +16,84 @@ import {
   processExplosions,
   handleExplosiveContact,
 } from './explosives.js';
-import { isTip } from './accessories.js';
-import { BUG_TYPES, PROP_TYPES } from '../game/catalog.js';
+import { isBugName, isExplosiveName, isPropName } from '../game/catalog.js';
+import type { BugName, ExplosiveName } from '../game/catalog.js';
+import type { EntitySpec, Command, TimedCommand } from '../game/encode.js';
+import type { Cause, RecordedEvent, SimEvent } from './events.js';
 import { checksum } from './math.js';
 
 export const DT = 1 / 60;
 
+export interface SimStats {
+  explosions: number;
+  chainMax: number;
+  knockouts: number;
+  multiKills: number;
+  pins: number;
+  glues: number;
+  ropesBroken: number;
+  jumps: number;
+  maxPower: number;
+  // 运行中动态累加的口径（?? 0 取用）
+  throws?: number;
+  cracks?: number;
+  propsBroken?: number;
+  koByType?: Partial<Record<BugName, number>>;
+}
+
+export interface PendingExplosion {
+  x: number;
+  y: number;
+  power: number;
+  blastRadius: number;
+  dmg: number;
+  cause: Cause;
+  depth: number;
+  pierce: number;
+  srcId: number;
+  etype: ExplosiveName;
+}
+
+// 虫子的威胁感知（最近一次爆炸）
+export interface ThreatInfo {
+  x: number;
+  y: number;
+  until: number;
+}
+
+export interface SimOptions {
+  seed?: number;
+  width?: number;
+  height?: number;
+  entities?: EntitySpec[];
+  commands?: TimedCommand[];
+}
+
 export class Simulation {
-  constructor({ seed = 1, width = 300, height = 180, entities = [], commands = [] } = {}) {
+  seed: number;
+  width: number;
+  height: number;
+  rng: Rng;
+  world: World;
+  ents: Body[] = []; // 按摆放顺序的实体（与分享码里的索引对应）
+  tick = 0;
+  time = 0;
+  eventLog: RecordedEvent[] = [];
+  eventsThisStep: RecordedEvent[] = [];
+  pendingExplosions: PendingExplosion[] = [];
+  lastBlast: ThreatInfo | null = null; // 虫子的威胁感知
+  stats: SimStats;
+  pending: Map<number, Command[]> = new Map(); // tick -> ops[]
+  commandLog: TimedCommand[] = []; // 实际执行的命令（分享码用，tick 必有）
+  finished = false;
+
+  constructor({ seed = 1, width = 300, height = 180, entities = [], commands = [] }: SimOptions = {}) {
     this.seed = seed >>> 0;
     this.width = width;
     this.height = height;
     resetBodyIds(); // 每个模拟独享 id 空间：分享码里的 id 才能跨会话成立
     this.rng = new Rng(this.seed);
     this.world = new World({ width, height });
-    this.ents = []; // 按摆放顺序的实体（与分享码里的索引对应）
-    this.tick = 0;
-    this.time = 0;
-    this.eventLog = [];
-    this.eventsThisStep = [];
-    this.pendingExplosions = [];
-    this.lastBlast = null; // 虫子的威胁感知
     this.stats = {
       explosions: 0,
       chainMax: 0,
@@ -47,24 +105,22 @@ export class Simulation {
       jumps: 0,
       maxPower: 0,
     };
-    this.pending = new Map(); // tick -> ops[]
-    this.commandLog = []; // 实际执行的点燃命令（分享码用）
     this._spawnEntities(entities);
     for (const c of commands) this.schedule(c.tick, c);
     this.finished = false;
   }
 
-  _spawnEntities(entities) {
+  _spawnEntities(entities: EntitySpec[]): void {
     for (const e of entities) {
-      if (BUG_TYPES.includes(e.t)) {
+      if (isBugName(e.t)) {
         spawnBug(this, e.t, e.x, e.y, { fixed: !!e.fixed });
-      } else if (['firecracker', 'skyrocket', 'bottle'].includes(e.t)) {
+      } else if (isExplosiveName(e.t)) {
         const angle = e.angle ?? -Math.PI / 2;
         const body = spawnExplosive(this, e.t, e.x, e.y, angle, e.acc ?? []);
         if (e.delay != null && e.delay >= 0) {
           this.schedule(Math.round(e.delay * 60), { op: 'ignite', id: body.id });
         }
-      } else if (PROP_TYPES.includes(e.t)) {
+      } else if (isPropName(e.t)) {
         spawnProp(this, e.t, e.x, e.y);
       }
     }
@@ -79,14 +135,14 @@ export class Simulation {
     }
   }
 
-  schedule(tick, op) {
+  schedule(tick: number, op: Command): void {
     const t = Math.max(1, tick | 0);
     if (!this.pending.has(t)) this.pending.set(t, []);
-    this.pending.get(t).push(op);
+    this.pending.get(t)!.push(op);
   }
 
   // 玩家运行中点击点燃（记录 tick 保证可分享复现）
-  playerIgnite(id) {
+  playerIgnite(id: number): boolean {
     const body = this.world.byId(id);
     if (!body || body.kind !== 'explosive' || !body.alive) return false;
     if (body.data.lit) return false;
@@ -96,12 +152,12 @@ export class Simulation {
   }
 
   // 玩家运行中扔进一根点燃的炮仗（拖拽向量 → 初速）
-  playerThrow(x, y, vx, vy) {
+  playerThrow(x: number, y: number, vx: number, vy: number): boolean {
     this.schedule(this.tick + 1, { op: 'throw', x: +x.toFixed(1), y: +y.toFixed(1), vx: Math.round(vx), vy: Math.round(vy) });
     return true;
   }
 
-  _exec(op) {
+  _exec(op: Command): void {
     if (op.op === 'ignite') {
       const body = this.world.byId(op.id);
       if (body && body.alive && body.kind === 'explosive') {
@@ -120,7 +176,7 @@ export class Simulation {
     }
   }
 
-  step() {
+  step(): void {
     this.tick++;
     this.time = this.tick * DT;
     const due = this.pending.get(this.tick);
@@ -148,10 +204,11 @@ export class Simulation {
     }
   }
 
-  _record(e) {
-    e.tick = this.tick;
-    this.eventsThisStep.push(e);
-    this.eventLog.push(e);
+  _record(e: SimEvent): void {
+    const rec = e as RecordedEvent;
+    rec.tick = this.tick;
+    this.eventsThisStep.push(rec);
+    this.eventLog.push(rec);
     if (e.type === 'pinStick') this.stats.pins++;
     if (e.type === 'glueStick') this.stats.glues++;
     if (e.type === 'ropeBreak') this.stats.ropesBroken++;
@@ -164,28 +221,29 @@ export class Simulation {
     }
   }
 
-  runFor(seconds) {
+  runFor(seconds: number): this {
     const n = Math.round(seconds * 60);
     for (let i = 0; i < n; i++) this.step();
     return this;
   }
 
   // 校验和：确定性测试与"再跑一次对照"用
-  stateChecksum() {
-    const nums = [];
+  stateChecksum(): number {
+    const nums: number[] = [];
     for (const b of this.world.bodies) nums.push(b.x, b.y, b.vx, b.vy, b.angle);
     return checksum(nums);
   }
 
   // 意外事件计数（报告用）：断裂/钉住/粘附/一爆多杀
-  unexpectedCount() {
+  unexpectedCount(): number {
     const s = this.stats;
     return s.ropesBroken + s.pins + s.glues + s.multiKills;
   }
 
   // 调试辅助：直接伤害某虫（测试装甲公式用）
-  _damage(bodyId, amount, pierce) {
+  _damage(bodyId: number, amount: number, pierce: number): number {
     const b = this.world.byId(bodyId);
-    if (b) return applyDamage(this, b, amount, pierce, 'test');
+    if (b && b.kind === 'bug') return applyDamage(this, b, amount, pierce, 'test');
+    return 0;
   }
 }

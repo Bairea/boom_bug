@@ -2,36 +2,74 @@
 
 import { Simulation, DT } from '../sim/sim.js';
 import { VIEW_W, VIEW_H, drawScene, viewFromSim, viewFromSpecs } from './render.js';
+import type { DrawOptions, ItemView, SceneView, Scorch } from './render.js';
 import { Particles } from './particles.js';
 import { Editor } from './editor.js';
 import { Recorder, buildReport, SNAPSHOT_INTERVAL } from '../game/replay.js';
+import type { Report, ReplayFrame } from '../game/replay.js';
 import { SCENARIOS, getScenario } from '../game/scenario.js';
+import type { EntitySpec, Experiment, TimedCommand } from '../game/encode.js';
 import { toHash, experimentFromHash } from '../game/encode.js';
 import { Sfx } from './sounds.js';
 import { createRecords } from '../game/records.js';
+import type { RecordedEvent, ExplosionEvent } from '../sim/events.js';
 
-const canvas = document.getElementById('stage');
-const ctx = canvas.getContext('2d');
+function $<T extends HTMLElement>(id: string): T {
+  const el = document.getElementById(id);
+  if (!el) throw new Error(`缺少元素 #${id}`);
+  return el as T;
+}
+
+const canvas = $<HTMLCanvasElement>('stage');
+const ctx = canvas.getContext('2d')!;
 const W = canvas.width;
 const H = canvas.height;
 
 const els = {
-  status: document.getElementById('status'),
-  ignite: document.getElementById('btn-ignite'),
-  rerun: document.getElementById('btn-rerun'),
-  newSeed: document.getElementById('btn-newseed'),
-  share: document.getElementById('btn-share'),
-  replayShare: document.getElementById('btn-replay-share'),
-  end: document.getElementById('btn-end'),
-  scenario: document.getElementById('scenario'),
-  report: document.getElementById('report'),
-  reportBody: document.getElementById('report-body'),
-  reportTitle: document.getElementById('report-title'),
-  toast: document.getElementById('toast'),
-  toolButtons: [...document.querySelectorAll('[data-tool]')],
+  status: $<HTMLElement>('status'),
+  ignite: $<HTMLButtonElement>('btn-ignite'),
+  rerun: $<HTMLButtonElement>('btn-rerun'),
+  newSeed: $<HTMLButtonElement>('btn-newseed'),
+  share: $<HTMLButtonElement>('btn-share'),
+  replayShare: $<HTMLButtonElement>('btn-replay-share'),
+  end: $<HTMLButtonElement>('btn-end'),
+  scenario: $<HTMLSelectElement>('scenario'),
+  report: $<HTMLElement>('report'),
+  reportBody: $<HTMLElement>('report-body'),
+  reportTitle: $<HTMLElement>('report-title'),
+  toast: $<HTMLElement>('toast'),
+  toolButtons: [...document.querySelectorAll<HTMLButtonElement>('[data-tool]')],
+  mute: null as HTMLButtonElement | null,
 };
 
-const state = {
+type GameMode = 'edit' | 'running' | 'report' | 'replay';
+
+interface ReplayCursor {
+  cursor: number;
+  startTick?: number;
+  flashes: (ExplosionEvent & { tick: number })[];
+  flashSeen: number;
+}
+
+interface GameState {
+  mode: GameMode;
+  seed: number;
+  scenarioId: string;
+  sim: Simulation | null;
+  recorder: Recorder | null;
+  particles: Particles;
+  lastEventTick: number;
+  lastExplosionSeen: number;
+  report: Report | null;
+  runExperiment: Experiment | null; // {seed,width,height,entities,commands} 本次运行的输入
+  replay: ReplayCursor | null; // 回放游标
+  slowmo: number; // 慢镜头剩余秒数（表现层）
+  slowmoUsed: boolean; // 一局只慢放第一次大连锁
+  zoomPunch: number; // 镜头推近系数（表现层）
+  scorches: Scorch[]; // 爆炸焦痕（纯表现层）
+}
+
+const state: GameState = {
   mode: 'edit', // edit | running | report | replay
   seed: 20260830,
   scenarioId: 'free',
@@ -41,12 +79,12 @@ const state = {
   lastEventTick: 0,
   lastExplosionSeen: -1,
   report: null,
-  runExperiment: null, // {seed,width,height,entities,commands} 本次运行的输入
-  replay: null, // 回放游标
-  slowmo: 0, // 慢镜头剩余秒数（表现层）
-  slowmoUsed: false, // 一局只慢放第一次大连锁
-  zoomPunch: 1, // 镜头推近系数（表现层）
-  scorches: [], // 爆炸焦痕（纯表现层）
+  runExperiment: null,
+  replay: null,
+  slowmo: 0,
+  slowmoUsed: false,
+  zoomPunch: 1,
+  scorches: [],
 };
 
 const editor = new Editor(canvas);
@@ -60,16 +98,16 @@ const sfx = new Sfx(
 );
 // 本机最佳战绩
 const records = createRecords();
-els.mute = document.getElementById('btn-mute');
+els.mute = document.getElementById('btn-mute') as HTMLButtonElement | null;
 try {
   if (localStorage.getItem('bbl-muted') === '1') {
     sfx.muted = true;
-    els.mute.textContent = '🔇';
+    if (els.mute) els.mute.textContent = '🔇';
   }
 } catch {}
 els.mute?.addEventListener('click', () => {
   sfx.muted = !sfx.muted;
-  els.mute.textContent = sfx.muted ? '🔇' : '🔊';
+  if (els.mute) els.mute.textContent = sfx.muted ? '🔇' : '🔊';
   try {
     localStorage.setItem('bbl-muted', sfx.muted ? '1' : '0');
   } catch {}
@@ -84,12 +122,16 @@ canvas.addEventListener(
 
 // ---- 实验手册 ----
 const helpEl = document.getElementById('help');
-document.getElementById('btn-help')?.addEventListener('click', () => (helpEl.hidden = false));
-document.getElementById('btn-help-close')?.addEventListener('click', () => (helpEl.hidden = true));
+document.getElementById('btn-help')?.addEventListener('click', () => {
+  if (helpEl) helpEl.hidden = false;
+});
+document.getElementById('btn-help-close')?.addEventListener('click', () => {
+  if (helpEl) helpEl.hidden = true;
+});
 // 首次到访自动弹出（localStorage 记忆）
 try {
   if (!localStorage.getItem('bbl-help-seen')) {
-    helpEl.hidden = false;
+    if (helpEl) helpEl.hidden = false;
     localStorage.setItem('bbl-help-seen', '1');
   }
 } catch {
@@ -99,13 +141,13 @@ try {
 // ---- 工具箱 ----
 for (const btn of els.toolButtons) {
   btn.addEventListener('click', () => {
-    editor.tool = btn.dataset.tool;
+    editor.tool = btn.dataset.tool ?? 'roach';
     els.toolButtons.forEach((b) => b.classList.toggle('active', b === btn));
     editor.onStatus('工具：' + btn.title);
   });
 }
 document.getElementById('fix-scarab')?.addEventListener('change', (e) => {
-  editor.fixScarab = e.target.checked;
+  editor.fixScarab = (e.target as HTMLInputElement).checked;
 });
 
 // ---- 场景 ----
@@ -119,7 +161,7 @@ els.scenario.addEventListener('change', () => {
   loadScenario(els.scenario.value);
 });
 
-function loadScenario(id) {
+function loadScenario(id: string): void {
   const sc = getScenario(id);
   state.scenarioId = id;
   state.seed = sc.seed;
@@ -136,7 +178,7 @@ function loadScenario(id) {
 }
 
 // 把实体列表装入编辑器（绳子索引对换算成编辑器的绳子表）
-function loadEntitiesIntoEditor(entities) {
+function loadEntitiesIntoEditor(entities: EntitySpec[]): void {
   entities.forEach((e) => editor.addSpec(e.t, e.x, e.y, e));
   for (const e of entities) {
     for (const [a, b] of e.ropes ?? []) editor.ropeList.push({ a, b });
@@ -144,11 +186,11 @@ function loadEntitiesIntoEditor(entities) {
 }
 
 // ---- 运行控制 ----
-function startRun(useRecordedCommands = false) {
+function startRun(useRecordedCommands = false): void {
   // 重跑/重放：完整复用上一次（或分享码）的输入，保证同一灾难；新跑：从编辑器取当前布置
   const prev = useRecordedCommands && state.runExperiment ? state.runExperiment : null;
   const entities = prev ? prev.entities : editor.buildEntities(true);
-  const commands = prev ? prev.commands : [];
+  const commands = prev ? prev.commands ?? [] : [];
   state.runExperiment = {
     seed: state.seed,
     width: VIEW_W,
@@ -172,9 +214,10 @@ function startRun(useRecordedCommands = false) {
   els.end.hidden = false;
 }
 
-function finishRun() {
+function finishRun(): void {
   state.mode = 'report';
   editor.locked = false;
+  if (!state.sim) return;
   state.report = buildReport(state.sim, getScenario(state.scenarioId));
   // 本机最佳：分享来的自定义实验记入 custom 键
   const key = state.runExperiment?.custom ? 'custom' : state.scenarioId;
@@ -187,7 +230,7 @@ function finishRun() {
   }
   // 对照实验：与上一局的关键数字对比
   const lastKey = key + ':last';
-  state.report.lastRun = records.load(lastKey);
+  state.report.lastRun = records.load(lastKey) ?? undefined;
   records.save(lastKey, {
     chain: state.report.counts.chainMax,
     knockouts: state.report.counts.knockouts,
@@ -198,7 +241,7 @@ function finishRun() {
   els.end.hidden = true;
 }
 
-function backToEdit() {
+function backToEdit(): void {
   state.mode = 'edit';
   editor.locked = false;
   state.sim = null;
@@ -208,7 +251,7 @@ function backToEdit() {
   editor.onStatus('回到编辑：调整布置后再次点燃');
 }
 
-function toggleIgnite() {
+function toggleIgnite(): void {
   if (state.mode === 'edit') startRun(false);
 }
 
@@ -225,9 +268,14 @@ els.newSeed.addEventListener('click', () => {
 });
 els.share.addEventListener('click', () => {
   if (!state.runExperiment || !state.sim) return toast('先跑一次实验再分享');
-  const exp = {
+  const exp: Experiment = {
     ...state.runExperiment,
-    commands: state.sim.commandLog.map((c) => ({ tick: c.tick, id: c.id, op: 'ignite' })),
+    // 完整命令流：点燃与投掷都要带上，否则对方重放不出同一场事故
+    commands: state.sim.commandLog.map((c): TimedCommand =>
+      c.op === 'throw'
+        ? { tick: c.tick, op: 'throw', x: c.x, y: c.y, vx: c.vx, vy: c.vy }
+        : { tick: c.tick, op: 'ignite', id: c.id }
+    ),
   };
   const url = location.origin + location.pathname + toHash(exp);
   navigator.clipboard?.writeText(url).then(
@@ -235,7 +283,7 @@ els.share.addEventListener('click', () => {
     () => toast('复制失败，请手动复制地址栏链接')
   );
 });
-els.replayShare?.addEventListener('click', () => startRun(true)); // 分享码重放 = 带命令重跑模拟
+els.replayShare.addEventListener('click', () => startRun(true)); // 分享码重放 = 带命令重跑模拟
 
 // 报告浮层按钮
 document.getElementById('btn-overlay-replay')?.addEventListener('click', () => startReplay());
@@ -245,9 +293,15 @@ document.getElementById('btn-overlay-rerun')?.addEventListener('click', () => {
 document.getElementById('btn-overlay-edit')?.addEventListener('click', backToEdit);
 
 // ---- 运行中输入：点未点燃爆炸物=点燃；空白处拖拽=扔进点燃的炮仗 ----
-let runDrag = null; // {wx, wy, vx, vy} 世界坐标起投点与当前投掷速度
+interface RunDrag {
+  wx: number;
+  wy: number;
+  vx: number;
+  vy: number;
+}
+let runDrag: RunDrag | null = null; // {wx, wy, vx, vy} 世界坐标起投点与当前投掷速度
 
-function canvasWorld(ev) {
+function canvasWorld(ev: PointerEvent): { x: number; y: number } {
   const rect = canvas.getBoundingClientRect();
   return {
     x: ((ev.clientX - rect.left) / rect.width) * VIEW_W,
@@ -282,11 +336,11 @@ window.addEventListener('pointerup', () => {
   runDrag = null;
   if (Math.hypot(d.vx, d.vy) > 60) {
     const cap = getScenario(state.scenarioId).maxThrows;
-    if (cap && (state.sim.stats.throws ?? 0) >= cap) {
+    if (cap && state.sim && (state.sim.stats.throws ?? 0) >= cap) {
       editor.onStatus(`投掷机会用完了（${cap} 次）—— 想想怎么一发命中`);
       return;
     }
-    state.sim.playerThrow(d.wx, d.wy, d.vx, d.vy);
+    state.sim?.playerThrow(d.wx, d.wy, d.vx, d.vy);
     sfx.whoosh();
     editor.onStatus('扔进去一根点着的炮仗 💣');
     try {
@@ -299,12 +353,14 @@ window.addEventListener('pointerup', () => {
 });
 
 // ---- 报告 ----
-function showReport(rep) {
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
+
+function showReport(rep: Report): void {
   const c = rep.counts;
   const sc = rep.goal;
   els.reportTitle.innerHTML = `THE INCIDENT · ${rep.id}<div style="font-size:13px;color:var(--dim);font-family:system-ui;margin-top:2px">《${rep.title}》</div>`;
   if (sc?.done) markGoalDone(state.scenarioId);
-  const rows = [
+  const rows: [string, string | number][] = [
     ['爆炸次数', c.explosions],
     ['最大连锁', '×' + c.chainMax],
     ['击倒玩具', c.knockouts + (c.koByType.roach ? `（蟑螂×${c.koByType.roach}）` : '')],
@@ -319,7 +375,7 @@ function showReport(rep) {
   let html = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
   // 对照实验：与上一局对比
   if (rep.lastRun) {
-    const delta = (cur, prev) => {
+    const delta = (cur: number, prev: number): string => {
       const d = cur - prev;
       if (d === 0) return '<span style="color:var(--dim)">＝</span>';
       return d > 0 ? `<span style="color:#9fe6a0">＋${d}</span>` : `<span style="color:#ff9a8a">${d}</span>`;
@@ -346,52 +402,55 @@ function showReport(rep) {
   els.report.hidden = false;
   // 报告卡内加一个分享入口（生成刚才这场事故的分享码）
   const shareInReport = document.getElementById('btn-overlay-share');
-  if (shareInReport && !shareInReport._wired) {
-    shareInReport._wired = true;
+  if (shareInReport && !shareInReport.dataset.wired) {
+    shareInReport.dataset.wired = '1';
     shareInReport.addEventListener('click', () => els.share.click());
   }
 }
 
-function causeName(c) {
-  return { fuse: '引信', impact: '撞击', burnout: '燃尽' }[c] ?? c;
+function causeName(c: string): string {
+  return ({ fuse: '引信', impact: '撞击', burnout: '燃尽' }[c] as string | undefined) ?? c;
 }
 
-function hideReport() {
+function hideReport(): void {
   els.report.hidden = true;
 }
 
-function toast(msg) {
+function toast(msg: string): void {
   els.toast.textContent = msg;
   els.toast.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => els.toast.classList.remove('show'), 2600);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => els.toast.classList.remove('show'), 2600);
 }
 
 // ---- 回放 ----
-function startReplay() {
-  if (!state.recorder?.frames.length) return;
+function startReplay(): void {
+  if (!state.recorder?.frames.length || !state.sim) return;
   state.mode = 'replay';
   const frames = state.recorder.frames;
   // 从第一声爆炸前 1.5s 开始看（跳过冗长的摆放等待）
   const firstExp = state.sim.eventLog.find((e) => e.type === 'explosion');
   const startTick = Math.max(frames[0].tick, (firstExp?.tick ?? frames[0].tick) - 90);
   state.replay = {
-    idx: 0,
     cursor: startTick,
     startTick,
-    flashes: state.sim.eventLog.filter((e) => e.type === 'explosion'),
+    flashes: state.sim.eventLog.filter((e): e is ExplosionEvent & { tick: number } => e.type === 'explosion'),
     flashSeen: 0,
   };
   // 快进到起始帧的爆炸进度
-  while (state.replay.flashSeen < state.replay.flashes.length && state.replay.flashes[state.replay.flashSeen].tick < startTick) {
+  while (
+    state.replay.flashSeen < state.replay.flashes.length &&
+    state.replay.flashes[state.replay.flashSeen].tick < startTick
+  ) {
     state.replay.flashSeen++;
   }
   hideReport();
 }
 
-function stepReplay(dt) {
+function stepReplay(dt: number): void {
   const rp = state.replay;
-  const frames = state.recorder.frames;
+  const frames = state.recorder?.frames;
+  if (!rp || !frames || !frames.length) return;
   rp.cursor += dt * 60 * 0.5; // 0.5 倍速
   // 到达的爆炸事件 → 粒子 + 声音
   while (rp.flashSeen < rp.flashes.length && rp.flashes[rp.flashSeen].tick <= rp.cursor) {
@@ -401,29 +460,29 @@ function stepReplay(dt) {
   }
   if (rp.cursor >= frames[frames.length - 1].tick + 30) {
     state.mode = 'report';
-    showReport(state.report);
+    if (state.report) showReport(state.report);
     return;
   }
-  rp.interp = frames;
 }
 
 // 快照插值
-function viewAtCursor() {
-  const frames = state.recorder.frames;
-  const t = state.replay.cursor;
+function viewAtCursor(): SceneView {
+  const frames = state.recorder?.frames ?? [];
+  const rp = state.replay;
+  const t = rp?.cursor ?? 0;
   let i = 0;
   while (i < frames.length - 1 && frames[i + 1].tick <= t) i++;
   const f0 = frames[i];
   const f1 = frames[Math.min(i + 1, frames.length - 1)];
   const k = f1.tick > f0.tick ? Math.min(1, (t - f0.tick) / (f1.tick - f0.tick)) : 0;
   const map1 = new Map(f1.bodies.map((b) => [b[0], b]));
-  const items = [];
+  const items: ItemView[] = [];
   for (const b of f0.bodies) {
     const b1 = map1.get(b[0]) ?? b;
     if (b[5] === 1) continue; // 已消耗
     items.push({
       t: b[6],
-      kind: b[1],
+      kind: b[1] as ItemView['kind'],
       x: b[2] + (b1[2] - b[2]) * k,
       y: b[3] + (b1[3] - b[3]) * k,
       angle: b[4] + (b1[4] - b[4]) * k,
@@ -437,7 +496,7 @@ function viewAtCursor() {
   }
   // 绳子：用 f0 帧端点近似画（断裂的不画）
   const ropeViews = [];
-  for (const r of state.sim.world.ropes) {
+  for (const r of state.sim?.world.ropes ?? []) {
     if (r.broken) continue;
     const a = f0.bodies.find((b) => b[0] === r.aId);
     const b = f0.bodies.find((b) => b[0] === r.bId);
@@ -452,7 +511,7 @@ function viewAtCursor() {
 let last = performance.now();
 let acc = 0;
 
-function tick() {
+function tick(): void {
   const now = performance.now();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
@@ -478,7 +537,7 @@ function tick() {
       steps++;
       stepOnce();
     }
-    const quiet = state.sim.tick - state.lastEventTick > 180;
+    const quiet = state.sim ? state.sim.tick - state.lastEventTick > 180 : false;
     if (quiet) finishRun();
   } else {
     acc = 0;
@@ -489,20 +548,21 @@ function tick() {
   render();
 }
 
-function stepOnce() {
+function stepOnce(): void {
+  if (!state.sim || !state.recorder) return;
   state.sim.step();
   state.recorder.record(state.sim);
   handleEvents(state.sim.eventsThisStep);
   state.particles.update(DT);
 }
 
-function frame(now) {
+function frame(_now: number): void {
   tick();
   requestAnimationFrame(frame);
 }
 setInterval(tick, 250); // 后台兜底驱动
 
-function handleEvents(events) {
+function handleEvents(events: RecordedEvent[]): void {
   for (const e of events) {
     if (e.type === 'explosion') {
       state.particles.explosion(e.x, e.y, e.power);
@@ -553,12 +613,12 @@ function handleEvents(events) {
   }
 }
 
-function render() {
+function render(): void {
   const shake = state.particles.shake;
   const shakeX = (Math.random() - 0.5) * shake;
   const shakeY = (Math.random() - 0.5) * shake;
-  let view;
-  let opts = {
+  let view: SceneView | null = null;
+  const opts: DrawOptions = {
     particles: state.particles,
     shakeX,
     shakeY,
@@ -573,21 +633,22 @@ function render() {
     opts.showAim = true;
     opts.ghost = editor.ghost;
   } else if (state.mode === 'running' || (state.mode === 'report' && state.sim)) {
-    view = viewFromSim(state.sim);
+    view = viewFromSim(state.sim!);
     opts.recDot = state.mode === 'running';
     if (state.mode === 'running') {
       opts.showAim = true;
-      if (runDrag) opts.throwPreview = { ...runDrag };
+      // 弹道预览：runDrag 用的是 wx/wy（世界坐标起投点），换名成绘制要的 x/y
+      if (runDrag) opts.throwPreview = { x: runDrag.wx, y: runDrag.wy, vx: runDrag.vx, vy: runDrag.vy };
     }
   } else if (state.mode === 'replay') {
     view = viewAtCursor();
-    const frames = state.recorder.frames;
-    const t0 = state.replay.startTick ?? frames[0].tick;
-    const t1 = frames[frames.length - 1].tick;
+    const frames = state.recorder?.frames;
+    const t0 = state.replay?.startTick ?? frames?.[0].tick ?? 0;
+    const t1 = frames?.[frames.length - 1].tick ?? 1;
     opts.replayWatermark = true;
-    opts.replayProgress = Math.max(0, (state.replay.cursor - t0) / Math.max(1, t1 - t0));
+    opts.replayProgress = Math.max(0, ((state.replay?.cursor ?? 0) - t0) / Math.max(1, t1 - t0));
   }
-  drawScene(ctx, W, H, view, opts);
+  if (view) drawScene(ctx, W, H, view, opts);
 
   // 实况统计 HUD
   if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
@@ -618,20 +679,35 @@ if (fromHash) {
   els.scenario.value = 'free';
   editor.onStatus('已加载分享的实验 —— 点「重放这场事故」或自行修改后点燃');
 } else {
-  let last = 'case1';
+  let lastScenario = 'case1';
   try {
-    last = getScenario(localStorage.getItem('bbl-last-scenario') || 'case1').id;
+    lastScenario = getScenario(localStorage.getItem('bbl-last-scenario') || 'case1').id;
   } catch {}
-  loadScenario(last);
+  loadScenario(lastScenario);
 }
 refreshScenarioLabels();
 
 els.replayShare.hidden = !fromHash;
+
 // 调试句柄：自动化试玩与问题排查用
+declare global {
+  interface Window {
+    __lab?: {
+      editor: Editor;
+      state: GameState;
+      readonly sim: Simulation | null;
+      specs: () => EntitySpec[];
+      events: () => RecordedEvent[];
+      renderNow: () => void;
+      fastForward: (seconds: number) => boolean;
+    };
+  }
+}
+
 window.__lab = {
   editor,
   state,
-  get sim() {
+  get sim(): Simulation | null {
     return state.sim;
   },
   specs: () => editor.specs.map((s) => ({ ...s })),
@@ -641,7 +717,7 @@ window.__lab = {
     render();
   },
   // 测试钩子：绕过实时时序，同步推进 N 秒的模拟（走完整管线：录制/特效/报告触发）
-  fastForward(seconds) {
+  fastForward(seconds: number): boolean {
     if (state.mode !== 'running' || !state.sim) return false;
     const target = state.sim.tick + Math.round(seconds * 60);
     let guard = 0;
@@ -654,14 +730,14 @@ window.__lab = {
 };
 
 // ---- 场景目标达成徽章 ----
-function markGoalDone(id) {
+function markGoalDone(id: string): void {
   try {
     localStorage.setItem('bbl-goal-' + id, '1');
   } catch {}
   refreshScenarioLabels();
 }
 
-function refreshScenarioLabels() {
+function refreshScenarioLabels(): void {
   for (const opt of els.scenario.options) {
     const sc = SCENARIOS.find((s) => s.id === opt.value);
     if (!sc) continue;
@@ -675,7 +751,7 @@ function refreshScenarioLabels() {
 
 // ---- 键盘快捷键：空格=点燃/再来一次，R=再来一次，N=新实验，Esc=结束/继续改造 ----
 window.addEventListener('keydown', (ev) => {
-  const tag = ev.target?.tagName;
+  const tag = (ev.target as HTMLElement | null)?.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
   if (ev.code === 'Space') {
     ev.preventDefault();

@@ -1,18 +1,95 @@
 // Canvas 渲染：玩具实验室风格（PRD §19 极简美术 + "实验录像"感）。
 // 不持有状态：每帧从视图模型重画。视图模型来自 specs(编辑) 或 sim(运行)。
 
-import { BUGS, EXPLOSIVES, PROP, BUG_TYPES, PROP_TYPES } from '../game/catalog.js';
+import { BUGS, EXPLOSIVES, PROP } from '../game/catalog.js';
+import type { EntityKind } from '../game/catalog.js';
+import { kindOfName } from '../game/catalog.js';
+import type { Simulation } from '../sim/sim.js';
+import type { SlimeDrop } from '../sim/world.js';
+import type { Particles } from './particles.js';
 
 export const VIEW_W = 300;
 export const VIEW_H = 180;
 
 // ---- 视图模型 ----
-export function viewFromSim(sim) {
-  const items = [];
+export interface ItemView {
+  t: string;
+  kind: EntityKind;
+  x: number;
+  y: number;
+  radius?: number;
+  angle?: number;
+  aim?: number | null;
+  lit?: boolean;
+  burning?: boolean;
+  acc?: string[];
+  knocked?: boolean;
+  cracked?: boolean;
+  fixed?: boolean;
+  hp?: number | null;
+  maxHp?: number;
+  speed?: number;
+  speedX?: number;
+  onFire?: boolean;
+  frozen?: boolean;
+}
+
+export interface RopeView {
+  ax: number;
+  ay: number;
+  bx: number;
+  by: number;
+}
+
+export interface SceneView {
+  items: ItemView[];
+  ropes: RopeView[];
+  slime?: SlimeDrop[];
+}
+
+export interface Scorch {
+  x: number;
+  y: number;
+  r: number;
+  age: number;
+  ttl: number;
+}
+
+export interface ThrowPreview {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+}
+
+export interface DrawOptions {
+  particles?: Particles;
+  shakeX?: number;
+  shakeY?: number;
+  time?: number;
+  zoom?: number;
+  scorches?: Scorch[];
+  slowmoActive?: boolean;
+  showAim?: boolean;
+  ghost?: ItemView | null;
+  recDot?: boolean;
+  throwPreview?: ThrowPreview;
+  replayWatermark?: boolean;
+  replayProgress?: number;
+}
+
+function typeNameOf(b: { kind: string; data: { etype?: string; bugType?: string; propType?: string } }): string {
+  if (b.kind === 'explosive') return b.data.etype ?? '';
+  if (b.kind === 'bug') return b.data.bugType ?? '';
+  return b.data.propType ?? '';
+}
+
+export function viewFromSim(sim: Simulation): SceneView {
+  const items: ItemView[] = [];
   for (const b of sim.world.bodies) {
     if (!b.alive) continue;
     items.push({
-      t: b.data.etype ?? b.data.bugType ?? b.data.propType,
+      t: typeNameOf(b),
       kind: b.kind,
       x: b.x,
       y: b.y,
@@ -32,45 +109,54 @@ export function viewFromSim(sim) {
       onFire: !!b.data.burning,
     });
   }
-  const slime = sim.world.slime.map((p) => ({ ...p }));
-  const ropes = sim.world.ropes
+  const slime: SlimeDrop[] = sim.world.slime.map((p) => ({ ...p }));
+  const ropes: RopeView[] = sim.world.ropes
     .filter((r) => !r.broken)
     .map((r) => {
       const a = sim.world.byId(r.aId);
       const b = sim.world.byId(r.bId);
       return a && b && a.alive && b.alive ? { ax: a.x, ay: a.y, bx: b.x, by: b.y } : null;
     })
-    .filter(Boolean);
+    .filter((r): r is RopeView => r != null);
   return { items, ropes, slime };
 }
 
-export function viewFromSpecs(specs, ropeList = []) {
-  const items = specs.map((s) => ({
+export function viewFromSpecs(specs: { t: string; x: number; y: number; angle?: number; acc?: string[]; fixed?: boolean }[], ropeList: { a: number; b: number }[] = []): SceneView {
+  const items: ItemView[] = specs.map((s) => ({
     t: s.t,
-    kind: BUG_TYPES.includes(s.t) ? 'bug' : s.t === 'brick' || s.t === 'glass' || s.t === 'sponge' || s.t === 'water' ? 'prop' : 'explosive',
+    kind: kindOfName(s.t),
     x: s.x,
     y: s.y,
-    radius: (BUGS[s.t] ?? PROP[s.t] ?? EXPLOSIVES[s.t] ?? {}).radius ?? 3,
+    radius: specRadius(s.t),
     angle: s.angle ?? (s.t === 'skyrocket' ? -Math.PI / 2 : 0),
     aim: s.angle,
     lit: false,
     acc: s.acc ?? [],
     fixed: s.fixed,
-    hp: (BUGS[s.t] ?? {}).hp,
-    maxHp: (BUGS[s.t] ?? {}).hp,
+    hp: BUGS[s.t as keyof typeof BUGS]?.hp,
+    maxHp: BUGS[s.t as keyof typeof BUGS]?.hp,
   }));
-  const ropes = ropeList
+  const ropes: RopeView[] = ropeList
     .map(({ a, b }) => {
       const A = specs[a];
       const B = specs[b];
       return A && B ? { ax: A.x, ay: A.y, bx: B.x, by: B.y } : null;
     })
-    .filter(Boolean);
+    .filter((r): r is RopeView => r != null);
   return { items, ropes };
 }
 
+// 编辑视图里的幽灵半径：虫/道具取表值，爆炸物用固定值（绘制本身不依赖它）
+function specRadius(t: string): number {
+  const bug = BUGS[t as keyof typeof BUGS];
+  if (bug) return bug.radius;
+  const prop = PROP[t as keyof typeof PROP];
+  if (prop) return prop.radius;
+  return EXPLOSIVES[t as keyof typeof EXPLOSIVES]?.bodyRadius ?? 3;
+}
+
 // ---- 主绘制 ----
-export function drawScene(ctx, W, H, view, opts = {}) {
+export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, view: SceneView, opts: DrawOptions = {}): void {
   const s = W / VIEW_W; // 世界→屏幕缩放
   const time = opts.time ?? 0;
   ctx.clearRect(0, 0, W, H);
@@ -155,19 +241,19 @@ export function drawScene(ctx, W, H, view, opts = {}) {
   ctx.strokeRect(0, 0, VIEW_W * s, VIEW_H * s);
   // 四角螺丝
   ctx.fillStyle = 'rgba(190,220,255,0.5)';
-  for (const [cx, cy] of [
+  for (const [sx, sy] of [
     [1.5, 1.5],
     [VIEW_W - 1.5, 1.5],
     [1.5, VIEW_H - 1.5],
     [VIEW_W - 1.5, VIEW_H - 1.5],
   ]) {
     ctx.beginPath();
-    ctx.arc(cx * s, cy * s, 0.9 * s, 0, Math.PI * 2);
+    ctx.arc(sx * s, sy * s, 0.9 * s, 0, Math.PI * 2);
     ctx.fill();
   }
 
   // 粒子
-  if (opts.particles) opts.particles.draw(ctx, s);
+  opts.particles?.draw(ctx, s);
 
   ctx.restore();
 
@@ -194,7 +280,7 @@ export function drawScene(ctx, W, H, view, opts = {}) {
   }
 }
 
-function drawGrid(ctx, W, H, s) {
+function drawGrid(ctx: CanvasRenderingContext2D, W: number, H: number, s: number): void {
   ctx.strokeStyle = 'rgba(255,255,255,0.04)';
   ctx.lineWidth = 1;
   const step = 6 * s;
@@ -210,7 +296,7 @@ function drawGrid(ctx, W, H, s) {
   ctx.stroke();
 }
 
-function drawShadow(ctx, it, s) {
+function drawShadow(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   if (it.t === 'brick') return;
   const floorY = VIEW_H * s;
   const h = Math.max(0, floorY - it.y * s);
@@ -221,7 +307,7 @@ function drawShadow(ctx, it, s) {
   ctx.fill();
 }
 
-function drawItem(ctx, it, s, time) {
+function drawItem(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   ctx.save();
   ctx.translate(it.x * s, it.y * s);
   if (it.t === 'roach') drawRoach(ctx, it, s, time);
@@ -239,22 +325,22 @@ function drawItem(ctx, it, s, time) {
   else if (it.t === 'oil') drawOil(ctx, it, s, time);
   else if (it.t === 'sand') drawSand(ctx, it, s);
   else if (it.t === 'giftbox') drawGiftbox(ctx, it, s);
-  else if (it.t === 'wood') drawWood(ctx, it, s);
+  else if (it.t === 'wood') drawWood(ctx, it, s, time);
   else if (it.t === 'ice') drawIce(ctx, it, s);
   else if (it.t === 'metal') drawMetal(ctx, it, s);
   else if (it.t === 'debris') drawDebris(ctx, it, s);
   ctx.restore();
   // 受损血条
-  if (it.kind === 'bug' && it.hp != null && it.hp < it.maxHp && !it.knocked) {
+  if (it.kind === 'bug' && it.hp != null && it.hp < (it.maxHp ?? 0) && !it.knocked) {
     const w = 8 * s;
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fillRect(it.x * s - w / 2, (it.y - 7) * s, w, 1.6 * s);
     ctx.fillStyle = '#ffd166';
-    ctx.fillRect(it.x * s - w / 2, (it.y - 7) * s, (w * Math.max(0, it.hp)) / it.maxHp, 1.6 * s);
+    ctx.fillRect(it.x * s - w / 2, (it.y - 7) * s, (w * Math.max(0, it.hp)) / (it.maxHp ?? 1), 1.6 * s);
   }
 }
 
-function knockedTint(ctx, it, s, draw) {
+function knockedTint(ctx: CanvasRenderingContext2D, it: ItemView, s: number, draw: () => void): void {
   if (!it.knocked) {
     draw();
     return;
@@ -274,11 +360,11 @@ function knockedTint(ctx, it, s, draw) {
   ctx.stroke();
 }
 
-function drawRoach(ctx, it, s, time) {
+function drawRoach(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const r = 2.6 * s;
   // 活着时朝向固定（顶视角靠腿动表现移动），被击倒后随物理角度翻滚
-  ctx.rotate(it.knocked ? it.angle : 0);
-  const wig = it.speed > 12 ? Math.sin(time * 20) * 0.35 : 0;
+  ctx.rotate(it.knocked ? (it.angle ?? 0) : 0);
+  const wig = (it.speed ?? 0) > 12 ? Math.sin(time * 20) * 0.35 : 0;
   knockedTint(ctx, it, s, () => {
     // 腿
     ctx.strokeStyle = '#5d3a17';
@@ -319,10 +405,10 @@ function drawRoach(ctx, it, s, time) {
   });
 }
 
-function drawLocust(ctx, it, s, time) {
+function drawLocust(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
   const r = 2.4 * s;
   knockedTint(ctx, it, s, () => {
-    ctx.rotate(it.knocked ? it.angle : -0.35);
+    ctx.rotate(it.knocked ? (it.angle ?? 0) : -0.35);
     // 后腿
     ctx.strokeStyle = '#4c7028';
     ctx.lineWidth = 0.7 * s;
@@ -357,7 +443,7 @@ function drawLocust(ctx, it, s, time) {
   });
 }
 
-function drawScarab(ctx, it, s, time) {
+function drawScarab(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
   const r = 5 * s;
   knockedTint(ctx, it, s, () => {
     // 壳
@@ -403,7 +489,7 @@ function drawScarab(ctx, it, s, time) {
   });
 }
 
-function drawFuse(ctx, it, s, time) {
+function drawFuse(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
   if (!it.lit) return;
   // 引信火花
   const fx = -3.2 * s;
@@ -420,7 +506,7 @@ function drawFuse(ctx, it, s, time) {
   ctx.fill();
 }
 
-function drawFirecracker(ctx, it, s, time) {
+function drawFirecracker(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   ctx.rotate(it.angle ?? 0);
   ctx.fillStyle = '#c0392b';
   roundRect(ctx, -1.7 * s, -1.1 * s, 3.4 * s, 2.2 * s, 0.5 * s);
@@ -436,7 +522,7 @@ function drawFirecracker(ctx, it, s, time) {
   drawFuse(ctx, it, s, time);
 }
 
-function drawThrusterFlame(ctx, s, len) {
+function drawThrusterFlame(ctx: CanvasRenderingContext2D, s: number, len: number): void {
   const g = ctx.createLinearGradient(0, 0, 0, len * s);
   g.addColorStop(0, '#fff3c4');
   g.addColorStop(0.5, '#ffb347');
@@ -448,7 +534,7 @@ function drawThrusterFlame(ctx, s, len) {
   ctx.fill();
 }
 
-function drawSkyrocket(ctx, it, s, time) {
+function drawSkyrocket(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   // 未点燃：立在地面；飞行：沿 angle 方向
   const a = it.lit ? it.angle ?? -Math.PI / 2 : -Math.PI / 2;
   ctx.rotate(a + Math.PI / 2);
@@ -472,7 +558,7 @@ function drawSkyrocket(ctx, it, s, time) {
   drawFuse(ctx, it, s, time);
 }
 
-function drawBottle(ctx, it, s, time) {
+function drawBottle(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const a = it.aim ?? it.angle ?? 0;
   ctx.rotate(a);
   if (it.burning || it.lit) drawThrusterFlame(ctx, s, 5);
@@ -495,7 +581,7 @@ function drawBottle(ctx, it, s, time) {
   drawTip(ctx, it, s);
 }
 
-function drawTip(ctx, it, s) {
+function drawTip(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   for (const acc of it.acc ?? []) {
     if (acc === 'toothpick') {
       ctx.strokeStyle = '#e8cfa0';
@@ -524,7 +610,7 @@ function drawTip(ctx, it, s) {
   }
 }
 
-function drawBrick(ctx, it, s) {
+function drawBrick(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 9 * s;
   ctx.fillStyle = '#a5713d';
   roundRect(ctx, -w, -w * 0.66, w * 2, w * 1.32, 1 * s);
@@ -541,7 +627,7 @@ function drawBrick(ctx, it, s) {
   ctx.stroke();
 }
 
-function drawGlass(ctx, it, s) {
+function drawGlass(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 9 * s;
   ctx.fillStyle = 'rgba(150, 200, 235, 0.4)';
   roundRect(ctx, -w, -w * 0.66, w * 2, w * 1.32, 1 * s);
@@ -570,8 +656,8 @@ function drawGlass(ctx, it, s) {
   }
 }
 
-function drawWater(ctx, it, s, time) {
-  const w = it.radius * s;
+function drawWater(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
+  const w = (it.radius ?? 16) * s;
   const wob = Math.sin(time * 2.2) * 1.2 * s;
   ctx.fillStyle = 'rgba(70, 140, 200, 0.35)';
   ctx.beginPath();
@@ -587,7 +673,7 @@ function drawWater(ctx, it, s, time) {
   ctx.ellipse(0, 2 * s, w, w * 0.42, 0, 0, Math.PI * 2);
   ctx.stroke();
 }
-function drawGiftbox(ctx, it, s) {
+function drawGiftbox(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 8 * s;
   ctx.fillStyle = it.cracked ? '#d8788a' : '#d4526e';
   roundRect(ctx, -w, -w * 0.8, w * 2, w * 1.6, 1.2 * s);
@@ -611,7 +697,7 @@ function drawGiftbox(ctx, it, s) {
 }
 
 
-function drawWood(ctx, it, s, time) {
+function drawWood(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const w = 10 * s;
   ctx.fillStyle = it.onFire ? '#8a5a2b' : '#9c6b3d';
   roundRect(ctx, -w, -w * 0.35, w * 2, w * 0.7, 1.5 * s);
@@ -635,7 +721,7 @@ function drawWood(ctx, it, s, time) {
   }
 }
 
-function drawIce(ctx, it, s) {
+function drawIce(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 12 * s;
   ctx.fillStyle = 'rgba(190, 230, 250, 0.5)';
   ctx.beginPath();
@@ -653,7 +739,7 @@ function drawIce(ctx, it, s) {
   ctx.stroke();
 }
 
-function drawMetal(ctx, it, s) {
+function drawMetal(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 9 * s;
   const g = ctx.createLinearGradient(0, -w * 0.5, 0, w * 0.5);
   g.addColorStop(0, '#b8c2cc');
@@ -674,7 +760,7 @@ function drawMetal(ctx, it, s) {
   }
 }
 
-function drawSand(ctx, it, s) {
+function drawSand(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 13 * s;
   ctx.fillStyle = '#e2c98f';
   ctx.beginPath();
@@ -693,8 +779,8 @@ function drawSand(ctx, it, s) {
   }
 }
 
-function drawOil(ctx, it, s, time) {
-  const w = it.radius * s;
+function drawOil(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
+  const w = (it.radius ?? 14) * s;
   ctx.fillStyle = 'rgba(60, 45, 75, 0.55)';
   ctx.beginPath();
   ctx.ellipse(0, 2 * s, w, w * 0.4, 0, 0, Math.PI * 2);
@@ -716,7 +802,7 @@ function drawOil(ctx, it, s, time) {
   }
 }
 
-function drawSponge(ctx, it, s) {
+function drawSponge(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 10 * s;
   ctx.fillStyle = '#e8d06a';
   roundRect(ctx, -w, -w * 0.5, w * 2, w, 2 * s);
@@ -736,7 +822,7 @@ function drawSponge(ctx, it, s) {
   }
 }
 
-function drawDebris(ctx, it, s) {
+function drawDebris(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   ctx.fillStyle = 'rgba(170, 215, 245, 0.75)';
   ctx.beginPath();
   ctx.moveTo(0, -2.4 * s);
@@ -746,7 +832,7 @@ function drawDebris(ctx, it, s) {
   ctx.fill();
 }
 
-function drawSnail(ctx, it, s, time) {
+function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
   const r = 3 * s;
   const face = it.knocked ? 1 : Math.sign(it.speedX ?? 1);
   knockedTint(ctx, it, s, () => {
@@ -784,9 +870,9 @@ function drawSnail(ctx, it, s, time) {
   });
 }
 
-function drawFly(ctx, it, s, time) {
+function drawFly(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const r = 2 * s;
-  const dirX = it.speedX >= 0 ? 1 : -1;
+  const dirX = (it.speedX ?? 0) >= 0 ? 1 : -1;
   knockedTint(ctx, it, s, () => {
     // 翅膀（高频扇动）
     const flap = Math.sin(time * 60) * 0.8;
@@ -809,7 +895,7 @@ function drawFly(ctx, it, s, time) {
   });
 }
 
-function drawSlime(ctx, p, s) {
+function drawSlime(ctx: CanvasRenderingContext2D, p: SlimeDrop, s: number): void {
   const fade = Math.max(0, 1 - p.age / p.ttl);
   ctx.fillStyle = `rgba(150, 220, 140, ${0.3 * fade})`;
   ctx.beginPath();
@@ -821,7 +907,7 @@ function drawSlime(ctx, p, s) {
   ctx.fill();
 }
 
-function drawRope(ctx, r, s) {
+function drawRope(ctx: CanvasRenderingContext2D, r: RopeView, s: number): void {
   const dx = r.bx - r.ax;
   const dy = r.by - r.ay;
   const d = Math.hypot(dx, dy);
@@ -834,7 +920,7 @@ function drawRope(ctx, r, s) {
   ctx.stroke();
 }
 
-function drawAim(ctx, it, s) {
+function drawAim(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const a = it.aim ?? 0;
   ctx.strokeStyle = 'rgba(126,200,255,0.8)';
   ctx.lineWidth = 0.5 * s;
@@ -856,7 +942,7 @@ function drawAim(ctx, it, s) {
 }
 
 // 运行中拖拽投掷点燃炮仗的预览：起投点画一根点着的炮仗 + 重力弹道预测点
-function drawThrowPreview(ctx, t, s) {
+function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: number): void {
   const l = Math.hypot(t.vx, t.vy);
   if (l < 10) return;
   // 弹道预测：粗积分重力（与模拟同 g=560）
@@ -888,7 +974,7 @@ function drawThrowPreview(ctx, t, s) {
   ctx.fill();
 }
 
-function roundRect(ctx, x, y, w, h, r) {
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);

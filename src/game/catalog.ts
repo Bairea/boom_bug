@@ -1,6 +1,61 @@
 // 物品目录：一切数值集中在这一张表（PRD §24 —— 物体只有物理属性，没有特化规则）。
 
-export const BUGS = {
+export interface BugSpec {
+  label: string;
+  icon: string;
+  radius: number;
+  mass: number;
+  hp: number;
+  armor: number;
+  restitution: number;
+  friction: number;
+  speed: [number, number];
+  canFix?: boolean;
+  leavesSlime?: boolean;
+  flies?: boolean;
+}
+
+export interface ExplosiveSpec {
+  label: string;
+  icon: string;
+  bodyRadius: number;
+  mass: number;
+  power: number;
+  blastRadius: number;
+  dmg: number;
+  thrust: number;
+  fuse?: [number, number];
+  burn?: number;
+  launchKick?: number;
+  wobble?: number;
+}
+
+export interface PropSpec {
+  label: string;
+  radius: number;
+  mass: number;
+  hp: number | null;
+  brittle?: boolean;
+  soft?: boolean;
+  water?: boolean;
+  oil?: boolean;
+  sand?: boolean;
+  children?: boolean;
+  flammable?: boolean;
+  slippery?: boolean;
+  bouncy?: boolean;
+}
+
+export interface AccessorySpec {
+  label: string;
+  icon: string;
+  pierce?: number;
+  massMul?: number;
+  stick?: number;
+  glue?: boolean;
+}
+
+const BUG_TABLE = {
   roach: {
     label: '玩具蟑螂',
     icon: '🪳',
@@ -59,12 +114,17 @@ export const BUGS = {
     speed: [90, 130], // 悬飞 + 随机急变向，最难命中
     flies: true, // 持续飞行（悬空带）
   },
-};
+} satisfies Record<string, BugSpec>;
 
+export type BugName = keyof typeof BUG_TABLE;
 
-export const BUG_TYPES = Object.keys(BUGS);
+// 拓宽到统一的 BugSpec：可选标志（canFix/leavesSlime…）在任意条目上可读
+export const BUGS: Record<BugName, BugSpec> = BUG_TABLE;
 
-export const EXPLOSIVES = {
+export const BUG_TYPES = Object.keys(BUGS) as BugName[];
+export const isBugName = (t: string): t is BugName => (BUG_TYPES as string[]).includes(t);
+
+const EXPLOSIVE_TABLE = {
   firecracker: {
     label: '小炮仗',
     icon: '🧨',
@@ -100,19 +160,28 @@ export const EXPLOSIVES = {
     burn: 0.75,
     wobble: 130, // 横向摆动幅度（不可预测感的来源）
   },
-};
+} satisfies Record<string, ExplosiveSpec>;
 
-export const ACCESSORIES = {
+export type ExplosiveName = keyof typeof EXPLOSIVE_TABLE;
+export const EXPLOSIVES: Record<ExplosiveName, ExplosiveSpec> = EXPLOSIVE_TABLE;
+export const isExplosiveName = (t: string): t is ExplosiveName => t in EXPLOSIVES;
+
+const ACCESSORY_TABLE = {
   toothpick: { label: '牙签', icon: '🥢', pierce: 0.6, massMul: 0.9 },
   pin: { label: '大头针', icon: '📌', pierce: 0.95, massMul: 1.1, stick: 0.25 },
   glue: { label: '胶水', icon: '🫙', glue: true },
   rope: { label: '绳子', icon: '🪢' },
-};
+} satisfies Record<string, AccessorySpec>;
+
+export type AccessoryName = keyof typeof ACCESSORY_TABLE;
+export const ACCESSORIES: Record<AccessoryName, AccessorySpec> = ACCESSORY_TABLE;
 
 // 爆炸物可安装的"头部配件"（绳是独立连接件，不占头部）
-export const TIPS = ['toothpick', 'pin', 'glue'];
+export const TIPS = ['toothpick', 'pin', 'glue'] as const;
+export type TipName = (typeof TIPS)[number];
+export const isTipName = (t: string): t is TipName => (TIPS as readonly string[]).includes(t);
 
-export const PROP = {
+const PROP_TABLE = {
   brick: { label: '砖头', radius: 9, mass: 8, hp: null }, // 永固
   glass: { label: '玻璃砖', radius: 9, mass: 3, hp: 55, brittle: true }, // 可碎裂
   sponge: { label: '海绵垫', radius: 10, mass: 2, hp: null, soft: true }, // 吸收冲击：不弹、爆炸伤害减半
@@ -124,6 +193,19 @@ export const PROP = {
   ice: { label: '冰面', radius: 12, mass: 5, hp: null, slippery: true }, // 永久光滑（同黏液）
   metal: { label: '金属板', radius: 9, mass: 10, hp: null, bouncy: true }, // 高弹反弹
   debris: { label: '碎片', radius: 3, mass: 0.6, hp: null },
-};
+} satisfies Record<string, PropSpec>;
 
-export const PROP_TYPES = Object.keys(PROP).filter((k) => k !== 'debris');
+export type PropName = keyof typeof PROP_TABLE;
+export const PROP: Record<PropName, PropSpec> = PROP_TABLE;
+
+export const PROP_TYPES = Object.keys(PROP).filter((k) => k !== 'debris') as PropName[];
+export const isPropName = (t: string): t is PropName => (PROP_TYPES as string[]).includes(t);
+
+// 实体大类（编辑器/分享码/渲染共用）
+export type EntityKind = 'bug' | 'explosive' | 'prop';
+
+export function kindOfName(t: string): EntityKind {
+  if (isBugName(t)) return 'bug';
+  if (isPropName(t)) return 'prop';
+  return 'explosive';
+}

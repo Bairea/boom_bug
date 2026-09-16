@@ -2,27 +2,61 @@
 // 全部确定性：按数组顺序遍历，不用 Math.random / Date.now。
 
 import { integrateBody } from './body.js';
-import { clamp, norm, dist } from './math.js';
+import type { Body } from './body.js';
+import type { SimEvent } from './events.js';
+import { clamp, dist } from './math.js';
+
+export interface SlimeDrop {
+  x: number;
+  y: number;
+  r: number;
+  age: number;
+  ttl: number;
+}
+
+export interface Rope {
+  aId: number;
+  bId: number;
+  rest: number;
+  broken: boolean;
+}
+
+export interface WorldOptions {
+  width?: number;
+  height?: number;
+  gravity?: number;
+  wallRestitution?: number;
+}
+
+export interface StepHooks {
+  pre?: (world: World, dt: number) => void;
+  post?: (world: World, dt: number) => void;
+}
 
 export class World {
-  constructor(opts = {}) {
+  width: number;
+  height: number;
+  gravity: number;
+  wallRestitution: number;
+  bodies: Body[] = [];
+  ropes: Rope[] = [];
+  slime: SlimeDrop[] = [];
+  events: SimEvent[] = []; // 每步产生的事件，由上层每步清空
+
+  constructor(opts: WorldOptions = {}) {
     this.width = opts.width ?? 300;
     this.height = opts.height ?? 180;
     this.gravity = opts.gravity ?? 560;
     this.wallRestitution = opts.wallRestitution ?? 0.5;
-    this.bodies = [];
-    this.ropes = []; // {aId, bId, rest, broken}
-    this.slime = []; // 蜗牛黏液 {x, y, r, age, ttl}
-    this.events = []; // 每步产生的事件，由上层每步清空
   }
 
-  addSlime(x, y, r = 6, ttl = 6) {
+  addSlime(x: number, y: number, r = 6, ttl = 6): void {
     this.slime.push({ x, y, r, age: 0, ttl });
     if (this.slime.length > 60) this.slime.shift();
   }
 
   // 物体脚下地面材质：黏液/冰 → 打滑；沙坑 → 陷入减速
-  slimeScaleAt(x, y, radius) {
+  slimeScaleAt(x: number, y: number, radius: number): number {
     for (const s of this.slime) {
       if (Math.hypot(s.x - x, s.y - y) < s.r + radius * 0.5) return 0.12;
     }
@@ -30,22 +64,22 @@ export class World {
       if (!b.alive) continue;
       // 地面材质区（冰面/沙坑）是静态地形，不能跳过 —— 它们永远不参与积分，
       // 但脚下摩擦必须认它们。waterZone/oilZone 是非实体区，不提供材质。
-      if (b.data?.waterZone || b.data?.oilZone) continue;
+      if (b.data.waterZone || b.data.oilZone) continue;
       const near = Math.hypot(b.x - x, b.y - y) < b.radius + radius * 0.5;
       if (!near) continue;
-      if (b.data?.slippery) return 0.1;
-      if (b.data?.sand) return 2.5;
+      if (b.data.slippery) return 0.1;
+      if (b.data.sand) return 2.5;
     }
     return 1;
   }
 
-  add(body) {
+  add<T extends Body>(body: T): T {
     this.bodies.push(body);
     return body;
   }
 
-  addRope(a, b, rest) {
-    const rope = {
+  addRope(a: Body, b: Body, rest?: number): Rope {
+    const rope: Rope = {
       aId: a.id,
       bId: b.id,
       rest: rest ?? Math.max(dist(a.x, a.y, b.x, b.y), 10),
@@ -55,21 +89,21 @@ export class World {
     return rope;
   }
 
-  byId(id) {
+  byId(id: number): Body | null {
     return this.bodies.find((b) => b.id === id) ?? null;
   }
 
-  aliveBodies() {
+  aliveBodies(): Body[] {
     return this.bodies.filter((b) => b.alive);
   }
 
   // hooks: { pre(world,dt), post(world,dt) } —— AI/引信在 pre，爆炸结算可在 post
-  step(dt, hooks) {
+  step(dt: number, hooks?: StepHooks): void {
     this.events = [];
     for (const s of this.slime) s.age += dt;
     this.slime = this.slime.filter((s) => s.age < s.ttl);
     this.applyWaterPhysics(dt);
-    if (hooks?.pre) hooks.pre(this, dt);
+    hooks?.pre?.(this, dt);
 
     for (const b of this.bodies) {
       if (b.alive) integrateBody(b, dt, this.gravity);
@@ -79,15 +113,15 @@ export class World {
     for (let iter = 0; iter < 2; iter++) this.solveCollisions();
     this.solveWalls(dt);
 
-    if (hooks?.post) hooks.post(this, dt);
+    hooks?.post?.(this, dt);
   }
 
   // 水盆物理：浸入水中的物体受浮力与强阻力（慢动作下沉/上浮）
-  applyWaterPhysics(dt) {
-    const zones = this.bodies.filter((b) => b.alive && b.data?.waterZone);
+  applyWaterPhysics(dt: number): void {
+    const zones = this.bodies.filter((b) => b.alive && b.data.waterZone);
     if (!zones.length) return;
     for (const b of this.bodies) {
-      if (!b.alive || b.data?.waterZone) continue;
+      if (!b.alive || b.data.waterZone) continue;
       for (const z of zones) {
         if (dist(b.x, b.y, z.x, z.y) < z.radius + b.radius * 0.3) {
           // 浮力抵消大半重力 + 强阻力
@@ -100,7 +134,7 @@ export class World {
     }
   }
 
-  solveRopes() {
+  solveRopes(): void {
     for (const rope of this.ropes) {
       if (rope.broken) continue;
       const a = this.byId(rope.aId);
@@ -129,7 +163,7 @@ export class World {
     }
   }
 
-  solveCollisions() {
+  solveCollisions(): void {
     const bodies = this.bodies;
     for (let i = 0; i < bodies.length; i++) {
       const a = bodies[i];
@@ -138,7 +172,7 @@ export class World {
         const b = bodies[j];
         if (!b.alive) continue;
         // 水盆是非实体区域，不参与碰撞
-        if (a.data?.waterZone || a.data?.oilZone || b.data?.waterZone || b.data?.oilZone) continue;
+        if (a.data.waterZone || a.data.oilZone || b.data.waterZone || b.data.oilZone) continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
         const minD = a.radius + b.radius;
@@ -167,10 +201,11 @@ export class World {
         if (vn < 0) {
           // 金属等"高弹面"：取双方较大弹性（普通对仍取较小，保住海绵的软）
           const e =
-            a.data?.bouncy || b.data?.bouncy
+            a.data.bouncy || b.data.bouncy
               ? Math.max(a.restitution, b.restitution)
               : Math.min(a.restitution, b.restitution);
-          const jImp = (-(1 + e) * vn) / invSum;          a.vx -= jImp * nx * a.invMass;
+          const jImp = (-(1 + e) * vn) / invSum;
+          a.vx -= jImp * nx * a.invMass;
           a.vy -= jImp * ny * a.invMass;
           b.vx += jImp * nx * b.invMass;
           b.vy += jImp * ny * b.invMass;
@@ -179,11 +214,11 @@ export class World {
           for (const [self, other] of [
             [a, b],
             [b, a],
-          ]) {
+          ] as const) {
             if (
               self.kind === 'explosive' &&
-              self.data?.lit &&
-              !self.data?.exploded &&
+              self.data.lit &&
+              !self.data.exploded &&
               Math.abs(vn) > 40
             ) {
               this.events.push({ type: 'explosiveContact', id: self.id, x: self.x, y: self.y });
@@ -210,7 +245,7 @@ export class World {
     }
   }
 
-  solveWalls(dt) {
+  solveWalls(dt: number): void {
     const w = this.width;
     const h = this.height;
     for (const b of this.bodies) {

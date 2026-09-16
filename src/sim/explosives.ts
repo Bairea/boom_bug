@@ -2,14 +2,40 @@
 // 爆炸 = 参数化冲击球：冲量 + 伤害 + 连锁引燃（PRD §11 半物理）。
 
 import { createBody } from './body.js';
+import type { Body, ExplosiveBody, ExplosiveData, PropBody, PropData } from './body.js';
+import type { Simulation, PendingExplosion } from './sim.js';
 import { EXPLOSIVES, PROP } from '../game/catalog.js';
+import type { ExplosiveName, ExplosiveSpec, PropName } from '../game/catalog.js';
 import { tipEffect, tipMassMul } from './accessories.js';
 import { applyDamage, spawnBug } from './bugs.js';
+import type { Cause } from './events.js';
+import { isBugName } from '../game/catalog.js';
 import { dirOf, perp, norm, dist } from './math.js';
 
-export function spawnExplosive(sim, type, x, y, angle = -Math.PI / 2, acc = []) {
+export function spawnExplosive(
+  sim: Simulation,
+  type: ExplosiveName,
+  x: number,
+  y: number,
+  angle = -Math.PI / 2,
+  acc: string[] = []
+): ExplosiveBody {
   const spec = EXPLOSIVES[type];
   if (!spec) throw new Error(`未知爆炸物: ${type}`);
+  const data: ExplosiveData = {
+    etype: type,
+    aim: angle, // 玩家的瞄准方向（飞行中 angle 会被物理改变）
+    lit: false,
+    fuse: -1,
+    burn: 0,
+    acc: [...acc],
+    wobblePhase: sim.rng.range(0, Math.PI * 2),
+    chainDepth: 0,
+    stuck: 0,
+    glued: false,
+    exploded: false,
+    armTick: 0, // 点燃后短暂"武装延迟"，避免贴地发射误判撞击
+  };
   const body = createBody({
     kind: 'explosive',
     x,
@@ -19,28 +45,32 @@ export function spawnExplosive(sim, type, x, y, angle = -Math.PI / 2, acc = []) 
     mass: spec.mass * tipMassMul(acc),
     restitution: 0.3,
     friction: 0.8,
-    data: {
-      etype: type,
-      aim: angle, // 玩家的瞄准方向（飞行中 angle 会被物理改变）
-      lit: false,
-      fuse: -1,
-      burn: 0,
-      acc: [...acc],
-      wobblePhase: sim.rng.range(0, Math.PI * 2),
-      chainDepth: 0,
-      stuck: 0,
-      glued: false,
-      exploded: false,
-      armTick: 0, // 点燃后短暂"武装延迟"，避免贴地发射误判撞击
-    },
-  });
+    data,
+  }) as ExplosiveBody;
   sim.world.add(body);
   sim.ents.push(body);
   return body;
 }
 
-export function spawnProp(sim, type, x, y) {
+export function spawnProp(sim: Simulation, type: PropName, x: number, y: number): PropBody {
   const spec = PROP[type];
+  const data: PropData = {
+    propType: type,
+    // 初始位置在舞台顶部的道具（礼盒等）永远是静态地形；其余落到地面后转静态，
+    // 使地面上形成稳定的材质/平台层（见爆炸结算里的"落地转静态"）
+    staticPinned: y < 168,
+    hp: spec.hp,
+    maxHp: spec.hp ?? 0,
+    waterZone: !!spec.water,
+    oilZone: !!spec.oil,
+    slippery: !!spec.slippery,
+    sand: !!spec.sand,
+    bouncy: !!spec.bouncy,
+    // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
+    children: spec.children
+      ? [sim.rng.pick(['roach', 'locust', 'fly', 'snail'] as const), sim.rng.pick(['roach', 'locust'] as const), 'firecracker']
+      : null,
+  };
   const body = createBody({
     kind: 'prop',
     x,
@@ -50,41 +80,25 @@ export function spawnProp(sim, type, x, y) {
     static: true,
     restitution: spec.soft ? 0.02 : spec.brittle ? 0.1 : spec.bouncy ? 0.85 : 0.2,
     friction: spec.soft ? 1.4 : 0.8,
-    data: {
-      propType: type,
-      // 初始位置在舞台顶部的道具（礼盒等）永远是静态地形；其余落到地面后转静态，
-      // 使地面上形成稳定的材质/平台层（见爆炸结算里的"落地转静态"）
-      staticPinned: y < 168,
-      hp: spec.hp,
-      maxHp: spec.hp ?? 0,
-      waterZone: !!spec.water,
-      oilZone: !!spec.oil,
-      slippery: !!spec.slippery,
-      sand: !!spec.sand,
-      bouncy: !!spec.bouncy,
-      // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
-      children: spec.children
-        ? [sim.rng.pick(['roach', 'locust', 'fly', 'snail']), sim.rng.pick(['roach', 'locust']), 'firecracker']
-        : null,
-    },
-  });
+    data,
+  }) as PropBody;
   sim.world.add(body);
   sim.ents.push(body);
   return body;
 }
 
 // 玻璃砖碎裂：化作 3 块动态碎片飞散；礼盒炸开：弹出内胆（PRD §15 套娃）
-function shatterProp(sim, body) {
+function shatterProp(sim: Simulation, body: PropBody): void {
   body.alive = false;
   sim._record({ type: 'propBreak', x: body.x, y: body.y, propType: body.data.propType });
   const children = body.data.children;
   if (children) {
     // 礼盒：内胆在原地弹出（内胆炮仗未点燃 —— 会被同一波冲击波殉爆点燃）
     for (const childType of children) {
-      if (['roach', 'locust', 'scarab', 'snail', 'fly'].includes(childType)) {
+      if (isBugName(childType)) {
         spawnBug(sim, childType, body.x + sim.rng.range(-6, 6), body.y - 4);
-      } else if (EXPLOSIVES[childType]) {
-        const inner = spawnExplosive(sim, childType, body.x + sim.rng.range(-5, 5), body.y - 3, -Math.PI / 2, []);
+      } else if (EXPLOSIVES[childType as ExplosiveName]) {
+        spawnExplosive(sim, childType as ExplosiveName, body.x + sim.rng.range(-5, 5), body.y - 3, -Math.PI / 2, []);
       }
     }
     return;
@@ -100,7 +114,7 @@ function shatterProp(sim, body) {
   }
 }
 
-export function igniteExplosive(sim, body, fuseSec = null) {
+export function igniteExplosive(sim: Simulation, body: ExplosiveBody, fuseSec: number | null = null): void {
   const d = body.data;
   if (d.lit || !body.alive) return;
   const spec = EXPLOSIVES[d.etype];
@@ -118,7 +132,7 @@ export function igniteExplosive(sim, body, fuseSec = null) {
 }
 
 // pre 钩子：引信计时、推力、撞击检测
-export function stepExplosives(sim, dt) {
+export function stepExplosives(sim: Simulation, dt: number): void {
   const w = sim.world;
   for (const b of w.bodies) {
     if (!b.alive || b.kind !== 'explosive') continue;
@@ -189,7 +203,7 @@ export function stepExplosives(sim, dt) {
       b.vy += ay * spec.thrust * dt;
       if (d.etype === 'bottle') {
         // 横向摆动 + 随机漂移：窜天猴的"不看路"
-        const wob = Math.sin(sim.time * 21 + d.wobblePhase) * spec.wobble;
+        const wob = Math.sin(sim.time * 21 + d.wobblePhase) * (spec.wobble ?? 0);
         const [px, py] = perp(ax, ay);
         b.vx += px * wob * dt + sim.rng.range(-45, 45) * dt;
         b.vy += py * wob * dt + sim.rng.range(-45, 45) * dt;
@@ -221,28 +235,28 @@ export function stepExplosives(sim, dt) {
   }
 }
 
-function inWater(w, b) {
+function inWater(w: { bodies: Body[] }, b: { x: number; y: number }): boolean {
   for (const z of w.bodies) {
-    if (z.alive && z.data?.waterZone && dist(b.x, b.y, z.x, z.y) < z.radius) return true;
+    if (z.alive && z.data.waterZone && dist(b.x, b.y, z.x, z.y) < z.radius) return true;
   }
   return false;
 }
 
-function inWaterPos(w, x, y) {
+function inWaterPos(w: { bodies: Body[] }, x: number, y: number): boolean {
   for (const z of w.bodies) {
-    if (z.alive && z.data?.waterZone && dist(x, y, z.x, z.y) < z.radius) return true;
+    if (z.alive && z.data.waterZone && dist(x, y, z.x, z.y) < z.radius) return true;
   }
   return false;
 }
 
-function isGroundedExplosive(w, b) {
+function isGroundedExplosive(w: { height: number }, b: { y: number; radius: number }): boolean {
   return b.y >= w.height - b.radius - 1.5;
 }
 
-function hitSomething(w, b) {
+function hitSomething(w: { bodies: Body[]; width: number; height: number }, b: ExplosiveBody): boolean {
   // 炮仗（燃烧弹）：只算撞到"东西"——地面/天花板是正常滚动面，不算撞击
   for (const o of w.bodies) {
-    if (o === b || !o.alive || o.data?.waterZone || o.data?.oilZone) continue; // 水/油盆是非实体区域
+    if (o === b || !o.alive || o.data.waterZone || o.data.oilZone) continue; // 水/油盆是非实体区域
     if (dist(b.x, b.y, o.x, o.y) < b.radius + o.radius + 0.5) return true;
   }
   if (b.data.etype === 'firecracker') return false;
@@ -255,11 +269,11 @@ function hitSomething(w, b) {
 
 // 道具每步：木板燃烧（周期灼烧周围虫子，烧完化为灰；落水熄灭）
 // + 被炸飞的地面道具重新落地 → 转回静态，恢复"稳定材质层"语义
-export function stepProps(sim, dt) {
+export function stepProps(sim: Simulation, dt: number): void {
   const w = sim.world;
   for (const b of w.bodies) {
     // 落地沉降：仅在静止贴地时才固化，避免把还在飞的碎片钉在半空
-    if (b.alive && b.data?.airborne && sim.tick >= (b.data.settleAfterTick ?? 0)) {
+    if (b.alive && b.data.airborne && sim.tick >= (b.data.settleAfterTick ?? 0)) {
       if (b.y >= w.height - b.radius - 0.6 && Math.hypot(b.vx, b.vy) < 25) {
         b.vx = 0;
         b.vy = 0;
@@ -269,27 +283,28 @@ export function stepProps(sim, dt) {
         b.data.airborne = false;
       }
     }
-    if (!b.alive || b.kind !== 'prop' || !b.data?.burning) continue;
+    if (!b.alive || b.kind !== 'prop' || !b.data.burning) continue;
+    const p = b.data;
     if (inWater(w, b)) {
-      b.data.burning = false;
+      p.burning = false;
       sim._record({ type: 'douse', id: b.id, x: b.x, y: b.y });
       continue;
     }
-    b.data.burnT -= dt;
-    b.data.fireTick -= dt;
-    if (b.data.fireTick <= 0) {
-      b.data.fireTick = 0.4;
+    p.burnT = (p.burnT ?? 0) - dt;
+    p.fireTick = (p.fireTick ?? 0) - dt;
+    if (p.fireTick <= 0) {
+      p.fireTick = 0.4;
       sim._record({ type: 'fireTick', x: b.x, y: b.y });
       for (const o of w.bodies) {
         if (!o.alive || o === b) continue;
         if (dist(b.x, b.y, o.x, o.y) >= 14 + o.radius) continue;
         if (o.kind === 'bug') {
-          if (!o.data?.knocked) applyDamage(sim, o, 8, 0.15, 'fire');
-        } else if (o.kind === 'prop' && o.data?.oilZone && !o.data.burning) {
+          if (!o.data.knocked) applyDamage(sim, o, 8, 0.15, 'fire');
+        } else if (o.kind === 'prop' && o.data.oilZone && !o.data.burning) {
           o.data.burning = true;
           o.data.burnT = 3;
           o.data.fireTick = 0;
-        } else if (o.kind === 'prop' && o.data?.hp != null) {
+        } else if (o.kind === 'prop' && o.data.hp != null) {
           // 火势蔓延：灼烧范围内的可破坏道具（木板续燃/玻璃炸裂/礼盒弹胆）
           o.data.hp -= 8;
           if (o.data.hp <= 0) {
@@ -303,17 +318,18 @@ export function stepProps(sim, dt) {
         }
       }
     }
-    if (b.data.burnT <= 0) {
+    if ((p.burnT ?? 0) <= 0) {
       b.alive = false;
-      sim._record({ type: 'propBreak', x: b.x, y: b.y, propType: b.data.propType });
+      sim._record({ type: 'propBreak', x: b.x, y: b.y, propType: p.propType });
     }
   }
 }
 
 // 撞击接触的统一处理：大头针钉住 / 胶水粘附 / 直接起爆（供解算时刻的接触事件调用）
-export function handleExplosiveContact(sim, body) {
-  if (!body.alive || !body.data.lit || body.data.exploded) return;
+export function handleExplosiveContact(sim: Simulation, body: Body): void {
+  if (!body.alive || body.kind !== 'explosive') return;
   const d = body.data;
+  if (!d.lit || d.exploded) return;
   if (d.stuck > 0 || d.glued || d.stuckDone) return; // 已在钉住/粘附流程中
   const spec = EXPLOSIVES[d.etype];
   const eff = tipEffect(d.acc);
@@ -331,13 +347,13 @@ export function handleExplosiveContact(sim, body) {
   }
 }
 
-export function queueExplosion(sim, body, spec, cause) {
+export function queueExplosion(sim: Simulation, body: ExplosiveBody, spec: ExplosiveSpec, cause: Cause): void {
   if (body.data.exploded) return;
   body.data.exploded = true;
   body.alive = false;
   const depth = body.data.chainDepth || 0;
   const eff = tipEffect(body.data.acc);
-  sim.pendingExplosions.push({
+  const ex: PendingExplosion = {
     x: body.x,
     y: body.y,
     power: spec.power,
@@ -348,11 +364,12 @@ export function queueExplosion(sim, body, spec, cause) {
     pierce: eff.pierce,
     srcId: body.id,
     etype: body.data.etype,
-  });
+  };
+  sim.pendingExplosions.push(ex);
 }
 
 // post 钩子：结算本 tick 的所有爆炸
-export function processExplosions(sim) {
+export function processExplosions(sim: Simulation): void {
   const queue = sim.pendingExplosions;
   sim.pendingExplosions = [];
   for (const ex of queue) {
@@ -363,7 +380,7 @@ export function processExplosions(sim) {
       ex.dmg *= 0.45;
     }
     for (const z of sim.world.bodies) {
-      if (z.alive && z.data?.oilZone && dist(z.x, z.y, ex.x, ex.y) < z.radius + ex.blastRadius) {
+      if (z.alive && z.data.oilZone && dist(z.x, z.y, ex.x, ex.y) < z.radius + ex.blastRadius) {
         if (dist(z.x, z.y, ex.x, ex.y) < z.radius) {
           ex.power *= 1.4;
           ex.dmg *= 1.4;
@@ -397,7 +414,7 @@ export function processExplosions(sim) {
       }
       // 地面道具被炸离地面 → 转为动态：既有的"重物被推走/掀翻"观感得以保留，
       // 又让地面形成稳定材质层（冰面/沙坑/金属板不再能被爆炸随意推走）
-      if (b.static && b.kind === 'prop' && b.data?.propType !== 'debris' && !b.data?.staticPinned) {
+      if (b.static && b.kind === 'prop' && b.data.propType !== 'debris' && !b.data.staticPinned) {
         b.static = false;
         b.invMass = 1 / Math.max(b.mass, 1e-6);
         b.vx += ux * dv * 0.35;
@@ -429,7 +446,7 @@ export function processExplosions(sim) {
         const before = b.data.knocked;
         let dmg = ex.dmg * falloff;
         for (const o of sim.world.bodies) {
-          if (o.alive && o.kind === 'prop' && o.data?.propType === 'sponge') {
+          if (o.alive && o.kind === 'prop' && o.data.propType === 'sponge') {
             if (dist(b.x, b.y, o.x, o.y) < o.radius + b.radius + 1) {
               dmg *= 0.5;
               break;

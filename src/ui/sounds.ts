@@ -1,17 +1,21 @@
 // WebAudio 合成音效：零素材，纯表现层。
 // 音频上下文工厂可注入（Node 无头测试用假工厂）。
 
+type CtxFactory = () => AudioContext;
+
 export class Sfx {
-  constructor(createCtx = null) {
+  private _create: CtxFactory | null;
+  ctx: AudioContext | null = null;
+  master: GainNode | null = null;
+  muted = false;
+  private _noise: AudioBuffer | null = null;
+  private _lastAt: Record<string, number | undefined> = {}; // 按类型节流
+
+  constructor(createCtx: CtxFactory | null = null) {
     this._create = createCtx;
-    this.ctx = null;
-    this.master = null;
-    this.muted = false;
-    this._noise = null;
-    this._lastAt = {}; // 按类型节流
   }
 
-  ensure() {
+  ensure(): AudioContext | null {
     if (this.muted) return null;
     if (!this.ctx && this._create) {
       try {
@@ -29,14 +33,13 @@ export class Sfx {
     return this.ctx;
   }
 
-
-  _out(ac, node) {
+  private _out(ac: AudioContext, node: AudioNode): AudioNode {
     node.connect(this.master ?? ac.destination);
     return node;
   }
 
   // 复用一条白噪声缓冲
-  _noiseBuffer(ac) {
+  private _noiseBuffer(ac: AudioContext): AudioBuffer {
     if (!this._noise) {
       const len = Math.floor(ac.sampleRate * 0.5);
       this._noise = ac.createBuffer(1, len, ac.sampleRate);
@@ -46,15 +49,15 @@ export class Sfx {
     return this._noise;
   }
 
-  _throttled(name, minGap) {
+  private _throttled(name: string, minGap: number): boolean {
     const now = this.ctx ? this.ctx.currentTime : 0;
-    if (this._lastAt[name] != null && now - this._lastAt[name] < minGap) return true;
+    if (this._lastAt[name] != null && now - this._lastAt[name]! < minGap) return true;
     this._lastAt[name] = now;
     return false;
   }
 
   // 爆炸：白噪声爆发（低通扫频）+ 低频"咚"
-  explosion(power = 55) {
+  explosion(power = 55): void {
     const ac = this.ensure();
     if (!ac || this._throttled('exp', 0.04)) return;
     const t0 = ac.currentTime;
@@ -86,7 +89,7 @@ export class Sfx {
   }
 
   // 点燃：短促嘶嘶
-  fuse() {
+  fuse(): void {
     const ac = this.ensure();
     if (!ac || this._throttled('fuse', 0.08)) return;
     const t0 = ac.currentTime;
@@ -105,7 +108,7 @@ export class Sfx {
   }
 
   // 投掷破空：短促带通噪声扫频
-  whoosh() {
+  whoosh(): void {
     const ac = this.ensure();
     if (!ac || this._throttled('whoosh', 0.1)) return;
     const t0 = ac.currentTime;
@@ -127,7 +130,7 @@ export class Sfx {
   }
 
   // 玻璃碎裂：高频脆响
-  glassBreak() {
+  glassBreak(): void {
     const ac = this.ensure();
     if (!ac || this._throttled('glass', 0.08)) return;
     const t0 = ac.currentTime;
@@ -156,7 +159,7 @@ export class Sfx {
   }
 
   // 火焰噼啪：极短低通噪声
-  crackle() {
+  crackle(): void {
     const ac = this.ensure();
     if (!ac || this._throttled('crackle', 0.3)) return;
     const t0 = ac.currentTime;
@@ -175,7 +178,7 @@ export class Sfx {
   }
 
   // 新纪录号角：三连上行音
-  fanfare() {
+  fanfare(): void {
     const ac = this.ensure();
     if (!ac) return;
     const t0 = ac.currentTime;
@@ -195,7 +198,7 @@ export class Sfx {
   }
 
   // 击倒（玩具故障）：下滑的金属叮
-  knockout() {
+  knockout(): void {
     const ac = this.ensure();
     if (!ac || this._throttled('ko', 0.06)) return;
     const t0 = ac.currentTime;
@@ -212,7 +215,7 @@ export class Sfx {
   }
 
   // 绳断：低音崩
-  ropeBreak() {
+  ropeBreak(): void {
     const ac = this.ensure();
     if (!ac) return;
     const t0 = ac.currentTime;
@@ -229,7 +232,7 @@ export class Sfx {
   }
 
   // 钉住/粘附：短 tick
-  stick() {
+  stick(): void {
     const ac = this.ensure();
     if (!ac || this._throttled('stick', 0.06)) return;
     const t0 = ac.currentTime;

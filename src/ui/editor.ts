@@ -1,44 +1,58 @@
 // 编辑器：工具箱选择、摆放、瞄准拖拽、配件安装、绳子连接、运行中点燃。
 
 import { VIEW_W, VIEW_H } from './render.js';
-import { TIPS, BUG_TYPES, PROP_TYPES } from '../game/catalog.js';
+import type { ItemView } from './render.js';
+import { TIPS } from '../game/catalog.js';
+import { isBugName, isPropName } from '../game/catalog.js';
+import type { EntityKind } from '../game/catalog.js';
+import type { EntitySpec } from '../game/encode.js';
 
-const LIMITS = { bug: 14, explosive: 8, prop: 2, ropes: 4 };
+const LIMITS: Record<EntityKind, number> = { bug: 14, explosive: 8, prop: 2 };
+const ROPE_LIMIT = 4;
+
+interface DragState {
+  t: string;
+  x: number;
+  y: number;
+  angle: number;
+}
 
 export class Editor {
-  constructor(canvas) {
+  canvas: HTMLCanvasElement;
+  tool = 'roach';
+  specs: EntitySpec[] = [];
+  ropeList: { a: number; b: number }[] = []; // {a, b} 实体索引
+  ropePicking: number | null = null; // 第一个选中的实体索引
+  drag: DragState | null = null; // {t, x, y, angle} 拖拽瞄准中
+  reaming: number | null = null; // 正在重新瞄准的实体索引
+  ghost: ItemView | null = null;
+  locked = false; // 运行中锁定编辑（避免点击污染下一局的布置）
+  fixScarab = true;
+  onStatus: (msg: string) => void = () => {};
+
+  constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.tool = 'roach';
-    this.specs = [];
-    this.ropeList = []; // {a, b} 实体索引
-    this.ropePicking = null; // 第一个选中的实体索引
-    this.drag = null; // {t, x, y, angle} 拖拽瞄准中
-    this.reaming = null; // 正在重新瞄准的实体索引
-    this.ghost = null;
-    this.locked = false; // 运行中锁定编辑（避免点击污染下一局的布置）
-    this.fixScarab = true;
-    this.onStatus = () => {};
     this._bind();
   }
 
-  scale() {
+  scale(): { s: number; rect: DOMRect } {
     const rect = this.canvas.getBoundingClientRect();
     return { s: this.canvas.width / VIEW_W, rect };
   }
 
-  toWorld(ev) {
+  toWorld(ev: PointerEvent): { x: number; y: number } {
     const rect = this.canvas.getBoundingClientRect();
     const x = ((ev.clientX - rect.left) / rect.width) * VIEW_W;
     const y = ((ev.clientY - rect.top) / rect.height) * VIEW_H;
     return { x, y };
   }
 
-  hitSpec(x, y) {
+  hitSpec(x: number, y: number): number | null {
     const idx = this.specs.findIndex((s) => Math.hypot(s.x - x, s.y - y) < 5);
     return idx >= 0 ? idx : null;
   }
 
-  _bind() {
+  _bind(): void {
     const c = this.canvas;
     c.addEventListener('pointerdown', (ev) => this._down(ev));
     c.addEventListener('pointermove', (ev) => this._move(ev));
@@ -52,7 +66,7 @@ export class Editor {
     }
   }
 
-  _down(ev) {
+  _down(ev: PointerEvent): void {
     const { x, y } = this.toWorld(ev);
     if (ev.button === 2) return;
     if (this.locked) return; // 实验进行中，编辑器不响应
@@ -72,21 +86,21 @@ export class Editor {
         return this.onStatus('绳子：再点击另一个物体完成连接（右键取消）');
       }
       if (this.ropePicking === idx) return this.onStatus('不能连接到自身');
-      if (this.ropeList.length >= LIMITS.ropes) return this.onStatus('绳子已达上限');
+      if (this.ropeList.length >= ROPE_LIMIT) return this.onStatus('绳子已达上限');
       this.ropeList.push({ a: this.ropePicking, b: idx });
       this.ropePicking = null;
       this.onStatus('绳子已连接 ✓');
       return;
     }
 
-    if (TIPS.includes(t)) {
+    if ((TIPS as readonly string[]).includes(t)) {
       const idx = this.hitSpec(x, y);
       if (idx == null || this.specs[idx].kind !== 'explosive') {
         return this.onStatus('配件：请点击一个爆炸物来安装');
       }
       const spec = this.specs[idx];
       spec.acc = spec.acc ?? [];
-      const at = spec.acc.indexOf(t);
+      const at = (spec.acc as string[]).indexOf(t);
       if (at >= 0) {
         spec.acc.splice(at, 1);
         this.onStatus(`已拆除 ${labelOf(t)}`);
@@ -115,7 +129,7 @@ export class Editor {
     if (!['skyrocket', 'bottle'].includes(t)) this._commitDrag();
   }
 
-  _updateAim(idx, mx, my) {
+  _updateAim(idx: number, mx: number, my: number): void {
     const s = this.specs[idx];
     const dx = mx - s.x;
     const dy = my - s.y;
@@ -128,7 +142,7 @@ export class Editor {
     s.angle = a;
   }
 
-  _move(ev) {
+  _move(ev: PointerEvent): void {
     const { x, y } = this.toWorld(ev);
     if (this.reaming != null) {
       this._updateAim(this.reaming, x, y);
@@ -150,14 +164,10 @@ export class Editor {
       }
     }
     // 幽灵预览
-    if (['roach', 'locust', 'scarab', 'snail', 'fly', 'firecracker', 'skyrocket', 'bottle', ...PROP_TYPES].includes(this.tool)) {
+    if (isBugName(this.tool) || isPropName(this.tool) || ['firecracker', 'skyrocket', 'bottle'].includes(this.tool)) {
       this.ghost = {
         t: this.tool,
-        kind: BUG_TYPES.includes(this.tool)
-          ? 'bug'
-          : PROP_TYPES.includes(this.tool)
-            ? 'prop'
-            : 'explosive',
+        kind: isBugName(this.tool) ? 'bug' : isPropName(this.tool) ? 'prop' : 'explosive',
         x,
         y,
         angle: this.drag?.angle ?? (this.tool === 'skyrocket' ? -Math.PI / 2 : this.tool === 'bottle' ? -0.3 : 0),
@@ -167,7 +177,7 @@ export class Editor {
     } else this.ghost = null;
   }
 
-  _up() {
+  _up(_ev: PointerEvent): void {
     if (this.reaming != null) {
       this.onStatus('瞄准已更新 ✓');
       this.reaming = null;
@@ -176,15 +186,16 @@ export class Editor {
     this.drag = null;
   }
 
-  _commitDrag() {
+  _commitDrag(): void {
     const d = this.drag;
+    if (!d) return;
     // 统一走 addSpec：kind / fixed（清道夫固定）等属性只有这一个来源
     this.addSpec(d.t, d.x, d.y, { angle: d.angle });
     this.onStatus(`已放置 ${labelOf(d.t)}${['skyrocket', 'bottle'].includes(d.t) ? ' —— 拖拽可瞄准' : ''}`);
   }
 
-  _canPlace(t) {
-    const kind = BUG_TYPES.includes(t) ? 'bug' : PROP_TYPES.includes(t) ? 'prop' : 'explosive';
+  _canPlace(t: string): boolean {
+    const kind = kindOf(t);
     const n = this.specs.filter((s) => s.kind === kind).length;
     if (n >= LIMITS[kind]) {
       this.onStatus(`${kindName(kind)}已达上限（${LIMITS[kind]}）`);
@@ -193,8 +204,8 @@ export class Editor {
     return true;
   }
 
-  addSpec(t, x, y, extra = {}) {
-    const kind = BUG_TYPES.includes(t) ? 'bug' : PROP_TYPES.includes(t) ? 'prop' : 'explosive';
+  addSpec(t: string, x: number, y: number, extra: { angle?: number; acc?: string[]; fixed?: boolean; delay?: number } = {}): void {
+    const kind = kindOf(t);
     this.specs.push({
       t,
       x: clampPos(x, 3, VIEW_W - 3),
@@ -206,7 +217,7 @@ export class Editor {
     });
   }
 
-  removeSpec(idx) {
+  removeSpec(idx: number): void {
     this.specs.splice(idx, 1);
     this.ropeList = this.ropeList
       .filter((r) => r.a !== idx && r.b !== idx)
@@ -214,15 +225,15 @@ export class Editor {
     this.onStatus('已移除');
   }
 
-  clear() {
+  clear(): void {
     this.specs = [];
     this.ropeList = [];
     this.ropePicking = null;
   }
 
-  // 生成模拟输入：entities（绳子挂到 0 号实体） 
-  buildEntities(ignite = true) {
-    const entities = this.specs.map((s) => ({
+  // 生成模拟输入：entities（绳子挂到 0 号实体）
+  buildEntities(ignite = true): EntitySpec[] {
+    const entities: EntitySpec[] = this.specs.map((s) => ({
       t: s.t,
       x: s.x,
       y: s.y,
@@ -231,7 +242,7 @@ export class Editor {
       fixed: s.fixed,
     }));
     if (this.ropeList.length && entities.length) {
-      entities[0].ropes = this.ropeList.map((r) => [r.a, r.b]);
+      entities[0].ropes = this.ropeList.map((r) => [r.a, r.b] as [number, number]);
     }
     if (ignite) {
       let i = 0;
@@ -246,18 +257,34 @@ export class Editor {
   }
 }
 
-function clampPos(v, lo, hi) {
+function kindOf(t: string): EntityKind {
+  if (isBugName(t)) return 'bug';
+  if (isPropName(t)) return 'prop';
+  return 'explosive';
+}
+
+function clampPos(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v));
 }
 
-function labelOf(t) {
-  return {
-    roach: '蟑螂', locust: '蝗虫', scarab: '清道夫',
-    firecracker: '小炮仗', skyrocket: '冲天炮', bottle: '窜天猴', brick: '砖头',
-    toothpick: '牙签', pin: '大头针', glue: '胶水', rope: '绳子',
-  }[t] ?? t;
+function labelOf(t: string): string {
+  return (
+    {
+      roach: '蟑螂',
+      locust: '蝗虫',
+      scarab: '清道夫',
+      firecracker: '小炮仗',
+      skyrocket: '冲天炮',
+      bottle: '窜天猴',
+      brick: '砖头',
+      toothpick: '牙签',
+      pin: '大头针',
+      glue: '胶水',
+      rope: '绳子',
+    }[t] ?? t
+  );
 }
 
-function kindName(kind) {
-  return { bug: '虫子', explosive: '爆炸物', prop: '道具' }[kind] ?? kind;
+function kindName(kind: EntityKind): string {
+  return ({ bug: '虫子', explosive: '爆炸物', prop: '道具' }[kind] as string) ?? kind;
 }

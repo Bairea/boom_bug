@@ -1,12 +1,33 @@
 // 预设场景：对应 PRD 的三个案例 + 自由实验。每个场景可带一个"实验目标"。
 
+import type { Simulation } from '../sim/sim.js';
+import type { EntitySpec } from './encode.js';
+
 const FLOOR = 176;
 
-function roachRow(count, x0, gap) {
-  return Array.from({ length: count }, (_, i) => ({ t: 'roach', x: x0 + i * gap, y: FLOOR }));
+export interface GoalResult {
+  label: string;
+  done: boolean;
+  bonus?: string | null;
 }
 
-export const SCENARIOS = [
+export type GoalFn = (sim: Simulation) => GoalResult;
+
+export interface Scenario {
+  id: string;
+  label: string;
+  desc: string;
+  seed: number;
+  maxThrows?: number;
+  entities: EntitySpec[];
+  goal?: GoalFn;
+}
+
+function roachRow(count: number, x0: number, gap: number): EntitySpec[] {
+  return Array.from({ length: count }, (_, i): EntitySpec => ({ t: 'roach', x: x0 + i * gap, y: FLOOR }));
+}
+
+export const SCENARIOS: Scenario[] = [
   {
     id: 'free',
     label: '自由实验',
@@ -108,6 +129,6 @@ export const SCENARIOS = [
   },
 ];
 
-export function getScenario(id) {
+export function getScenario(id: string | null): Scenario {
   return SCENARIOS.find((s) => s.id === id) ?? SCENARIOS[0];
 }
