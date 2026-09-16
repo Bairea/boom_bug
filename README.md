@@ -71,6 +71,10 @@ test/       分阶段回归测试（node:test，无头，只 import 编译产物
    （牙签=高穿透轻质，而不是"牙签专杀蟑螂"）。
 3. **玩具世界**：被"击倒"= 翻壳冒火花抽搐的机械故障，无血腥（规避虐虫观感，PRD §18）。
 
+类型模型（TS 严格模式）：`Body` 按 `kind` 判别联合（`ExplosiveBody/BugBody/PropBody`），各自的 data
+必需字段在 `ExplosiveData/BugData/PropData` 收紧；跨 kind 读取的运行时状态放 `EntityDataBase` 可选层；
+模拟事件是 `SimEvent` 17 种联合、命令流是 `Ignite/Throw` 判别——多态字段打错名直接编译失败。
+
 ## 设计文档
 
 见 [docs/superpowers/specs/2026-08-30-boom-bug-lab-design.md](docs/superpowers/specs/2026-08-30-boom-bug-lab-design.md)
