@@ -159,13 +159,42 @@ function loadScenario(id: string): void {
   state.seed = sc.seed;
   els.scenario.value = id;
   editor.clear();
-  loadEntitiesIntoEditor(sc.entities);
+  // 自由实验：恢复上次没摆完的布置（其余场景永远从预设开始）
+  let entities = sc.entities;
+  let restored = false;
+  if (id === 'free') {
+    const saved = loadFreeLayout();
+    if (saved) {
+      entities = saved;
+      restored = true;
+    }
+  }
+  loadEntitiesIntoEditor(entities);
   state.mode = 'edit';
   editor.locked = false;
   hideReport();
-  editor.onStatus(sc.desc);
+  editor.onStatus(restored ? '已恢复上次的自由实验布置 —— ' + sc.desc : sc.desc);
   try {
     localStorage.setItem('bbl-last-scenario', id);
+  } catch {}
+}
+
+// 自由实验的布置持久化：刷新/关页不丢摆放
+function loadFreeLayout(): EntitySpec[] | null {
+  try {
+    const raw = localStorage.getItem('bbl-free-layout');
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as { specs?: EntitySpec[] };
+    return Array.isArray(saved.specs) && saved.specs.length ? saved.specs : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveFreeLayout(): void {
+  if (state.scenarioId !== 'free' || editor.specs.length === 0) return;
+  try {
+    localStorage.setItem('bbl-free-layout', JSON.stringify({ specs: editor.specs }));
   } catch {}
 }
 
@@ -183,6 +212,7 @@ function startRun(useRecordedCommands = false): void {
   const prev = useRecordedCommands && state.runExperiment ? state.runExperiment : null;
   const entities = prev ? prev.entities : editor.buildEntities(true);
   const commands = prev ? (prev.commands ?? []) : [];
+  if (!prev) saveFreeLayout();
   state.runExperiment = {
     seed: state.seed,
     width: VIEW_W,
@@ -665,6 +695,9 @@ if ('serviceWorker' in navigator) {
     // file:// 或不受支持的环境：静默放弃
   });
 }
+
+// 关页/切后台前保存自由实验布置
+window.addEventListener('pagehide', saveFreeLayout);
 
 const fromHash = experimentFromHash(location.hash);
 if (fromHash) {
