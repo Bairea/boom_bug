@@ -2,7 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#16181d" />
+<meta name="mobile-web-app-capable" content="yes" />
 <title>擦炮虫虫实验室 · Boom Bug Lab</title>
 <style>
   :root {
@@ -213,6 +215,48 @@
     border: none; border-radius: 8px;
     color: #241109; font-weight: 700;
     padding: 9px 26px; cursor: pointer; font-size: 14px;
+  }
+  /* 触控基础：禁双击缩放 / 点按高亮 / 拖拽时的文字选择 */
+  body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  button, select, label { touch-action: manipulation; }
+
+  /* ---- 竖屏/窄屏：上下布局，工具箱变底部横向滑动条（拇指可及） ---- */
+  @media (max-width: 720px) {
+    body { height: 100dvh; }
+    header { padding: 6px 10px; gap: 8px; }
+    header .sub { display: none; }
+    header h1 { font-size: 15px; }
+    main { flex-direction: column; }
+    #stage-wrap { padding: 6px; order: 1; }
+    canvas { width: 100%; }
+    #toolbar { padding: 6px 4px; }
+    #toolbar button { padding: 11px 14px; font-size: 15px; }
+    #toolbox {
+      order: 2;
+      width: 100%;
+      height: auto;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      padding: 8px 6px;
+      gap: 6px;
+      border-right: none;
+      border-top: 1px solid var(--line);
+      -webkit-overflow-scrolling: touch;
+    }
+    #toolbox .cat { display: none; }
+    #toolbox button { flex: 0 0 auto; padding: 9px 11px; font-size: 14px; }
+    #toolbox label { flex: 0 0 auto; white-space: nowrap; }
+    #status { font-size: 12px; max-width: 92%; white-space: normal; text-align: center; }
+    #report {
+      top: auto; left: 8px; right: 8px; bottom: 8px;
+      width: auto;
+      max-height: 72dvh;
+      overflow-y: auto;
+    }
+    #help { overflow-y: auto; justify-content: flex-start; padding-top: 40px; }
+    #help .cols { flex-direction: column; gap: 0; }
+    #toast { bottom: 130px; }
   }
 </style>
 </head>
