@@ -27,8 +27,15 @@ function runCase6(shot, seed = 7) {
 test('R58: 案例6 —— 低平投掷被水盆浇灭，零击倒', () => {
   for (const seed of [1, 42, 777]) {
     const sim = runCase6([40, 168, 300, -40], seed);
-    assert.ok(sim.eventLog.some((e) => e.type === 'douse'), `seed${seed} 平抛应落水熄火`);
-    assert.equal(sim.eventLog.some((e) => e.type === 'explosion'), false, '不应有爆炸');
+    assert.ok(
+      sim.eventLog.some((e) => e.type === 'douse'),
+      `seed${seed} 平抛应落水熄火`,
+    );
+    assert.equal(
+      sim.eventLog.some((e) => e.type === 'explosion'),
+      false,
+      '不应有爆炸',
+    );
     assert.equal(sim.stats.knockouts, 0, '水障应拦下低平投掷');
   }
 });

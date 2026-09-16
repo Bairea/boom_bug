@@ -1,10 +1,10 @@
 // Service Worker：离线可玩（PWA）。
-// 策略：导航请求网络优先（拿到新版本顺手入缓存），断网回退缓存；
-// 其余同源 GET（编译产物 src/**/*.js 等）缓存优先、后台无更新检查 ——
-// 产物由 URL 内容决定，游戏本体极小，改版靠版本号缓存名失效。
+// 策略：全部同源 GET 一律网络优先，成功即顺手入缓存，失败（离线）回退缓存 ——
+// 在线时永远跑最新产物，断网时才是 SW 的舞台。缓存优先会让开发迭代吃到旧
+// 编译产物（R61 实测踩坑：改了 scenario.ts 浏览器还在跑旧 js）。
 // 零构建：本文件是手写静态资源，不经任何打包。
 
-const CACHE = 'bbl-v1';
+const CACHE = 'bbl-v2';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -13,7 +13,6 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
-      // 清理旧版本缓存
       const names = await caches.keys();
       await Promise.all(names.filter((n) => n !== CACHE).map((n) => caches.delete(n)));
       await self.clients.claim();
@@ -27,30 +26,15 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
 
-  // 页面导航：网络优先，断网回退缓存/首页
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-          return res;
-        })
-        .catch(() => caches.match(req).then((hit) => hit ?? caches.match('index.html')))
-    );
-    return;
-  }
-
-  // 静态资源：缓存优先
   event.respondWith(
-    caches.match(req).then(
-      (hit) =>
-        hit ??
-        fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-          return res;
-        })
-    )
+    fetch(req)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy));
+        return res;
+      })
+      .catch(() =>
+        caches.match(req).then((hit) => hit ?? (req.mode === 'navigate' ? caches.match('index.html') : undefined))
+      )
   );
 });

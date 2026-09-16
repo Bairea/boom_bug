@@ -164,8 +164,8 @@ export function stepExplosives(sim: Simulation, dt: number): void {
 
     if (d.etype === 'firecracker') {
       d.fuse -= dt;
-      // 落水：引信熄灭成哑弹（可被再次点燃/殉爆）
-      if (inWater(w, b)) {
+      // 落水/陷沙：引信熄灭成哑弹（可被再次点燃/殉爆）—— 沙坑是"安全区"
+      if (inWater(w, b) || onSand(w, b)) {
         d.lit = false;
         d.fuse = -1;
         d.doused = true;
@@ -254,6 +254,17 @@ function isGroundedExplosive(w: { height: number }, b: { y: number; radius: numb
   return b.y >= w.height - b.radius - 1.5;
 }
 
+// 是否陷在沙坑里（脚下有沙材质区；沙坑是非实体区，物体实际贴地站在它上面）
+function onSand(
+  w: { bodies: Body[]; slimeScaleAt(x: number, y: number, radius: number): number },
+  b: { x: number; y: number; radius: number },
+): boolean {
+  for (const z of w.bodies) {
+    if (z.alive && z.data.sand && dist(b.x, b.y, z.x, z.y) < z.radius + b.radius) return true;
+  }
+  return false;
+}
+
 function hitSomething(w: { bodies: Body[]; width: number; height: number }, b: ExplosiveBody): boolean {
   // 炮仗（燃烧弹）：只算撞到"东西"——地面/天花板是正常滚动面，不算撞击
   for (const o of w.bodies) {
@@ -287,6 +298,12 @@ export function stepProps(sim: Simulation, dt: number): void {
     if (!b.alive || b.kind !== 'prop' || !b.data.burning) continue;
     const p = b.data;
     if (inWater(w, b)) {
+      p.burning = false;
+      sim._record({ type: 'douse', id: b.id, x: b.x, y: b.y });
+      continue;
+    }
+    // 沙埋火：燃烧的道具陷进沙坑会被闷熄（材质区语义的火的对面）
+    if (onSand(w, b)) {
       p.burning = false;
       sim._record({ type: 'douse', id: b.id, x: b.x, y: b.y });
       continue;
@@ -415,13 +432,7 @@ export function processExplosions(sim: Simulation): void {
       }
       // 地面道具被炸离地面 → 转为动态：既有的"重物被推走/掀翻"观感得以保留，
       // 又让地面形成稳定材质层（冰面/沙坑/金属板不再能被爆炸随意推走）
-      if (
-        b.static &&
-        b.kind === 'prop' &&
-        b.data.propType !== 'debris' &&
-        !b.data.staticPinned &&
-        !b.data.materialZone
-      ) {
+      if (b.static && b.kind === 'prop' && b.data.propType !== 'debris' && !b.data.staticPinned && !b.data.materialZone) {
         b.static = false;
         b.invMass = 1 / Math.max(b.mass, 1e-6);
         b.vx += ux * dv * 0.35;

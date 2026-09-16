@@ -150,6 +150,31 @@ export const SCENARIOS: Scenario[] = [
       bonus: sim.stats.knockouts >= 5 ? '全瓶清台 ✓' : null,
     }),
   },
+  {
+    id: 'case7',
+    label: '案例7 · 火烧连营',
+    desc: '一根炮仗点着木板链，火焰会自己蔓延——看火舌舔过整排木板。目标：火焰击倒 ≥ 2；试着掐断火路或添柴加料。',
+    seed: 707,
+    entities: [
+      { t: 'wood', x: 100, y: 174 }, // 0-3 木板链：火焰 14+radius 范围逐板续燃
+      { t: 'wood', x: 116, y: 174 }, // 1
+      { t: 'wood', x: 132, y: 174 }, // 2
+      { t: 'wood', x: 148, y: 174 }, // 3
+      { t: 'firecracker', x: 84, y: 174, delay: 0 }, // 4 发令枪：爆燃左端第一块板
+      { t: 'roach', x: 148, y: 166, fixed: true }, // 5 蹲在末板上
+      { t: 'roach', x: 160, y: 176, fixed: true }, // 6 躲在链尾后
+      { t: 'roach', x: 168, y: 176, fixed: true }, // 7
+      { t: 'snail', x: 140, y: 176, fixed: true }, // 8 慢吞吞的挡火靶
+    ],
+    goal: (sim) => {
+      const fireKo = sim.eventLog.filter((e) => e.type === 'knockout' && e.cause === 'fire').length;
+      return {
+        label: '火舌舔到远端（火焰击倒 ≥ 2）',
+        done: fireKo >= 2,
+        bonus: fireKo >= 3 ? '全链烧穿 ✓' : null,
+      };
+    },
+  },
 ];
 
 export function getScenario(id: string | null): Scenario {
