@@ -6,11 +6,18 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
-    "test": "tsc -p tsconfig.json && node --test \"test/*.test.js\"",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.ts\" \"test/*.js\" server.js eslint.config.js",
+    "test": "tsc -p tsconfig.json && eslint . && node --test \"test/*.test.js\"",
     "start": "tsc -p tsconfig.json && node server.js"
   },
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.7",
+    "typescript": "5.9",
+    "typescript-eslint": "^8.70.0"
   }
 }

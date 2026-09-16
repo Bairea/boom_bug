@@ -15,7 +15,7 @@ function fakeCtx() {
       get(target, prop) {
         if (prop === '__calls') return calls;
         if (!(prop in target)) {
-          target[prop] = (...args) => {
+          target[prop] = (..._args) => {
             calls.push(String(prop));
             if (prop === 'createRadialGradient' || prop === 'createLinearGradient') return gradient;
             return undefined;
@@ -27,7 +27,7 @@ function fakeCtx() {
         target[prop] = value;
         return true;
       },
-    }
+    },
   );
 }
 

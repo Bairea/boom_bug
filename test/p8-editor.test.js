@@ -99,7 +99,10 @@ test('编辑器: 配件安装/拆除有反馈且数量受限', () => {
   ed.tool = 'pin';
   ed._down(pev(80, 130));
   assert.deepEqual(ed.specs[0].acc, ['pin']);
-  assert.ok(msgs.some((m) => m.includes('大头针') && m.includes('装上')), '应有安装反馈');
+  assert.ok(
+    msgs.some((m) => m.includes('大头针') && m.includes('装上')),
+    '应有安装反馈',
+  );
   ed.tool = 'glue';
   ed._down(pev(80, 130));
   ed.tool = 'toothpick';

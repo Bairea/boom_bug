@@ -43,6 +43,9 @@ test('R17: 玻璃砖先裂后碎（裂纹事件）', () => {
     ],
   });
   sim.runFor(2.5);
-  assert.ok(sim.eventLog.some((e) => e.type === 'propCrack'), '应出现裂纹事件');
+  assert.ok(
+    sim.eventLog.some((e) => e.type === 'propCrack'),
+    '应出现裂纹事件',
+  );
   assert.equal(sim.stats.propsBroken ?? 0, 0, '单发不碎');
 });

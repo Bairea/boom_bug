@@ -46,15 +46,7 @@ export class Recorder {
     this.last = sim.tick;
     const bodies: SnapshotRow[] = [];
     for (const b of sim.world.bodies) {
-      bodies.push([
-        b.id,
-        b.kind,
-        +b.x.toFixed(2),
-        +b.y.toFixed(2),
-        +b.angle.toFixed(3),
-        snapshotState(b),
-        typeName(b),
-      ]);
+      bodies.push([b.id, b.kind, +b.x.toFixed(2), +b.y.toFixed(2), +b.angle.toFixed(3), snapshotState(b), typeName(b)]);
     }
     this.frames.push({ tick: sim.tick, bodies });
     if (this.frames.length > this.maxFrames) this.frames.shift();
@@ -124,9 +116,7 @@ export function buildReport(sim: Simulation, scenario: Scenario | null = null): 
     .reverse()
     .find((e) => ['explosion', 'knockout', 'ropeBreak', 'multiKill', 'armorCrack'].includes(e.type));
   const goalDone = scenario?.goal ? scenario.goal(sim) : null;
-  const title = goalDone?.done
-    ? `实验成功 · ${makeTitle(s, sim.eventLog)}`
-    : makeTitle(s, sim.eventLog);
+  const title = goalDone?.done ? `实验成功 · ${makeTitle(s, sim.eventLog)}` : makeTitle(s, sim.eventLog);
   return {
     id: 'BBL-' + (sim.seed >>> 0).toString(36).toUpperCase(),
     seed: sim.seed,

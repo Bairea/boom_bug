@@ -41,7 +41,7 @@ export class Particles {
     const r = 6 + power * 0.18;
     this.add({ type: 'flash', x, y, r: r * 0.8, life: 0.12, age: 0 });
     this.add({ type: 'ring', x, y, r: r * 0.4, vr: r * 7, life: 0.45, age: 0 });
-    const n = Math.min(26, 10 + (power * 0.25) | 0);
+    const n = Math.min(26, (10 + power * 0.25) | 0);
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = 60 + Math.random() * 220;

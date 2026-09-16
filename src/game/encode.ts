@@ -65,7 +65,7 @@ export function encodeExperiment({ seed, width, height, entities, commands = [] 
   const c = commands.map((cmd) =>
     cmd.op === 'throw'
       ? [cmd.tick, 't', +cmd.x.toFixed(1), +cmd.y.toFixed(1), Math.round(cmd.vx), Math.round(cmd.vy)]
-      : [cmd.tick, 'i', cmd.id]
+      : [cmd.tick, 'i', cmd.id],
   );
   return b64urlEncode(JSON.stringify({ v: VERSION, s: seed >>> 0, w: width, h: height, e, c }));
 }

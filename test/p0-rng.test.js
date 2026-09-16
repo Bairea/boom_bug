@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mulberry32, Rng } from '../src/sim/rng.js';
+import { Rng } from '../src/sim/rng.js';
 import { checksum } from '../src/sim/math.js';
 
 test('P0: 同种子产生完全一致的序列', () => {

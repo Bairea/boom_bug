@@ -201,9 +201,7 @@ export class World {
         if (vn < 0) {
           // 金属等"高弹面"：取双方较大弹性（普通对仍取较小，保住海绵的软）
           const e =
-            a.data.bouncy || b.data.bouncy
-              ? Math.max(a.restitution, b.restitution)
-              : Math.min(a.restitution, b.restitution);
+            a.data.bouncy || b.data.bouncy ? Math.max(a.restitution, b.restitution) : Math.min(a.restitution, b.restitution);
           const jImp = (-(1 + e) * vn) / invSum;
           a.vx -= jImp * nx * a.invMass;
           a.vy -= jImp * ny * a.invMass;
@@ -211,16 +209,11 @@ export class World {
           b.vy += jImp * ny * b.invMass;
 
           // 点燃的爆炸物撞上东西：在解算时刻记录接触（弹性反弹会让下一tick的位置检测漏掉）
-          for (const [self, other] of [
+          for (const [self] of [
             [a, b],
             [b, a],
           ] as const) {
-            if (
-              self.kind === 'explosive' &&
-              self.data.lit &&
-              !self.data.exploded &&
-              Math.abs(vn) > 40
-            ) {
+            if (self.kind === 'explosive' && self.data.lit && !self.data.exploded && Math.abs(vn) > 40) {
               this.events.push({ type: 'explosiveContact', id: self.id, x: self.x, y: self.y });
             }
           }

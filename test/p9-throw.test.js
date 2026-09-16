@@ -69,8 +69,9 @@ test('R4: 分享码携带投掷命令并可复现（向后兼容旧 ignite 码�
   // v1 旧格式（两元素行）仍可解码
   const legacy = decodeExperiment(
     encodeExperiment({ seed: 1, width: 300, height: 180, entities: [], commands: [{ tick: 5, op: 'ignite', id: 1 }] }).replace(
-      JSON.stringify([]).slice(1, 2), JSON.stringify([]).slice(1, 2) // no-op 占位
-    )
+      JSON.stringify([]).slice(1, 2),
+      JSON.stringify([]).slice(1, 2), // no-op 占位
+    ),
   );
   assert.equal(legacy.commands.length, 1);
 });

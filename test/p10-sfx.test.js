@@ -30,7 +30,7 @@ function fakeCtx() {
     resume() {
       ctx.state = 'running';
     },
-    createBuffer(len, n, rate) {
+    createBuffer(len, n) {
       return { getChannelData: () => new Float32Array(n) };
     },
     createBufferSource() {

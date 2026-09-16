@@ -1,11 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  encodeExperiment,
-  decodeExperiment,
-  toHash,
-  experimentFromHash,
-} from '../src/game/encode.js';
+import { encodeExperiment, decodeExperiment, toHash, experimentFromHash } from '../src/game/encode.js';
 import { Recorder, buildReport, SNAPSHOT_INTERVAL } from '../src/game/replay.js';
 import { Simulation } from '../src/sim/sim.js';
 import { SCENARIOS } from '../src/game/scenario.js';

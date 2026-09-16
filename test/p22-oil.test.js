@@ -15,7 +15,10 @@ test('R53: 油盆遇火爆燃，持续灼烧盆内的虫', () => {
   const oil = sim.ents[0];
   const ignited = oil.data.burning || !oil.alive;
   assert.ok(ignited, '油盆应被引燃');
-  assert.ok(sim.eventLog.some((e) => e.type === 'fireTick'), '应有灼烧事件');
+  assert.ok(
+    sim.eventLog.some((e) => e.type === 'fireTick'),
+    '应有灼烧事件',
+  );
   const roach = sim.ents[1];
   assert.ok(roach.data.hp < 30 || roach.data.knocked, `油火应灼烧虫子, hp=${roach.data.hp}`);
 });

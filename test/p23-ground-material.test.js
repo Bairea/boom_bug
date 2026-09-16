@@ -45,4 +45,3 @@ test('R54: 爆炸把地面道具炸离地面（转动态），落地后重新固
   assert.equal(sim.ents[0].static, true, '落地后应重新固化为地形（材质层稳定）');
   assert.ok(Math.abs(sim.ents[0].x - 150) < 40, '板被推走后仍应留在盒内合理范围');
 });
-

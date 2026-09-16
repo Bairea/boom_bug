@@ -72,7 +72,10 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(vol, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.45);
-    src.connect(filter).connect(gain).connect(this.master ?? ac.destination);
+    src
+      .connect(filter)
+      .connect(gain)
+      .connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.5);
 
@@ -102,7 +105,10 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.12, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.18);
-    src.connect(hp).connect(gain).connect(this.master ?? ac.destination);
+    src
+      .connect(hp)
+      .connect(gain)
+      .connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.2);
   }
@@ -124,7 +130,10 @@ export class Sfx {
     gain.gain.setValueAtTime(0.001, t0);
     gain.gain.linearRampToValueAtTime(0.16, t0 + 0.06);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.2);
-    src.connect(bp).connect(gain).connect(this.master ?? ac.destination);
+    src
+      .connect(bp)
+      .connect(gain)
+      .connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.22);
   }
@@ -143,7 +152,10 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.22, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.3);
-    src.connect(hp).connect(gain).connect(this.master ?? ac.destination);
+    src
+      .connect(hp)
+      .connect(gain)
+      .connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.32);
     const osc = ac.createOscillator();
@@ -172,7 +184,10 @@ export class Sfx {
     const gain = ac.createGain();
     gain.gain.setValueAtTime(0.07, t0);
     gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.08);
-    src.connect(lp).connect(gain).connect(this.master ?? ac.destination);
+    src
+      .connect(lp)
+      .connect(gain)
+      .connect(this.master ?? ac.destination);
     src.start(t0);
     src.stop(t0 + 0.1);
   }

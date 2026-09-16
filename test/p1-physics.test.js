@@ -66,7 +66,7 @@ test('P1: 落地反弹速度衰减（能量损失）', () => {
   const b = w.add(createBody({ x: 150, y: 30, radius: 3, restitution: 0.5 }));
   let bounceSpeed = null;
   runSteps(w, 240, {
-    post(world) {
+    post() {
       if (bounceSpeed === null && b.y >= w.height - b.radius - 0.5 && b.vy < -1) {
         bounceSpeed = -b.vy;
       }

@@ -204,7 +204,12 @@ export class Editor {
     return true;
   }
 
-  addSpec(t: string, x: number, y: number, extra: { angle?: number; acc?: string[]; fixed?: boolean; delay?: number } = {}): void {
+  addSpec(
+    t: string,
+    x: number,
+    y: number,
+    extra: { angle?: number; acc?: string[]; fixed?: boolean; delay?: number } = {},
+  ): void {
     const kind = kindOf(t);
     this.specs.push({
       t,

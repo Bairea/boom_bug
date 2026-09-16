@@ -15,13 +15,19 @@ test('R39: 木板被炸点燃 → 持续灼烧周围虫子 → 烧尽消失', ()
   });
   sim.runFor(2);
   const wood = sim.ents[0];
-  assert.ok(sim.eventLog.some((e) => e.type === 'fireTick'), '应有灼烧事件');
+  assert.ok(
+    sim.eventLog.some((e) => e.type === 'fireTick'),
+    '应有灼烧事件',
+  );
   const roach = sim.ents[1];
   const roachHurt = roach.data.hp < 30 || roach.data.knocked;
   assert.ok(roachHurt, `灼烧应伤及蟑螂, hp=${roach.data.hp}`);
   sim.runFor(3);
   assert.equal(wood.alive, false, '木板应烧尽消失');
-  assert.ok(sim.eventLog.some((e) => e.type === 'propBreak' && e.propType === 'wood'), '应有烧尽事件');
+  assert.ok(
+    sim.eventLog.some((e) => e.type === 'propBreak' && e.propType === 'wood'),
+    '应有烧尽事件',
+  );
 });
 
 test('R39: 冰面语义 —— 覆盖区域内地面摩擦大减', () => {
@@ -37,7 +43,17 @@ test('R39: 金属板高弹 —— 反弹显著高于普通地面', () => {
     resetBodyIds();
     const w = new World();
     if (metalX != null) {
-      w.add(createBody({ kind: 'prop', x: metalX, y: 170, radius: 9, restitution: 0.85, static: true, data: { propType: 'metal', bouncy: true } }));
+      w.add(
+        createBody({
+          kind: 'prop',
+          x: metalX,
+          y: 170,
+          radius: 9,
+          restitution: 0.85,
+          static: true,
+          data: { propType: 'metal', bouncy: true },
+        }),
+      );
     }
     const ball = w.add(createBody({ x: metalX ?? 150, y: 60, radius: 3, restitution: 0.2 }));
     let maxBounce = 0;
@@ -73,7 +89,10 @@ test('R40: 燃烧的木板落水熄灭', () => {
   water.y = 170;
   sim.runFor(0.5);
   assert.equal(wood.data.burning, false, '落水应熄灭');
-  assert.ok(sim.eventLog.some((e) => e.type === 'douse'), '应有熄灭事件');
+  assert.ok(
+    sim.eventLog.some((e) => e.type === 'douse'),
+    '应有熄灭事件',
+  );
 });
 
 test('R40b: 火焰传播 —— 燃烧木板点着相邻木板、灼裂玻璃', () => {

@@ -39,7 +39,8 @@ test('P3: 蝗虫高弹性 —— 落地反弹保留大半速度', () => {
   let bounce = 0;
   for (let i = 0; i < 240; i++) {
     sim.step();
-    if (!landed && locust.y >= 180 - 2.4 - 0.5) landed = true; // 触地后 wall solve 会把 vy 翻负
+    if (!landed && locust.y >= 180 - 2.4 - 0.5)
+      landed = true; // 触地后 wall solve 会把 vy 翻负
     else if (landed && locust.vy < 0) bounce = Math.max(bounce, -locust.vy);
   }
   assert.ok(bounce > impact * 0.5, `反弹速度${bounce}应>冲击${impact}的一半`);

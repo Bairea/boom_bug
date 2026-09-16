@@ -8,7 +8,18 @@ test('R27: 海绵垫吸收冲击 —— 落地几乎不弹', () => {
   const dropOn = (spongeX) => {
     resetBodyIds();
     const w = new World();
-    const sponge = spongeX != null ? w.add(createBody({ kind: 'prop', x: spongeX, y: 174, radius: 10, restitution: 0.02, static: true, data: { propType: 'sponge' } })) : null;
+    if (spongeX != null)
+      w.add(
+        createBody({
+          kind: 'prop',
+          x: spongeX,
+          y: 174,
+          radius: 10,
+          restitution: 0.02,
+          static: true,
+          data: { propType: 'sponge' },
+        }),
+      );
     const ball = w.add(createBody({ x: spongeX ?? 150, y: 60, radius: 3, restitution: 0.6 }));
     let bounce = 0;
     let landed = false;

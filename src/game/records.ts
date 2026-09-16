@@ -44,10 +44,7 @@ export function createRecords(storage: Storage | null = typeof localStorage !== 
         explosions: Math.max(prev?.explosions ?? 0, counts.explosions ?? 0),
       };
       this.save(key, best);
-      const isNew =
-        !prev ||
-        (counts.chainMax ?? 0) > (prev.chain ?? 0) ||
-        (counts.knockouts ?? 0) > (prev.knockouts ?? 0);
+      const isNew = !prev || (counts.chainMax ?? 0) > (prev.chain ?? 0) || (counts.knockouts ?? 0) > (prev.knockouts ?? 0);
       return { best, isNew };
     },
   };

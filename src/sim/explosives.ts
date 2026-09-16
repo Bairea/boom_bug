@@ -18,7 +18,7 @@ export function spawnExplosive(
   x: number,
   y: number,
   angle = -Math.PI / 2,
-  acc: string[] = []
+  acc: string[] = [],
 ): ExplosiveBody {
   const spec = EXPLOSIVES[type];
   if (!spec) throw new Error(`未知爆炸物: ${type}`);

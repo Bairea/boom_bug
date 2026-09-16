@@ -5,8 +5,8 @@ import { VIEW_W, VIEW_H, drawScene, viewFromSim, viewFromSpecs } from './render.
 import type { DrawOptions, ItemView, SceneView, Scorch } from './render.js';
 import { Particles } from './particles.js';
 import { Editor } from './editor.js';
-import { Recorder, buildReport, SNAPSHOT_INTERVAL } from '../game/replay.js';
-import type { Report, ReplayFrame } from '../game/replay.js';
+import { Recorder, buildReport } from '../game/replay.js';
+import type { Report } from '../game/replay.js';
 import { SCENARIOS, getScenario } from '../game/scenario.js';
 import type { EntitySpec, Experiment, TimedCommand } from '../game/encode.js';
 import { toHash, experimentFromHash } from '../game/encode.js';
@@ -91,11 +91,7 @@ const editor = new Editor(canvas);
 editor.onStatus = (msg) => (els.status.textContent = msg);
 
 // 音效：首个用户手势（点燃/点击画布）后创建 AudioContext
-const sfx = new Sfx(
-  typeof window !== 'undefined' && window.AudioContext
-    ? () => new AudioContext()
-    : null
-);
+const sfx = new Sfx(typeof window !== 'undefined' && window.AudioContext ? () => new AudioContext() : null);
 // 本机最佳战绩
 const records = createRecords();
 els.mute = document.getElementById('btn-mute') as HTMLButtonElement | null;
@@ -114,11 +110,7 @@ els.mute?.addEventListener('click', () => {
   if (!sfx.muted) sfx.ensure();
 });
 // 首次任意画布交互时预热音频（自动播放策略要求手势）
-canvas.addEventListener(
-  'pointerdown',
-  () => sfx.ensure(),
-  { once: true }
-);
+canvas.addEventListener('pointerdown', () => sfx.ensure(), { once: true });
 
 // ---- 实验手册 ----
 const helpEl = document.getElementById('help');
@@ -190,7 +182,7 @@ function startRun(useRecordedCommands = false): void {
   // 重跑/重放：完整复用上一次（或分享码）的输入，保证同一灾难；新跑：从编辑器取当前布置
   const prev = useRecordedCommands && state.runExperiment ? state.runExperiment : null;
   const entities = prev ? prev.entities : editor.buildEntities(true);
-  const commands = prev ? prev.commands ?? [] : [];
+  const commands = prev ? (prev.commands ?? []) : [];
   state.runExperiment = {
     seed: state.seed,
     width: VIEW_W,
@@ -274,13 +266,13 @@ els.share.addEventListener('click', () => {
     commands: state.sim.commandLog.map((c): TimedCommand =>
       c.op === 'throw'
         ? { tick: c.tick, op: 'throw', x: c.x, y: c.y, vx: c.vx, vy: c.vy }
-        : { tick: c.tick, op: 'ignite', id: c.id }
+        : { tick: c.tick, op: 'ignite', id: c.id },
     ),
   };
   const url = location.origin + location.pathname + toHash(exp);
   navigator.clipboard?.writeText(url).then(
     () => toast('分享链接已复制 ✓ 对方打开就是同一个实验'),
-    () => toast('复制失败，请手动复制地址栏链接')
+    () => toast('复制失败，请手动复制地址栏链接'),
   );
 });
 els.replayShare.addEventListener('click', () => startRun(true)); // 分享码重放 = 带命令重跑模拟
@@ -438,10 +430,7 @@ function startReplay(): void {
     flashSeen: 0,
   };
   // 快进到起始帧的爆炸进度
-  while (
-    state.replay.flashSeen < state.replay.flashes.length &&
-    state.replay.flashes[state.replay.flashSeen].tick < startTick
-  ) {
+  while (state.replay.flashSeen < state.replay.flashes.length && state.replay.flashes[state.replay.flashSeen].tick < startTick) {
     state.replay.flashSeen++;
   }
   hideReport();

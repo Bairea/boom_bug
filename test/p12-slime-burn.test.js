@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Simulation } from '../src/sim/sim.js';
-import { World } from '../src/sim/world.js';
 
 test('R11: 爆炸烧掉范围内的黏液（范围外保留）', () => {
   const sim = new Simulation({ seed: 5, entities: [{ t: 'firecracker', x: 100, y: 176, delay: 0 }] });

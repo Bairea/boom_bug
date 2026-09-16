@@ -121,7 +121,10 @@ export function viewFromSim(sim: Simulation): SceneView {
   return { items, ropes, slime };
 }
 
-export function viewFromSpecs(specs: { t: string; x: number; y: number; angle?: number; acc?: string[]; fixed?: boolean }[], ropeList: { a: number; b: number }[] = []): SceneView {
+export function viewFromSpecs(
+  specs: { t: string; x: number; y: number; angle?: number; acc?: string[]; fixed?: boolean }[],
+  ropeList: { a: number; b: number }[] = [],
+): SceneView {
   const items: ItemView[] = specs.map((s) => ({
     t: s.t,
     kind: kindOfName(s.t),
@@ -536,7 +539,7 @@ function drawThrusterFlame(ctx: CanvasRenderingContext2D, s: number, len: number
 
 function drawSkyrocket(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   // 未点燃：立在地面；飞行：沿 angle 方向
-  const a = it.lit ? it.angle ?? -Math.PI / 2 : -Math.PI / 2;
+  const a = it.lit ? (it.angle ?? -Math.PI / 2) : -Math.PI / 2;
   ctx.rotate(a + Math.PI / 2);
   if (it.burning) drawThrusterFlame(ctx, s, 6);
   ctx.fillStyle = '#8d99a6';
@@ -558,7 +561,7 @@ function drawSkyrocket(ctx: CanvasRenderingContext2D, it: ItemView, s: number, t
   drawFuse(ctx, it, s, time);
 }
 
-function drawBottle(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
+function drawBottle(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
   const a = it.aim ?? it.angle ?? 0;
   ctx.rotate(a);
   if (it.burning || it.lit) drawThrusterFlame(ctx, s, 5);
@@ -695,7 +698,6 @@ function drawGiftbox(ctx: CanvasRenderingContext2D, it: ItemView, s: number): vo
     ctx.stroke();
   }
 }
-
 
 function drawWood(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const w = 10 * s;
@@ -948,7 +950,7 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   // 弹道预测：粗积分重力（与模拟同 g=560）
   let px = t.x;
   let py = t.y;
-  let vx = t.vx;
+  const vx = t.vx;
   let vy = t.vy;
   const stepDt = 1 / 20;
   ctx.fillStyle = 'rgba(255,217,160,0.85)';
