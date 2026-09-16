@@ -175,6 +175,26 @@ export const SCENARIOS: Scenario[] = [
       };
     },
   },
+  {
+    id: 'case8',
+    label: '案例8 · 油锅',
+    desc: '油盆里的爆炸会被放大（威力 ×1.4）——普通爆炸只够放倒 2 只，想全倒就得把点着的炮仗丢进油里。2 次机会。',
+    seed: 808,
+    maxThrows: 2,
+    entities: [
+      { t: 'oil', x: 150, y: 172 }, // 0-2 油湖：油中爆炸 ×1.4，爆后油面持续燃烧
+      { t: 'oil', x: 168, y: 172 }, // 1
+      { t: 'oil', x: 186, y: 172 }, // 2
+      { t: 'roach', x: 202, y: 176, fixed: true }, // 3-5 瓶阵：普通爆炸只够倒 2
+      { t: 'roach', x: 212, y: 176, fixed: true }, // 4
+      { t: 'roach', x: 222, y: 176, fixed: true }, // 5
+    ],
+    goal: (sim) => ({
+      label: '借油一击全倒（击倒 ≥ 3）',
+      done: sim.stats.knockouts >= 3,
+      bonus: (sim.stats.throws ?? 0) === 1 && sim.stats.knockouts >= 3 ? '一发入油 ✓' : null,
+    }),
+  },
 ];
 
 export function getScenario(id: string | null): Scenario {
