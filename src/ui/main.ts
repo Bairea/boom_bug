@@ -659,6 +659,13 @@ function render(): void {
   }
 }
 // ---- 启动 ----
+// PWA：注册 Service Worker（离线可玩；仅 https/localhost 环境可用）
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {
+    // file:// 或不受支持的环境：静默放弃
+  });
+}
+
 const fromHash = experimentFromHash(location.hash);
 if (fromHash) {
   state.seed = fromHash.seed;

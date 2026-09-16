@@ -1,0 +1,18 @@
+{
+  "name": "擦炮虫虫实验室 · Boom Bug Lab",
+  "short_name": "擦炮实验室",
+  "description": "微型灾难物理沙盒：摆放玩具虫和擦炮，点燃，目睹确定性连锁灾难。",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#16181d",
+  "theme_color": "#16181d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
