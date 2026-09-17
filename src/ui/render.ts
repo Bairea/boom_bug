@@ -26,6 +26,7 @@ export interface ItemView {
   knocked?: boolean;
   cracked?: boolean;
   fixed?: boolean;
+  picked?: boolean;
   hp?: number | null;
   maxHp?: number;
   speed?: number;
@@ -124,8 +125,9 @@ export function viewFromSim(sim: Simulation): SceneView {
 export function viewFromSpecs(
   specs: { t: string; x: number; y: number; angle?: number; acc?: string[]; fixed?: boolean }[],
   ropeList: { a: number; b: number }[] = [],
+  pickedIndex = -1,
 ): SceneView {
-  const items: ItemView[] = specs.map((s) => ({
+  const items: ItemView[] = specs.map((s, i) => ({
     t: s.t,
     kind: kindOfName(s.t),
     x: s.x,
@@ -138,6 +140,7 @@ export function viewFromSpecs(
     fixed: s.fixed,
     hp: BUGS[s.t as keyof typeof BUGS]?.hp,
     maxHp: BUGS[s.t as keyof typeof BUGS]?.hp,
+    picked: i === pickedIndex,
   }));
   const ropes: RopeView[] = ropeList
     .map(({ a, b }) => {
@@ -206,6 +209,19 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   // 物体（阴影 → 本体）
   for (const it of view.items) drawShadow(ctx, it, s);
   for (const it of view.items) drawItem(ctx, it, s, time);
+
+  // 绳子第一选点高亮（虚线圆环）：玩家点完第一个端点能看到选中了谁
+  for (const it of view.items) {
+    if (it.picked) {
+      ctx.strokeStyle = 'rgba(126,200,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.arc(it.x * s, it.y * s, ((it.radius ?? 6) + 5) * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
 
   // 瞄准线（编辑模式未点燃的定向爆炸物）
   if (opts.showAim) {

@@ -716,7 +716,7 @@ function render(): void {
   };
 
   if (state.mode === 'edit') {
-    view = viewFromSpecs(editor.specs, editor.ropeList);
+    view = viewFromSpecs(editor.specs, editor.ropeList, editor.ropePicking ?? -1);
     opts.showAim = true;
     opts.ghost = editor.ghost;
   } else if (state.mode === 'running' || (state.mode === 'report' && state.sim)) {

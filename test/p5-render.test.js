@@ -105,3 +105,23 @@ test('P7: 案例目标判定函数可用', () => {
   assert.equal(typeof goal.done, 'boolean');
   assert.ok(goal.label.length > 0);
 });
+
+// R71: 绳子第一选点高亮 —— viewFromSpecs 标记 picked，drawScene 画虚线圆环
+test('R71: viewFromSpecs 按 pickedIndex 标记 picked（默认全不标）', () => {
+  const specs = [
+    { t: 'firecracker', x: 100, y: 100 },
+    { t: 'roach', x: 200, y: 100 },
+  ];
+  const plain = viewFromSpecs(specs);
+  assert.ok(plain.items.every((i) => !i.picked), '不传 pickedIndex 时无人被标');
+  const marked = viewFromSpecs(specs, [], 1);
+  assert.equal(marked.items[0].picked, false);
+  assert.equal(marked.items[1].picked, true, '1 号实体应被标 picked');
+});
+
+test('R71: drawScene 对 picked 实体画 setLineDash 虚线圆环', () => {
+  const ctx = fakeCtx();
+  const view = viewFromSpecs([{ t: 'firecracker', x: 100, y: 100 }], [], 0);
+  drawScene(ctx, 960, 576, view, {});
+  assert.ok(ctx.__calls.includes('setLineDash'), '应设置虚线样式');
+});
