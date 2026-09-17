@@ -10,7 +10,8 @@ import { tipEffect, tipMassMul } from './accessories.js';
 import { applyDamage, spawnBug } from './bugs.js';
 import type { Cause } from './events.js';
 import { isBugName } from '../game/catalog.js';
-import { dirOf, perp, norm, dist } from './math.js';
+import { dcos, dsin } from './dmath.js';
+import { dirOf, perp, norm, dist, len } from './math.js';
 
 export function spawnExplosive(
   sim: Simulation,
@@ -109,8 +110,8 @@ function shatterProp(sim: Simulation, body: PropBody): void {
     const shard = spawnProp(sim, 'debris', body.x + (i - 1) * 4, body.y - 2);
     shard.static = false;
     shard.invMass = 1 / shard.mass;
-    shard.vx = Math.cos(angle) * sim.rng.range(80, 200);
-    shard.vy = Math.sin(angle) * sim.rng.range(120, 260);
+    shard.vx = dcos(angle) * sim.rng.range(80, 200);
+    shard.vy = dsin(angle) * sim.rng.range(120, 260);
     shard.angVel = sim.rng.range(-10, 10);
   }
 }
@@ -204,7 +205,7 @@ export function stepExplosives(sim: Simulation, dt: number): void {
       b.vy += ay * spec.thrust * dt;
       if (d.etype === 'bottle') {
         // 横向摆动 + 随机漂移：窜天猴的"不看路"
-        const wob = Math.sin(sim.time * 21 + d.wobblePhase) * (spec.wobble ?? 0);
+        const wob = dsin(sim.time * 21 + d.wobblePhase) * (spec.wobble ?? 0);
         const [px, py] = perp(ax, ay);
         b.vx += px * wob * dt + sim.rng.range(-45, 45) * dt;
         b.vy += py * wob * dt + sim.rng.range(-45, 45) * dt;
@@ -218,8 +219,8 @@ export function stepExplosives(sim: Simulation, dt: number): void {
     }
 
     // 撞击检测：火箭武装后随时；炮仗仅在被扔出去高速飞行时（撞击即炸）
-    const flying = d.burn > 0 || d.stuck > 0 || (d.etype === 'firecracker' && Math.hypot(b.vx, b.vy) > 120);
-    if (!d.exploded && flying && sim.tick > d.armTick && Math.hypot(b.vx, b.vy) > 80 && hitSomething(w, b)) {
+    const flying = d.burn > 0 || d.stuck > 0 || (d.etype === 'firecracker' && len(b.vx, b.vy) > 120);
+    if (!d.exploded && flying && sim.tick > d.armTick && len(b.vx, b.vy) > 80 && hitSomething(w, b)) {
       const eff = tipEffect(d.acc);
       if (eff.stick > 0 && d.stuck === 0 && !d.glued && !d.stuckDone) {
         d.stuck = eff.stick;
@@ -286,7 +287,7 @@ export function stepProps(sim: Simulation, dt: number): void {
   for (const b of w.bodies) {
     // 落地沉降：仅在静止贴地时才固化，避免把还在飞的碎片钉在半空
     if (b.alive && b.data.airborne && sim.tick >= (b.data.settleAfterTick ?? 0)) {
-      if (b.y >= w.height - b.radius - 0.6 && Math.hypot(b.vx, b.vy) < 25) {
+      if (b.y >= w.height - b.radius - 0.6 && len(b.vx, b.vy) < 25) {
         b.vx = 0;
         b.vy = 0;
         b.angVel = 0;

@@ -9,7 +9,8 @@ import type { World } from './world.js';
 import { BUGS } from '../game/catalog.js';
 import type { BugName } from '../game/catalog.js';
 import type { Cause } from './events.js';
-import { clamp, norm } from './math.js';
+import { ddatan2, dcos, dsin } from './dmath.js';
+import { clamp, dist, len, norm } from './math.js';
 
 export interface BugSpawnOptions {
   fixed?: boolean;
@@ -67,7 +68,7 @@ export function stepBugs(sim: Simulation, dt: number): void {
 
     const threat: ThreatInfo | null = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
     const grounded = isGrounded(w, b);
-    const speed = Math.hypot(b.vx, b.vy);
+    const speed = len(b.vx, b.vy);
 
     // 被炸飞/高速翻滚时 AI 短暂"失神"，保留冲量表现
     if (speed > 260 || !grounded) {
@@ -95,15 +96,15 @@ function stepFly(sim: Simulation, b: BugBody, d: BugData, _dt: number, w: World)
     sim._record({ type: 'flyTurn', id: b.id, x: b.x, y: b.y });
   }
   const threat: ThreatInfo | null = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
-  if (threat) d.heading = Math.atan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.8, 0.8);
+  if (threat) d.heading = ddatan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.8, 0.8);
   // 悬停升力抵消重力 + 向悬空带中线回归
   b.vy -= 560 * _dt;
   const midY = (BAND_LO + BAND_HI) / 2;
-  b.vy += ((midY - b.y) * 5 + Math.sin(sim.time * 13 + b.id * 7) * 130) * _dt;
-  b.vx += Math.cos(d.heading) * 700 * _dt;
-  b.vx += Math.sin(sim.time * 17 + b.id * 3) * 60 * _dt;
+  b.vy += ((midY - b.y) * 5 + dsin(sim.time * 13 + b.id * 7) * 130) * _dt;
+  b.vx += dcos(d.heading) * 700 * _dt;
+  b.vx += dsin(sim.time * 17 + b.id * 3) * 60 * _dt;
   // 限速与边界
-  const sp = Math.hypot(b.vx, b.vy);
+  const sp = len(b.vx, b.vy);
   const max = d.speed * (threat ? 1.5 : 1);
   if (sp > max) {
     b.vx = (b.vx / sp) * max;
@@ -114,7 +115,7 @@ function stepFly(sim: Simulation, b: BugBody, d: BugData, _dt: number, w: World)
 }
 
 function steer(b: BugBody, heading: number, speed: number, dt: number, accel = 520): void {
-  const [dx, dy] = norm(Math.cos(heading), Math.sin(heading));
+  const [dx, dy] = norm(dcos(heading), dsin(heading));
   const wantX = dx * speed;
   const wantY = dy * speed * 0.35; // 地面虫主要横向爬
   b.vx += clamp(wantX - b.vx, -accel * dt, accel * dt);
@@ -124,11 +125,11 @@ function steer(b: BugBody, heading: number, speed: number, dt: number, accel = 5
 function stepRoach(sim: Simulation, b: BugBody, d: BugData, threat: ThreatInfo | null, dt: number, w: World): void {
   // 受惊逃离：远离威胁方向 + 抖动
   if (threat) {
-    const distT = Math.hypot(b.x - threat.x, b.y - threat.y);
+    const distT = dist(b.x, b.y, threat.x, threat.y);
     if (distT < 90) {
       d.state = 'flee';
       d.stateT = sim.rng.range(0.9, 1.5);
-      d.heading = Math.atan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.5, 0.5);
+      d.heading = ddatan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.5, 0.5);
     }
   }
   if (d.state === 'flee') {
@@ -155,7 +156,7 @@ function stepRoach(sim: Simulation, b: BugBody, d: BugData, threat: ThreatInfo |
 function stepLocust(sim: Simulation, b: BugBody, d: BugData, threat: ThreatInfo | null, dt: number, w: World): void {
   if (!isGrounded(w, b)) return; // 空中随物理
   d.jumpT -= dt;
-  const scared = threat && Math.hypot(b.x - threat.x, b.y - threat.y) < 70;
+  const scared = threat && dist(b.x, b.y, threat.x, threat.y) < 70;
   if (d.jumpT <= 0 || scared) {
     // 随机方向跳；受惊则背向威胁
     let vx: number;

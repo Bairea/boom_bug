@@ -4,7 +4,7 @@
 import { integrateBody } from './body.js';
 import type { Body } from './body.js';
 import type { SimEvent } from './events.js';
-import { clamp, dist } from './math.js';
+import { clamp, dist, len } from './math.js';
 
 export interface SlimeDrop {
   x: number;
@@ -58,14 +58,14 @@ export class World {
   // 物体脚下地面材质：黏液/冰 → 打滑；沙坑 → 陷入减速
   slimeScaleAt(x: number, y: number, radius: number): number {
     for (const s of this.slime) {
-      if (Math.hypot(s.x - x, s.y - y) < s.r + radius * 0.5) return 0.12;
+      if (dist(s.x, s.y, x, y) < s.r + radius * 0.5) return 0.12;
     }
     for (const b of this.bodies) {
       if (!b.alive) continue;
       // 地面材质区（冰面/沙坑）是静态地形，不能跳过 —— 它们永远不参与积分，
       // 但脚下摩擦必须认它们。waterZone/oilZone 是非实体区，不提供材质。
       if (b.data.waterZone || b.data.oilZone) continue;
-      const near = Math.hypot(b.x - x, b.y - y) < b.radius + radius * 0.5;
+      const near = dist(b.x, b.y, x, y) < b.radius + radius * 0.5;
       if (!near) continue;
       if (b.data.slippery) return 0.1;
       if (b.data.sand) return 2.5;
@@ -145,7 +145,7 @@ export class World {
       }
       const dx = b.x - a.x;
       const dy = b.y - a.y;
-      const d = Math.hypot(dx, dy) || 1e-9;
+      const d = len(dx, dy) || 1e-9;
       if (d > rope.rest * 1.8) {
         rope.broken = true;
         this.events.push({ type: 'ropeBreak', aId: a.id, bId: b.id, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
@@ -185,7 +185,7 @@ export class World {
         const dy = b.y - a.y;
         const minD = a.radius + b.radius;
         if (Math.abs(dx) > minD || Math.abs(dy) > minD) continue;
-        const d = Math.hypot(dx, dy);
+        const d = len(dx, dy);
         if (d >= minD || d === 0) continue;
 
         const invSum = a.invMass + b.invMass;

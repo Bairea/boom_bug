@@ -6,6 +6,11 @@ import { TIPS } from '../game/catalog.js';
 import { isBugName, isPropName } from '../game/catalog.js';
 import type { EntityKind } from '../game/catalog.js';
 import type { EntitySpec } from '../game/encode.js';
+import { ddatan2, dhypot } from '../sim/dmath.js';
+
+// 说明：编辑器算出的 angle 会被写进分享码（toFixed(3) 后整体复现）。
+// atan2 必须用确定性版本，否则不同浏览器对同一手势算出的角度差 1 ULP，
+// 靠近 0.0005 取整边界时分享码就会在对方浏览器里演化出不同的事故。
 
 const LIMITS: Record<EntityKind, number> = { bug: 14, explosive: 8, prop: 2 };
 const ROPE_LIMIT = 4;
@@ -50,7 +55,7 @@ export class Editor {
 
   // 点击拾取半径放宽到视觉尺寸的 ~2 倍：配件安装/删除/连绳不必点正中心
   hitSpec(x: number, y: number, r = 12): number | null {
-    const idx = this.specs.findIndex((s) => Math.hypot(s.x - x, s.y - y) < r);
+    const idx = this.specs.findIndex((s) => dhypot(s.x - x, s.y - y) < r);
     return idx >= 0 ? idx : null;
   }
 
@@ -135,8 +140,8 @@ export class Editor {
     const s = this.specs[idx];
     const dx = mx - s.x;
     const dy = my - s.y;
-    if (Math.hypot(dx, dy) < 3) return;
-    let a = Math.atan2(dy, dx);
+    if (dhypot(dx, dy) < 3) return;
+    let a = ddatan2(dy, dx);
     if (s.t === 'skyrocket') {
       const UP = -Math.PI / 2;
       a = UP + Math.max(-0.44, Math.min(0.44, a - UP));
@@ -157,8 +162,8 @@ export class Editor {
     if (this.drag && ['skyrocket', 'bottle'].includes(this.drag.t)) {
       const dx = x - this.drag.x;
       const dy = y - this.drag.y;
-      if (Math.hypot(dx, dy) > 3) {
-        let a = Math.atan2(dy, dx);
+      if (dhypot(dx, dy) > 3) {
+        let a = ddatan2(dy, dx);
         if (this.drag.t === 'skyrocket') {
           // 冲天炮限制在竖直方向 ±25°
           const UP = -Math.PI / 2;
