@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Editor } from '../src/ui/editor.js';
+import { Editor, LIMITS } from '../src/ui/editor.js';
 
 // 假画布：记录监听器，提供固定 rect
 const RECT = { left: 100, top: 50, width: 900, height: 540 };
@@ -132,13 +132,13 @@ test('编辑器: 删除工具移除实体并重接绳子索引', () => {
 test('编辑器: 数量上限拦截', () => {
   const { ed } = setup();
   ed.tool = 'bottle';
-  for (let i = 0; i < 8; i++) {
-    ed._down(pev(30 + i * 30, 100));
+  for (let i = 0; i < LIMITS.explosive; i++) {
+    ed._down(pev(30 + (i % 9) * 30, 100 - Math.floor(i / 9) * 40));
     ed._up();
   }
   ed._down(pev(280, 100));
   ed._up();
-  assert.equal(ed.specs.length, 8);
+  assert.equal(ed.specs.length, LIMITS.explosive);
 });
 
 // R73: 点选类工具悬停 —— hitSpec 命中的实体记入 hoverIdx，放置类工具清除

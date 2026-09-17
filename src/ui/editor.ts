@@ -12,7 +12,8 @@ import { ddatan2, dhypot } from '../sim/dmath.js';
 // atan2 必须用确定性版本，否则不同浏览器对同一手势算出的角度差 1 ULP，
 // 靠近 0.0005 取整边界时分享码就会在对方浏览器里演化出不同的事故。
 
-const LIMITS: Record<EntityKind, number> = { bug: 14, explosive: 8, prop: 2 };
+// 摆放上限：沙盒创作空间（性能余量 100×+，宽松些鼓励大场面）
+export const LIMITS: Record<EntityKind, number> = { bug: 14, explosive: 10, prop: 4 };
 const ROPE_LIMIT = 4;
 
 interface DragState {
