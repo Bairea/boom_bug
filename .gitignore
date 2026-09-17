@@ -2,3 +2,4 @@
 node_modules/
 # tsc 原地输出的构建产物（源码是 src/**/*.ts）
 src/**/*.js
+server.log
