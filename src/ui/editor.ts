@@ -47,8 +47,9 @@ export class Editor {
     return { x, y };
   }
 
-  hitSpec(x: number, y: number): number | null {
-    const idx = this.specs.findIndex((s) => Math.hypot(s.x - x, s.y - y) < 5);
+  // 点击拾取半径放宽到视觉尺寸的 ~2 倍：配件安装/删除/连绳不必点正中心
+  hitSpec(x: number, y: number, r = 12): number | null {
+    const idx = this.specs.findIndex((s) => Math.hypot(s.x - x, s.y - y) < r);
     return idx >= 0 ? idx : null;
   }
 
