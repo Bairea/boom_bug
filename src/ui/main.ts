@@ -430,7 +430,7 @@ function showReport(rep: Report): void {
     ['实验时长', rep.duration.toFixed(1) + 's'],
   ];
   let html = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
-  // 对照实验：与上一局对比
+  // 对照实验：与上一局对比（首局给出可发现性提示）
   if (rep.lastRun) {
     const delta = (cur: number, prev: number): string => {
       const d = cur - prev;
@@ -438,6 +438,8 @@ function showReport(rep: Report): void {
       return d > 0 ? `<span style="color:#9fe6a0">＋${d}</span>` : `<span style="color:#ff9a8a">${d}</span>`;
     };
     html += `<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px">连锁${delta(rep.counts.chainMax, rep.lastRun.chain)} · 击倒${delta(rep.counts.knockouts, rep.lastRun.knockouts)} · 爆炸${delta(rep.counts.explosions, rep.lastRun.explosions)}</b></div>`;
+  } else {
+    html += '<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px;color:var(--dim)">首局 —— 同场景再跑一次即可对比</b></div>';
   }
   if (rep.best) {
     html += `<div class="goal" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07)">本机最佳 · 连锁×${rep.best.chain} · 击倒 ${rep.best.knockouts}${rep.isNewRecord ? ' 🎉 新纪录！' : ''}</div>`;
