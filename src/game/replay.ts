@@ -97,6 +97,10 @@ export interface Report {
   maxPower: number;
   timeline: ReportTimelineEntry[];
   goal: GoalResult | null;
+  // 结束时场上未点燃的爆炸物数量（0 爆炸时用于"怎么点火"教学提示）
+  unlit?: number;
+  // 全程出现过的爆炸物总数（0 爆炸且为 0 → 玩家没摆爆炸物，教学"先摆炮仗"）
+  explosiveTotal?: number;
   // main 层回填的本机对照数据
   best?: BestRecord | null;
   lastRun?: BestRecord | null;
@@ -117,6 +121,8 @@ export function buildReport(sim: Simulation, scenario: Scenario | null = null): 
     .find((e) => ['explosion', 'knockout', 'ropeBreak', 'multiKill', 'armorCrack'].includes(e.type));
   const goalDone = scenario?.goal ? scenario.goal(sim) : null;
   const title = goalDone?.done ? `实验成功 · ${makeTitle(s, sim.eventLog)}` : makeTitle(s, sim.eventLog);
+  const unlit = sim.world.bodies.filter((b) => b.alive && b.kind === 'explosive' && !b.data.lit && !b.data.exploded).length;
+  const explosiveTotal = sim.ents.filter((b) => b.kind === 'explosive').length;
   return {
     id: 'BBL-' + (sim.seed >>> 0).toString(36).toUpperCase(),
     seed: sim.seed,
@@ -124,6 +130,8 @@ export function buildReport(sim: Simulation, scenario: Scenario | null = null): 
     duration: sim.tick * DT,
     firstBlastAt: (explosions[0]?.tick ?? 0) * DT,
     quietFor: lastEvent ? (sim.tick - lastEvent.tick) * DT : sim.tick * DT,
+    unlit,
+    explosiveTotal,
     counts: {
       explosions: s.explosions,
       chainMax: s.chainMax,

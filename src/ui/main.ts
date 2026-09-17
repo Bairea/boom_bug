@@ -316,6 +316,8 @@ els.share.addEventListener('click', () => {
     ),
   };
   const url = location.origin + location.pathname + toHash(exp);
+  // 同步写进地址栏：①"复制失败请手动复制地址栏"的兜底真实可用；②刷新页面即重放这场事故
+  history.replaceState(null, '', toHash(exp));
   navigator.clipboard?.writeText(url).then(
     () => toast('分享链接已复制 ✓ 对方打开就是同一个实验'),
     () => toast('复制失败，请手动复制地址栏链接'),
@@ -430,14 +432,28 @@ function showReport(rep: Report): void {
     ['实验时长', rep.duration.toFixed(1) + 's'],
   ];
   let html = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
-  // 对照实验：与上一局对比（首局给出可发现性提示）
+  // 零爆炸 = 新玩家最可能的迷路点：报告的第一使命是教会下一步，嘲讽只配当第二句
+  if (c.explosions === 0) {
+    if (rep.unlit) {
+      html += `<div class="goal" style="color:#ffd9a0;border-color:rgba(255,200,120,0.3);background:rgba(255,200,120,0.07)">💡 场上有 ${rep.unlit} 根没点着的炮仗（落水的哑弹也能再点燃）—— 运行中<b>点它一下</b>就炸</div>`;
+    } else if ((rep.explosiveTotal ?? 0) === 0) {
+      html += '<div class="goal" style="color:#ffd9a0;border-color:rgba(255,200,120,0.3);background:rgba(255,200,120,0.07)">💡 这场只有虫虫在散步 —— 从工具箱摆一根 🧨 小炮仗再点燃；运行中空白处<b>拖拽</b>还能扔点着的炮仗进去</div>';
+    }
+  }
+  // 对照实验：与上一局对比（首局给出可发现性提示；三平 = 确定性的高光时刻）
   if (rep.lastRun) {
-    const delta = (cur: number, prev: number): string => {
-      const d = cur - prev;
-      if (d === 0) return '<span style="color:var(--dim)">＝</span>';
-      return d > 0 ? `<span style="color:#9fe6a0">＋${d}</span>` : `<span style="color:#ff9a8a">${d}</span>`;
-    };
-    html += `<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px">连锁${delta(rep.counts.chainMax, rep.lastRun.chain)} · 击倒${delta(rep.counts.knockouts, rep.lastRun.knockouts)} · 爆炸${delta(rep.counts.explosions, rep.lastRun.explosions)}</b></div>`;
+    const dChain = rep.counts.chainMax - rep.lastRun.chain;
+    const dKo = rep.counts.knockouts - rep.lastRun.knockouts;
+    const dExp = rep.counts.explosions - rep.lastRun.explosions;
+    if (dChain === 0 && dKo === 0 && dExp === 0) {
+      html += '<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px;color:#9fe6a0">与上次完全一致 —— 确定性 ✓（同种子同操作 = 同一场灾难）</b></div>';
+    } else {
+      const delta = (d: number): string => {
+        if (d === 0) return '<span style="color:var(--dim)">＝</span>';
+        return d > 0 ? `<span style="color:#9fe6a0">＋${d}</span>` : `<span style="color:#ff9a8a">${d}</span>`;
+      };
+      html += `<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px">连锁${delta(dChain)} · 击倒${delta(dKo)} · 爆炸${delta(dExp)}</b></div>`;
+    }
   } else {
     html += '<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px;color:var(--dim)">首局 —— 同场景再跑一次即可对比</b></div>';
   }
@@ -626,6 +642,8 @@ function tick(): void {
       steps++;
       stepOnce();
     }
+    // 静默收尾：3s 无事件即出报告（自由实验的炮仗自带 0.15s 延迟点燃，
+    // 3s 足够"扔进去→炸"；报告卡承担"为什么什么都没发生"的教学）
     const quiet = state.sim ? state.sim.tick - state.lastEventTick > 180 : false;
     if (quiet) finishRun();
   } else {
