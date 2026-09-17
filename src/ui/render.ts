@@ -350,6 +350,7 @@ function drawItem(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: 
   else if (it.t === 'wood') drawWood(ctx, it, s, time);
   else if (it.t === 'ice') drawIce(ctx, it, s);
   else if (it.t === 'metal') drawMetal(ctx, it, s);
+  else if (it.t === 'balloon') drawBalloon(ctx, it, s, time);
   else if (it.t === 'debris') drawDebris(ctx, it, s);
   ctx.restore();
   // 受损血条
@@ -992,6 +993,36 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   ctx.fillStyle = '#ffd166';
   ctx.beginPath();
   ctx.arc((t.x + (t.vx / l) * 2.4) * s, (t.y + (t.vy / l) * 2.4) * s, 0.7 * s, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// 气球：球体+系结，随时间轻微摇曳（绳的连接感交给绳子渲染）
+function drawBalloon(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
+  const sway = Math.sin(time * 2.6 + it.x * 0.7) * 0.8 * s;
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 0.5 * s;
+  ctx.beginPath();
+  ctx.moveTo(it.x * s, (it.y + 8) * s);
+  ctx.quadraticCurveTo(it.x * s + sway, (it.y + 14) * s, it.x * s + sway * 0.6, (it.y + 20) * s);
+  ctx.stroke();
+  const g = ctx.createRadialGradient((it.x - 2) * s, (it.y - 3) * s, s, it.x * s, it.y * s, 8 * s);
+  g.addColorStop(0, '#ff9a8a');
+  g.addColorStop(1, '#d85046');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(it.x * s, it.y * s, 6.2 * s, 7.2 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 高光 + 球结
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.beginPath();
+  ctx.ellipse((it.x - 2.2) * s, (it.y - 2.8) * s, 1.4 * s, 2 * s, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#b8433a';
+  ctx.beginPath();
+  ctx.moveTo((it.x - 1.3) * s, (it.y + 6.8) * s);
+  ctx.lineTo((it.x + 1.3) * s, (it.y + 6.8) * s);
+  ctx.lineTo(it.x * s, (it.y + 8.6) * s);
+  ctx.closePath();
   ctx.fill();
 }
 

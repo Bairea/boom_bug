@@ -44,6 +44,7 @@ export interface PropSpec {
   flammable?: boolean;
   slippery?: boolean;
   bouncy?: boolean;
+  buoyant?: boolean;
 }
 
 export interface AccessorySpec {
@@ -192,6 +193,7 @@ const PROP_TABLE = {
   wood: { label: '木板', radius: 10, mass: 4, hp: 45, flammable: true }, // 可燃：引燃后持续灼烧周围
   ice: { label: '冰面', radius: 12, mass: 5, hp: null, slippery: true }, // 永久光滑（同黏液）
   metal: { label: '金属板', radius: 9, mass: 10, hp: null, bouncy: true }, // 高弹反弹
+  balloon: { label: '气球', radius: 8, mass: 0.3, hp: 1, buoyant: true }, // 轻于空气：会飘（恰好吊得动一根炮仗）；爆炸/火苗打爆
   debris: { label: '碎片', radius: 3, mass: 0.6, hp: null },
 } satisfies Record<string, PropSpec>;
 

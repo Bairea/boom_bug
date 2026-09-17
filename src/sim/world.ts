@@ -160,6 +160,16 @@ export class World {
       a.y += uy * corr * d * (a.invMass / invSum) * 0.5;
       b.x -= ux * corr * d * (b.invMass / invSum) * 0.5;
       b.y -= uy * corr * d * (b.invMass / invSum) * 0.5;
+      // 速度求解：拉紧时消除"继续拉伸"的相对速度 —— 绳才真正传力
+      // （气球吊炮仗/冲天炮拖拽虫子都靠它；否则位置修正传不了持续拉力）
+      const rvn = (b.vx - a.vx) * ux + (b.vy - a.vy) * uy;
+      if (rvn > 0) {
+        const imp = (rvn * 0.85) / invSum; // 0.85：留一点弹性观感
+        a.vx += imp * ux * a.invMass;
+        a.vy += imp * uy * a.invMass;
+        b.vx -= imp * ux * b.invMass;
+        b.vy -= imp * uy * b.invMass;
+      }
     }
   }
 

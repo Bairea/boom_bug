@@ -20,6 +20,7 @@ const TYPES = [
   'oil',
   'giftbox',
   'wood',
+  'balloon',
   'ice',
   'metal',
 ];

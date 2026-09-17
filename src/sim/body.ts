@@ -27,6 +27,7 @@ export interface EntityDataBase {
   slippery?: boolean; // 冰面：脚下打滑
   sand?: boolean; // 沙坑：脚下陷入减速
   bouncy?: boolean; // 金属板：高弹反弹
+  buoyant?: boolean; // 气球：净浮力上升，爆炸/火苗打爆
   aim?: number; // 玩家瞄准方向
   burn?: number; // 火箭推进剩余
   stuck?: number; // 大头针钉住剩余时间

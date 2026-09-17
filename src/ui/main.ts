@@ -737,6 +737,9 @@ function handleEvents(events: RecordedEvent[]): void {
     } else if (e.type === 'pinStick' || e.type === 'glueStick') {
       state.particles.puff(e.x, e.y);
       sfx.stick();
+    } else if (e.type === 'balloonPop') {
+      state.particles.spark(e.x, e.y, 5);
+      sfx.stick();
     } else if (e.type === 'ropeBreak') {
       state.particles.spark(e.x, e.y, 4);
       sfx.ropeBreak();

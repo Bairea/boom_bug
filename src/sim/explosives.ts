@@ -59,7 +59,7 @@ export function spawnProp(sim: Simulation, type: PropName, x: number, y: number)
     propType: type,
     // 初始位置在舞台顶部的道具（礼盒等）永远是静态地形；其余落到地面后转静态，
     // 使地面上形成稳定的材质/平台层（见爆炸结算里的"落地转静态"）
-    staticPinned: y < 168,
+    staticPinned: !spec.buoyant && y < 168,
     hp: spec.hp,
     maxHp: spec.hp ?? 0,
     waterZone: !!spec.water,
@@ -68,6 +68,7 @@ export function spawnProp(sim: Simulation, type: PropName, x: number, y: number)
     slippery: !!spec.slippery,
     sand: !!spec.sand,
     bouncy: !!spec.bouncy,
+    buoyant: !!spec.buoyant,
     // 礼盒内胆：生成时用种子 RNG 决定（确定性保持，分享码可复现）
     children: spec.children
       ? [sim.rng.pick(['roach', 'locust', 'fly', 'snail'] as const), sim.rng.pick(['roach', 'locust'] as const), 'firecracker']
@@ -79,9 +80,10 @@ export function spawnProp(sim: Simulation, type: PropName, x: number, y: number)
     y,
     radius: spec.radius,
     mass: spec.mass,
-    static: true,
-    restitution: spec.soft ? 0.02 : spec.brittle ? 0.1 : spec.bouncy ? 0.85 : 0.2,
-    friction: spec.soft ? 1.4 : 0.8,
+    // 气球生来就是动态的：静态固化语义对浮空体没有意义
+    static: !spec.buoyant,
+    restitution: spec.soft ? 0.02 : spec.buoyant ? 0.6 : spec.brittle ? 0.1 : spec.bouncy ? 0.85 : 0.2,
+    friction: spec.soft ? 1.4 : spec.buoyant ? 0.3 : 0.8,
     data,
   }) as PropBody;
   sim.world.add(body);
@@ -114,6 +116,12 @@ function shatterProp(sim: Simulation, body: PropBody): void {
     shard.vy = dsin(angle) * sim.rng.range(120, 260);
     shard.angVel = sim.rng.range(-10, 10);
   }
+}
+
+// 气球被打爆：直接消亡（一声"啪"，无碎片）
+function popBalloon(sim: Simulation, b: PropBody): void {
+  b.alive = false;
+  sim._record({ type: 'balloonPop', x: b.x, y: b.y });
 }
 
 export function igniteExplosive(sim: Simulation, body: ExplosiveBody, fuseSec: number | null = null): void {
@@ -296,7 +304,14 @@ export function stepProps(sim: Simulation, dt: number): void {
         b.data.airborne = false;
       }
     }
-    if (!b.alive || b.kind !== 'prop' || !b.data.burning) continue;
+    if (!b.alive || b.kind !== 'prop') continue;
+    // 气球：净浮力上升（升力按"恰好吊得动一根炮仗"调校），带空气阻力与限速
+    if (b.data.buoyant && !b.static) {
+      b.vy -= 2444 * dt;
+      b.vx *= Math.max(0, 1 - 1.5 * dt);
+      if (b.vy < -140) b.vy = -140;
+    }
+    if (!b.data.burning) continue;
     const p = b.data;
     if (inWater(w, b)) {
       p.burning = false;
@@ -319,6 +334,8 @@ export function stepProps(sim: Simulation, dt: number): void {
         if (dist(b.x, b.y, o.x, o.y) >= 14 + o.radius) continue;
         if (o.kind === 'bug') {
           if (!o.data.knocked) applyDamage(sim, o, 8, 0.15, 'fire');
+        } else if (o.kind === 'prop' && o.data.buoyant) {
+          popBalloon(sim, o); // 火苗舔到气球直接打爆
         } else if (o.kind === 'prop' && o.data.oilZone && !o.data.burning) {
           o.data.burning = true;
           o.data.burnT = 3;
@@ -474,6 +491,11 @@ export function processExplosions(sim: Simulation): void {
         }
         applyDamage(sim, b, dmg, ex.pierce, ex.cause);
         if (!before && b.data.knocked) blastKills++;
+      }
+      // 气球：冲击波直接打爆（不产生碎片、不参与后续结算）
+      if (b.kind === 'prop' && b.data.buoyant) {
+        popBalloon(sim, b);
+        continue;
       }
       // 可破坏道具（玻璃砖）：受伤 → 裂纹 → 碎裂；木板：受伤 → 引燃
       if (b.kind === 'prop' && b.data.hp != null) {

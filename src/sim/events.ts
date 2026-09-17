@@ -79,6 +79,12 @@ export interface FireTickEvent {
   y: number;
   tick?: number;
 }
+export interface BalloonPopEvent {
+  type: 'balloonPop';
+  x: number;
+  y: number;
+  tick?: number;
+}
 export interface ExplosionEvent {
   type: 'explosion';
   x: number;
@@ -146,6 +152,7 @@ export type SimEvent =
   | PropBreakEvent
   | PropCrackEvent
   | FireTickEvent
+  | BalloonPopEvent
   | ExplosionEvent
   | MultiKillEvent
   | SlimeBurnEvent

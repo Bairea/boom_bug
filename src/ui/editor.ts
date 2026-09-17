@@ -293,6 +293,7 @@ function labelOf(t: string): string {
       skyrocket: '冲天炮',
       bottle: '窜天猴',
       brick: '砖头',
+      balloon: '气球',
       toothpick: '牙签',
       pin: '大头针',
       glue: '胶水',
