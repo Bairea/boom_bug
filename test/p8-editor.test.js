@@ -140,3 +140,15 @@ test('编辑器: 数量上限拦截', () => {
   ed._up();
   assert.equal(ed.specs.length, 8);
 });
+
+// R73: 点选类工具悬停 —— hitSpec 命中的实体记入 hoverIdx，放置类工具清除
+test('R73: 编辑器悬停 —— 配件工具悬停记 hoverIdx，放置工具清空', () => {
+  const { canvas, ed } = setup();
+  ed.addSpec('firecracker', 150, 90);
+  ed.tool = 'toothpick';
+  canvas.__fire('pointermove', { clientX: CX(158), clientY: CY(90) });
+  assert.equal(ed.hoverIdx, 0, '配件工具悬停到爆炸物应记 hoverIdx');
+  ed.tool = 'roach';
+  canvas.__fire('pointermove', { clientX: CX(158), clientY: CY(90) });
+  assert.equal(ed.hoverIdx, null, '放置类工具不需要悬停高亮');
+});

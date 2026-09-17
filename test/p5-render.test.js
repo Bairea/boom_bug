@@ -125,3 +125,16 @@ test('R71: drawScene 对 picked 实体画 setLineDash 虚线圆环', () => {
   drawScene(ctx, 960, 576, view, {});
   assert.ok(ctx.__calls.includes('setLineDash'), '应设置虚线样式');
 });
+
+// R73: 点选类工具悬停高亮 —— viewFromSpecs 第 4 参标记 hover
+test('R73: viewFromSpecs 按 hoverIndex 标记 hover，与 picked 互不干扰', () => {
+  const specs = [
+    { t: 'firecracker', x: 100, y: 100 },
+    { t: 'roach', x: 200, y: 100 },
+  ];
+  const view = viewFromSpecs(specs, [], 0, 1);
+  assert.equal(view.items[0].picked, true);
+  assert.equal(view.items[0].hover, false);
+  assert.equal(view.items[1].hover, true);
+  assert.equal(view.items[1].picked, false);
+});

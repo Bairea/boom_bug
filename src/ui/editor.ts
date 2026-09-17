@@ -23,6 +23,7 @@ export class Editor {
   specs: EntitySpec[] = [];
   ropeList: { a: number; b: number }[] = []; // {a, b} 实体索引
   ropePicking: number | null = null; // 第一个选中的实体索引
+  hoverIdx: number | null = null; // 点选类工具悬停中的实体索引（配件/删除/绳子）
   drag: DragState | null = null; // {t, x, y, angle} 拖拽瞄准中
   reaming: number | null = null; // 正在重新瞄准的实体索引
   ghost: ItemView | null = null;
@@ -145,6 +146,9 @@ export class Editor {
 
   _move(ev: PointerEvent): void {
     const { x, y } = this.toWorld(ev);
+    // 点选类工具：悬停高亮将要作用的物体（放置类用幽灵预览，不需要）
+    const pickyTool = this.tool === 'rope' || this.tool === 'eraser' || (TIPS as readonly string[]).includes(this.tool);
+    this.hoverIdx = pickyTool ? this.hitSpec(x, y) : null;
     if (this.reaming != null) {
       this._updateAim(this.reaming, x, y);
       this.ghost = null;
