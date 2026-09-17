@@ -10,6 +10,7 @@ import type { Report } from '../game/replay.js';
 import { SCENARIOS, getScenario } from '../game/scenario.js';
 import type { EntitySpec, Experiment, TimedCommand } from '../game/encode.js';
 import { toHash, experimentFromHash } from '../game/encode.js';
+import { buildDaily, todayKey, THEME_LABELS } from '../game/daily.js';
 import { Sfx } from './sounds.js';
 import { createRecords } from '../game/records.js';
 import type { RecordedEvent, ExplosionEvent } from '../sim/events.js';
@@ -31,6 +32,7 @@ const els = {
   rerun: $<HTMLButtonElement>('btn-rerun'),
   newSeed: $<HTMLButtonElement>('btn-newseed'),
   clear: $<HTMLButtonElement>('btn-clear'),
+  daily: $<HTMLButtonElement>('btn-daily'),
   share: $<HTMLButtonElement>('btn-share'),
   replayShare: $<HTMLButtonElement>('btn-replay-share'),
   end: $<HTMLButtonElement>('btn-end'),
@@ -67,6 +69,7 @@ interface GameState {
   lastExplosionSeen: number;
   report: Report | null;
   runExperiment: Experiment | null; // {seed,width,height,entities,commands} 本次运行的输入
+  dailyKey: string | null; // 每日实验模式：战绩/对照按 daily-日期 入账
   replay: ReplayCursor | null; // 回放游标
   slowmo: number; // 慢镜头剩余秒数（表现层）
   slowmoUsed: boolean; // 一局只慢放第一次大连锁
@@ -85,6 +88,7 @@ const state: GameState = {
   lastExplosionSeen: -1,
   report: null,
   runExperiment: null,
+  dailyKey: null,
   replay: null,
   slowmo: 0,
   slowmoUsed: false,
@@ -162,6 +166,7 @@ function loadScenario(id: string): void {
   const sc = getScenario(id);
   state.scenarioId = id;
   state.seed = sc.seed;
+  state.dailyKey = null; // 切走场景即退出每日实验（战绩回归场景键）
   els.scenario.value = id;
   editor.clear();
   // 自由实验：恢复上次没摆完的布置（其余场景永远从预设开始）
@@ -197,7 +202,8 @@ function loadFreeLayout(): EntitySpec[] | null {
 }
 
 function saveFreeLayout(): void {
-  if (state.scenarioId !== 'free' || editor.specs.length === 0) return;
+  // 每日实验的布局不属于玩家的自由存档，不能覆盖
+  if (state.scenarioId !== 'free' || state.dailyKey || editor.specs.length === 0) return;
   try {
     localStorage.setItem('bbl-free-layout', JSON.stringify({ specs: editor.specs }));
   } catch {}
@@ -248,8 +254,8 @@ function finishRun(): void {
   editor.locked = false;
   if (!state.sim) return;
   state.report = buildReport(state.sim, getScenario(state.scenarioId));
-  // 本机最佳：分享来的自定义实验记入 custom 键
-  const key = state.runExperiment?.custom ? 'custom' : state.scenarioId;
+  // 本机最佳：分享来的自定义实验记入 custom 键；每日实验按日期入账（对照上次=今天上一局）
+  const key = state.runExperiment?.custom ? 'custom' : state.dailyKey ? `daily-${state.dailyKey}` : state.scenarioId;
   const { best, isNew } = records.update(key, state.report.counts);
   state.report.best = best;
   state.report.isNewRecord = isNew;
@@ -292,13 +298,34 @@ els.rerun.addEventListener('click', () => {
 els.newSeed.addEventListener('click', () => {
   state.seed = (Math.random() * 0x7fffffff) | 0;
   state.runExperiment = null;
+  state.dailyKey = null; // 换种子就不再是"今天那份实验"
   toast('新种子 #' + state.seed.toString(36).toUpperCase() + '（虫子行为将不同）');
   if (state.mode !== 'edit') backToEdit();
+});
+// 每日实验：全世界今天同一份种子+布局（确定性生成），跑完和今天上一局比
+els.daily.addEventListener('click', () => {
+  const key = todayKey();
+  const daily = buildDaily(key);
+  state.dailyKey = key;
+  state.seed = daily.seed;
+  // 每日实验不是任何案例：目标行/场景记忆必须退出案例语境
+  state.scenarioId = 'free';
+  els.scenario.value = 'free';
+  editor.clear();
+  for (const e of daily.entities) editor.addSpec(e.t, e.x, e.y, e);
+  state.mode = 'edit';
+  editor.locked = false;
+  hideReport();
+  els.ignite.disabled = false;
+  editor.onStatus(
+    `📅 每日实验 #${key} · ${THEME_LABELS[daily.theme]} —— 全世界今天同一份布局（想改也行）。点燃开跑，跑完和今天上一局比！`,
+  );
 });
 // 清空重摆：编辑模式下一键清掉所有摆放（含自由实验的本地存档）
 els.clear.addEventListener('click', () => {
   if (state.mode !== 'edit') return;
   editor.clear();
+  state.dailyKey = null; // 布局清空即退出每日实验
   try {
     localStorage.removeItem('bbl-free-layout');
   } catch {}
