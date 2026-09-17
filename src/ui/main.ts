@@ -479,6 +479,7 @@ function startReplay(): void {
   els.speed.textContent = `⏱ ${replaySpeed}×`;
   els.skip.hidden = false;
   els.speed.hidden = false;
+  editor.onStatus('回放中：空格或「跳过回放」直达报告，⏱ 可切 1× 倍速');
   hideReport();
 }
 
@@ -487,6 +488,7 @@ function finishReplay(): void {
   state.replay = null;
   els.skip.hidden = true;
   els.speed.hidden = true;
+  editor.onStatus('事故报告 —— 可回放、分享，或继续改造');
   if (state.report) showReport(state.report);
 }
 
