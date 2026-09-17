@@ -11,7 +11,7 @@
 ```bash
 npm install        # 仅一个 devDependency：TypeScript
 npm start          # tsc 编译 → 启动静态服务器 → http://localhost:8123
-npm test           # tsc 类型检查 + 97 个无头测试（模拟核心全量覆盖）
+npm test           # tsc 类型检查 + 111 个无头测试（模拟核心全量覆盖）
 ```
 
 源码是 `src/**/*.ts`（严格模式）；`tsc` 只做类型擦除、原地输出原生 ESM（`src/**/*.js`，已 gitignore），

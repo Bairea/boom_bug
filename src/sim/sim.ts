@@ -151,6 +151,22 @@ export class Simulation {
     return true;
   }
 
+  // 运行中点击拾取：点击点附近最近的未点燃爆炸物（半径放宽到视觉尺寸的
+  // ~2 倍，乱蹦时也点得中）。返回 body id 或 null。
+  pickIgnitable(x: number, y: number, r = 14): number | null {
+    let best: number | null = null;
+    let bestD = r * r;
+    for (const b of this.world.bodies) {
+      if (!b.alive || b.kind !== 'explosive' || b.data.lit) continue;
+      const d = (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y);
+      if (d <= bestD) {
+        bestD = d;
+        best = b.id;
+      }
+    }
+    return best;
+  }
+
   // 玩家运行中扔进一根点燃的炮仗（拖拽向量 → 初速）
   playerThrow(x: number, y: number, vx: number, vy: number): boolean {
     this.schedule(this.tick + 1, { op: 'throw', x: +x.toFixed(1), y: +y.toFixed(1), vx: Math.round(vx), vy: Math.round(vy) });

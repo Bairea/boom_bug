@@ -33,6 +33,8 @@ const els = {
   share: $<HTMLButtonElement>('btn-share'),
   replayShare: $<HTMLButtonElement>('btn-replay-share'),
   end: $<HTMLButtonElement>('btn-end'),
+  skip: $<HTMLButtonElement>('btn-skip'),
+  speed: $<HTMLButtonElement>('btn-speed'),
   scenario: $<HTMLSelectElement>('scenario'),
   report: $<HTMLElement>('report'),
   reportBody: $<HTMLElement>('report-body'),
@@ -50,6 +52,8 @@ interface ReplayCursor {
   flashes: (ExplosionEvent & { tick: number })[];
   flashSeen: number;
 }
+
+let replaySpeed = 0.5; // 回放倍速（0.5×/1×，按钮切换）
 
 interface GameState {
   mode: GameMode;
@@ -231,6 +235,8 @@ function startRun(useRecordedCommands = false): void {
   state.mode = 'running';
   editor.locked = true;
   hideReport();
+  els.skip.hidden = true;
+  els.speed.hidden = true;
   editor.onStatus('实验进行中：点未点燃的爆炸物随时点火；空白处拖拽可扔进点燃的炮仗！');
   els.ignite.disabled = true;
   els.end.hidden = false;
@@ -306,6 +312,12 @@ els.share.addEventListener('click', () => {
   );
 });
 els.replayShare.addEventListener('click', () => startRun(true)); // 分享码重放 = 带命令重跑模拟
+els.skip.addEventListener('click', () => {
+  if (state.mode === 'replay') finishReplay();
+});
+els.speed.addEventListener('click', () => {
+  if (state.mode === 'replay') toggleReplaySpeed();
+});
 
 // 报告浮层按钮
 document.getElementById('btn-overlay-replay')?.addEventListener('click', () => startReplay());
@@ -313,6 +325,7 @@ document.getElementById('btn-overlay-rerun')?.addEventListener('click', () => {
   if (state.runExperiment) startRun(true);
 });
 document.getElementById('btn-overlay-edit')?.addEventListener('click', backToEdit);
+document.getElementById('report-close')?.addEventListener('click', backToEdit);
 
 // ---- 运行中输入：点未点燃爆炸物=点燃；空白处拖拽=扔进点燃的炮仗 ----
 interface RunDrag {
@@ -334,13 +347,13 @@ function canvasWorld(ev: PointerEvent): { x: number; y: number } {
 canvas.addEventListener('pointerdown', (ev) => {
   if (state.mode !== 'running' || !state.sim || ev.button !== 0) return;
   const { x, y } = canvasWorld(ev);
-  for (const b of state.sim.world.bodies) {
-    if (b.alive && b.kind === 'explosive' && !b.data.lit && Math.hypot(b.x - x, b.y - y) < 6) {
-      state.sim.playerIgnite(b.id);
-      state.particles.spark(b.x, b.y, 4);
-      editor.onStatus('点燃！');
-      return;
-    }
+  const id = state.sim.pickIgnitable(x, y);
+  if (id !== null) {
+    state.sim.playerIgnite(id);
+    const b = state.sim.world.byId(id);
+    if (b) state.particles.spark(b.x, b.y, 4);
+    editor.onStatus('点燃！');
+    return;
   }
   runDrag = { wx: x, wy: y, vx: 0, vy: 0 };
 });
@@ -463,25 +476,37 @@ function startReplay(): void {
   while (state.replay.flashSeen < state.replay.flashes.length && state.replay.flashes[state.replay.flashSeen].tick < startTick) {
     state.replay.flashSeen++;
   }
+  els.speed.textContent = `⏱ ${replaySpeed}×`;
+  els.skip.hidden = false;
+  els.speed.hidden = false;
   hideReport();
+}
+
+function finishReplay(): void {
+  state.mode = 'report';
+  state.replay = null;
+  els.skip.hidden = true;
+  els.speed.hidden = true;
+  if (state.report) showReport(state.report);
+}
+
+function toggleReplaySpeed(): void {
+  replaySpeed = replaySpeed <= 0.5 ? 1 : 0.5;
+  els.speed.textContent = `⏱ ${replaySpeed}×`;
 }
 
 function stepReplay(dt: number): void {
   const rp = state.replay;
   const frames = state.recorder?.frames;
   if (!rp || !frames || !frames.length) return;
-  rp.cursor += dt * 60 * 0.5; // 0.5 倍速
+  rp.cursor += dt * 60 * replaySpeed;
   // 到达的爆炸事件 → 粒子 + 声音
   while (rp.flashSeen < rp.flashes.length && rp.flashes[rp.flashSeen].tick <= rp.cursor) {
     const e = rp.flashes[rp.flashSeen++];
     state.particles.explosion(e.x, e.y, e.power);
     sfx.explosion(e.power);
   }
-  if (rp.cursor >= frames[frames.length - 1].tick + 30) {
-    state.mode = 'report';
-    if (state.report) showReport(state.report);
-    return;
-  }
+  if (rp.cursor >= frames[frames.length - 1].tick + 30) finishReplay();
 }
 
 // 快照插值
@@ -778,7 +803,7 @@ function refreshScenarioLabels(): void {
   }
 }
 
-// ---- 键盘快捷键：空格=点燃/再来一次，R=再来一次，N=新实验，Esc=结束/继续改造 ----
+// ---- 键盘快捷键：空格=点燃/再来一次/跳过回放，R=再来一次，N=新实验，Esc=结束/继续改造 ----
 window.addEventListener('keydown', (ev) => {
   const tag = (ev.target as HTMLElement | null)?.tagName;
   if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
@@ -786,6 +811,7 @@ window.addEventListener('keydown', (ev) => {
     ev.preventDefault();
     if (state.mode === 'edit') startRun(false);
     else if (state.mode === 'report') startRun(true);
+    else if (state.mode === 'replay') finishReplay();
   } else if (ev.key === 'r' || ev.key === 'R') {
     if (state.runExperiment && state.mode !== 'running') startRun(true);
   } else if (ev.key === 'n' || ev.key === 'N') {
@@ -795,6 +821,7 @@ window.addEventListener('keydown', (ev) => {
     if (state.mode !== 'edit') backToEdit();
   } else if (ev.key === 'Escape') {
     if (state.mode === 'running') finishRun();
+    else if (state.mode === 'replay') finishReplay();
     else if (state.mode === 'report') backToEdit();
   }
 });

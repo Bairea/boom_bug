@@ -52,27 +52,27 @@
     width: 118px;
     background: var(--panel);
     border-right: 1px solid var(--line);
-    padding: 10px 8px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     overflow-y: auto;
   }
-  #toolbox .cat { color: var(--dim); font-size: 11px; margin: 8px 2px 2px; }
+  #toolbox .cat { color: var(--dim); font-size: 11px; margin: 6px 2px 2px; }
   #toolbox button {
     display: flex; align-items: center; gap: 6px;
     background: transparent;
     color: var(--text);
     border: 1px solid var(--line);
     border-radius: 7px;
-    padding: 6px 8px;
+    padding: 4px 8px;
     cursor: pointer;
     font-size: 13px;
     text-align: left;
   }
   #toolbox button:hover { border-color: var(--accent); }
   #toolbox button.active { border-color: var(--accent); background: rgba(126,200,255,0.12); }
-  #toolbox label { color: var(--dim); font-size: 12px; display: flex; gap: 6px; align-items: center; margin-top: 4px; }
+  #toolbox label { color: var(--dim); font-size: 12px; display: flex; gap: 6px; align-items: center; margin-top: 2px; }
   #stage-wrap {
     flex: 1;
     display: flex;
@@ -131,7 +131,7 @@
   }
   #report {
     position: absolute;
-    top: 12px;
+    top: 56px; /* 顶栏（~46px）之下：报告弹出时 ？/🔊/分享 仍可点 */
     right: 12px;
     width: min(350px, 92%);
     background: rgba(18,20,25,0.96);
@@ -141,6 +141,21 @@
     box-shadow: 0 20px 60px rgba(0,0,0,0.6);
     z-index: 5;
   }
+  #report-close {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--dim);
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+  }
+  #report-close:hover { border-color: var(--accent); color: var(--text); }
   #report h2 {
     margin: 0 0 10px;
     font-size: 17px;
@@ -303,18 +318,21 @@
     <button data-tool="eraser" title="删除：点击要移除的物体">🗑 删除</button>
   </div>
   <div id="stage-wrap">
-    <div id="status">选择左侧工具，在盒子里摆放你的实验</div>
+    <div id="status">选择左侧工具摆放实验（摆放时物理暂停，点燃后才开跑）</div>
     <canvas id="stage" width="960" height="576"></canvas>
     <div id="toolbar">
-      <button id="btn-ignite" class="primary">🔥 点燃！</button>
-      <button id="btn-end" hidden>⏹ 结束实验</button>
-      <button id="btn-replay-share" hidden>⟲ 重放这场事故</button>
-      <button id="btn-rerun">🔄 再来一次</button>
+    <button id="btn-ignite" class="primary">🔥 点燃！</button>
+    <button id="btn-end" hidden>⏹ 结束实验</button>
+    <button id="btn-replay-share" hidden>⟲ 重放这场事故</button>
+    <button id="btn-skip" hidden>⏭ 跳过回放</button>
+    <button id="btn-speed" hidden>⏱ 0.5×</button>
+    <button id="btn-rerun">🔄 再来一次</button>
       <button id="btn-newseed">🎲 新实验</button>
     </div>
   </div>
 </main>
 <div id="report" hidden>
+  <button id="report-close" title="关闭报告，回到编辑（Esc）">✕</button>
   <h2 id="report-title">THE INCIDENT</h2>
   <div id="report-body"></div>
   <div class="actions">
@@ -367,7 +385,7 @@
         <li>水/油/冰/沙是"材质区"：不挡路，只有脚下效果</li>
         <li>同款火箭工具点已放置的火箭 = 重新瞄准</li>
         <li>运行中：点未点燃物=点火；空白处拖拽=扔点燃的炮仗</li>
-        <li>空格=点燃/重来 · R=重来 · N=新种子 · Esc=结束</li>
+        <li>空格=点燃/重来/跳过回放 · R=重来 · N=新种子 · Esc=结束</li>
         <li>殉爆：冲击波会引爆已点燃的炮仗，连锁靠它传播</li>
       </ul>
     </div>
