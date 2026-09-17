@@ -248,7 +248,7 @@ export class Editor {
   }
 
   // 生成模拟输入：entities（绳子挂到 0 号实体）
-  buildEntities(ignite = true): EntitySpec[] {
+  buildEntities(ignite = true, noAutoIgnite = false): EntitySpec[] {
     const entities: EntitySpec[] = this.specs.map((s) => ({
       t: s.t,
       x: s.x,
@@ -260,7 +260,7 @@ export class Editor {
     if (this.ropeList.length && entities.length) {
       entities[0].ropes = this.ropeList.map((r) => [r.a, r.b] as [number, number]);
     }
-    if (ignite) {
+    if (ignite && !noAutoIgnite) {
       let i = 0;
       for (const e of entities) {
         if (['firecracker', 'skyrocket', 'bottle'].includes(e.t)) {

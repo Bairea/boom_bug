@@ -96,7 +96,23 @@ function stepFly(sim: Simulation, b: BugBody, d: BugData, _dt: number, w: World)
     sim._record({ type: 'flyTurn', id: b.id, x: b.x, y: b.y });
   }
   const threat: ThreatInfo | null = sim.lastBlast && sim.tick < sim.lastBlast.until ? sim.lastBlast : null;
-  if (threat) d.heading = ddatan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.8, 0.8);
+  // 苍蝇逐腥：被附近的爆炸物吸引聚拢（吊在气球上的炮仗 = 移动诱蝇灯）
+  let lured = false;
+  let bestD2 = 70 * 70;
+  let lx = 0;
+  let ly = 0;
+  for (const o of w.bodies) {
+    if (!o.alive || o.kind !== 'explosive') continue;
+    const d2 = (o.x - b.x) * (o.x - b.x) + (o.y - b.y) * (o.y - b.y);
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      lx = o.x;
+      ly = o.y;
+      lured = true;
+    }
+  }
+  if (lured) d.heading = ddatan2(ly - b.y, lx - b.x) + dsin(sim.time * 9 + b.id * 3) * 0.6;
+  else if (threat) d.heading = ddatan2(b.y - threat.y, b.x - threat.x) + sim.rng.range(-0.8, 0.8);
   // 悬停升力抵消重力 + 向悬空带中线回归
   b.vy -= 560 * _dt;
   const midY = (BAND_LO + BAND_HI) / 2;

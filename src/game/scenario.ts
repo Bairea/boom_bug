@@ -19,6 +19,7 @@ export interface Scenario {
   desc: string;
   seed: number;
   maxThrows?: number;
+  noAutoIgnite?: boolean; // 点燃时不给爆炸物自动加延迟引信（case9 吊炮要玩家择机点燃）
   entities: EntitySpec[];
   goal?: GoalFn;
 }
@@ -193,6 +194,32 @@ export const SCENARIOS: Scenario[] = [
       label: '借油一击全倒（击倒 ≥ 3）',
       done: sim.stats.knockouts >= 3,
       bonus: (sim.stats.throws ?? 0) === 1 && sim.stats.knockouts >= 3 ? '一发入油 ✓' : null,
+    }),
+  },
+  {
+    id: 'case9',
+    label: '案例9 · 气球空袭',
+    desc: '三只气球吊着炮仗缓缓升空，正好穿过苍蝇的巡航带。在炮仗飘过苍蝇高度时点它点燃；或先点燃再点它遥控引爆。目标：击落 ≥ 2 只苍蝇。',
+    seed: 9021,
+    noAutoIgnite: true,
+    entities: [
+      { t: 'balloon', x: 75, y: 150 },
+      { t: 'firecracker', x: 75, y: 165, ropes: [[0, 1]] },
+      { t: 'balloon', x: 150, y: 150 },
+      { t: 'firecracker', x: 150, y: 165, ropes: [[2, 3]] },
+      { t: 'balloon', x: 225, y: 150 },
+      { t: 'firecracker', x: 225, y: 165, ropes: [[4, 5]] },
+      { t: 'fly', x: 60, y: 90 },
+      { t: 'fly', x: 130, y: 105 },
+      { t: 'fly', x: 200, y: 85 },
+      { t: 'fly', x: 250, y: 110 },
+      { t: 'roach', x: 120, y: FLOOR },
+      { t: 'roach', x: 180, y: FLOOR },
+    ],
+    goal: (sim) => ({
+      label: '击落 ≥ 2 只苍蝇',
+      done: (sim.stats.koByType?.fly ?? 0) >= 2,
+      bonus: (sim.stats.koByType?.fly ?? 0) >= 4 ? '清空天际 ✓' : null,
     }),
   },
 ];

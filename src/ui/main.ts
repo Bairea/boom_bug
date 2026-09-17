@@ -221,7 +221,7 @@ function loadEntitiesIntoEditor(entities: EntitySpec[]): void {
 function startRun(useRecordedCommands = false): void {
   // 重跑/重放：完整复用上一次（或分享码）的输入，保证同一灾难；新跑：从编辑器取当前布置
   const prev = useRecordedCommands && state.runExperiment ? state.runExperiment : null;
-  const entities = prev ? prev.entities : editor.buildEntities(true);
+  const entities = prev ? prev.entities : editor.buildEntities(true, getScenario(state.scenarioId)?.noAutoIgnite);
   const commands = prev ? (prev.commands ?? []) : [];
   if (!prev) saveFreeLayout();
   state.runExperiment = {
@@ -522,7 +522,7 @@ function showReport(rep: Report): void {
         nextScenario = { id: nx.id, label: nx.label };
         html += `<div class="goal" id="btn-next-scenario" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07);cursor:pointer">➡️ 挑战下一关：「${nx.label}」</div>`;
       } else {
-        html += '<div class="goal done">八个案例全部达成 —— 去自由实验发明你自己的灾难吧！🎉</div>';
+        html += '<div class="goal done">九个案例全部达成 —— 去自由实验发明你自己的灾难吧！🎉</div>';
       }
     }
   }
