@@ -434,10 +434,14 @@ function showReport(rep: Report): void {
   let html = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
   // 零爆炸 = 新玩家最可能的迷路点：报告的第一使命是教会下一步，嘲讽只配当第二句
   if (c.explosions === 0) {
+    const teachStyle = 'color:#ffd9a0;border-color:rgba(255,200,120,0.3);background:rgba(255,200,120,0.07)';
     if (rep.unlit) {
-      html += `<div class="goal" style="color:#ffd9a0;border-color:rgba(255,200,120,0.3);background:rgba(255,200,120,0.07)">💡 场上有 ${rep.unlit} 根没点着的炮仗（落水的哑弹也能再点燃）—— 运行中<b>点它一下</b>就炸</div>`;
+      html += `<div class="goal" style="${teachStyle}">💡 场上有 ${rep.unlit} 根没点着的炮仗（落水的哑弹也能再点燃）—— 运行中<b>点它一下</b>就炸</div>`;
     } else if ((rep.explosiveTotal ?? 0) === 0) {
-      html += '<div class="goal" style="color:#ffd9a0;border-color:rgba(255,200,120,0.3);background:rgba(255,200,120,0.07)">💡 这场只有虫虫在散步 —— 从工具箱摆一根 🧨 小炮仗再点燃；运行中空白处<b>拖拽</b>还能扔点着的炮仗进去</div>';
+      html +=
+        state.scenarioId === 'free'
+          ? `<div class="goal" style="${teachStyle}">💡 这场只有虫虫在散步 —— 从工具箱摆一根 🧨 小炮仗再点燃；运行中空白处<b>拖拽</b>还能扔点着的炮仗进去</div>`
+          : `<div class="goal" style="${teachStyle}">💡 这一关靠投掷开场 —— 运行中在空白处<b>按住拖拽</b>，松手就把点着的炮仗扔出去（瞄准预览会显示落点）</div>`;
     }
   }
   // 对照实验：与上一局对比（首局给出可发现性提示；三平 = 确定性的高光时刻）
