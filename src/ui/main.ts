@@ -263,6 +263,8 @@ function finishRun(): void {
     sfx.fanfare();
     toast('🏆 新纪录！');
   }
+  // 今日已挑战 → 按钮挂 ✓
+  if (state.dailyKey) els.daily.textContent = '📅 每日实验 ✓';
   // 对照实验：与上一局的关键数字对比
   const lastKey = key + ':last';
   state.report.lastRun = records.load(lastKey) ?? undefined;
@@ -317,10 +319,15 @@ els.daily.addEventListener('click', () => {
   editor.locked = false;
   hideReport();
   els.ignite.disabled = false;
+  const doneToday = records.load(`daily-${key}`);
   editor.onStatus(
-    `📅 每日实验 #${key} · ${THEME_LABELS[daily.theme]} —— 全世界今天同一份布局（想改也行）。点燃开跑，跑完和今天上一局比！`,
+    `📅 每日实验 #${key} · ${THEME_LABELS[daily.theme]} —— 全世界今天同一份布局（想改也行）。点燃开跑，跑完和今天上一局比！${doneToday ? '（今天已挑战过，试试打破自己的纪录）' : ''}`,
   );
 });
+// 今日已挑战过 → 按钮上挂个 ✓（留存钩子：让"今天玩过了吗"可见）
+try {
+  if (records.load(`daily-${todayKey()}`)) els.daily.textContent = '📅 每日实验 ✓';
+} catch {}
 // 清空重摆：编辑模式下一键清掉所有摆放（含自由实验的本地存档）
 els.clear.addEventListener('click', () => {
   if (state.mode !== 'edit') return;
@@ -739,7 +746,7 @@ function handleEvents(events: RecordedEvent[]): void {
       sfx.stick();
     } else if (e.type === 'balloonPop') {
       state.particles.spark(e.x, e.y, 5);
-      sfx.stick();
+      sfx.pop();
     } else if (e.type === 'ropeBreak') {
       state.particles.spark(e.x, e.y, 4);
       sfx.ropeBreak();

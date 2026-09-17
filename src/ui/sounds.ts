@@ -261,4 +261,30 @@ export class Sfx {
     osc.start(t0);
     osc.stop(t0 + 0.08);
   }
+
+  // 气球爆：短促爆裂（方波啁啾下滑 + 噪声点）
+  pop(): void {
+    const ac = this.ensure();
+    if (!ac || this._throttled('pop', 0.05)) return;
+    const t0 = ac.currentTime;
+    const osc = ac.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(900, t0);
+    osc.frequency.exponentialRampToValueAtTime(180, t0 + 0.09);
+    const gain = ac.createGain();
+    gain.gain.setValueAtTime(0.16, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.1);
+    osc.connect(gain).connect(this.master ?? ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.11);
+    const buf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.03), ac.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+    const noise = ac.createBufferSource();
+    noise.buffer = buf;
+    const ngain = ac.createGain();
+    ngain.gain.value = 0.1;
+    noise.connect(ngain).connect(this.master ?? ac.destination);
+    noise.start(t0);
+  }
 }
