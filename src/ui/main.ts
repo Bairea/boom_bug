@@ -420,10 +420,22 @@ function showReport(rep: Report): void {
   if (rep.best) {
     html += `<div class="goal" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07)">本机最佳 · 连锁×${rep.best.chain} · 击倒 ${rep.best.knockouts}${rep.isNewRecord ? ' 🎉 新纪录！' : ''}</div>`;
   }
+  let nextScenario: { id: string; label: string } | null = null;
   if (sc) {
     html += `<div class="goal ${sc.done ? 'done' : ''}">目标「${sc.label}」：${sc.done ? '达成 ✓' : '未达成'}`;
     if (sc.bonus) html += ` · ${sc.bonus}`;
     html += '</div>';
+    // 目标达成 → 引导挑战下一个场景（全达成则引导回自由实验）
+    if (sc.done) {
+      const idx = SCENARIOS.findIndex((s) => s.id === state.scenarioId);
+      const nx = idx >= 0 ? SCENARIOS[idx + 1] : undefined;
+      if (nx) {
+        nextScenario = { id: nx.id, label: nx.label };
+        html += `<div class="goal" id="btn-next-scenario" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07);cursor:pointer">➡️ 挑战下一关：「${nx.label}」</div>`;
+      } else {
+        html += '<div class="goal done">八个案例全部达成 —— 去自由实验发明你自己的灾难吧！🎉</div>';
+      }
+    }
   }
   if (rep.timeline.length) {
     html +=
@@ -440,6 +452,13 @@ function showReport(rep: Report): void {
   if (shareInReport && !shareInReport.dataset.wired) {
     shareInReport.dataset.wired = '1';
     shareInReport.addEventListener('click', () => els.share.click());
+  }
+  // 「挑战下一关」直达：切换场景并回到编辑
+  if (nextScenario) {
+    document.getElementById('btn-next-scenario')?.addEventListener('click', () => {
+      loadScenario(nextScenario.id);
+      toast('已载入 ' + nextScenario.label);
+    });
   }
 }
 
