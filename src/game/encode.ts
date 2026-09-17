@@ -32,10 +32,15 @@ export interface ThrowCommand {
   vy: number;
   tick?: number;
 }
-export type Command = IgniteCommand | ThrowCommand;
+export interface DetonateCommand {
+  op: 'detonate'; // 遥控引信：点击已点燃的爆炸物立即引爆
+  id: number;
+  tick?: number;
+}
+export type Command = IgniteCommand | ThrowCommand | DetonateCommand;
 
 // 实验输入携带的命令表：tick 必填（分享码重放的时间线）
-export type TimedCommand = (IgniteCommand | ThrowCommand) & { tick: number };
+export type TimedCommand = (IgniteCommand | ThrowCommand | DetonateCommand) & { tick: number };
 
 // 一次完整实验的输入（分享码的载荷）
 export interface Experiment {
@@ -51,6 +56,7 @@ export interface Experiment {
 // commands: 运行期玩家命令
 //   {tick, op:'ignite', id}  → [tick,'i',id]
 //   {tick, op:'throw', x,y,vx,vy} → [tick,'t',x,y,vx,vy]
+//   {tick, op:'detonate', id} → [tick,'d',id]
 export function encodeExperiment({ seed, width, height, entities, commands = [] }: Experiment): string {
   const e = entities.map((s) => [
     s.t,
@@ -65,7 +71,9 @@ export function encodeExperiment({ seed, width, height, entities, commands = [] 
   const c = commands.map((cmd) =>
     cmd.op === 'throw'
       ? [cmd.tick, 't', +cmd.x.toFixed(1), +cmd.y.toFixed(1), Math.round(cmd.vx), Math.round(cmd.vy)]
-      : [cmd.tick, 'i', cmd.id],
+      : cmd.op === 'detonate'
+        ? [cmd.tick, 'd', cmd.id]
+        : [cmd.tick, 'i', cmd.id],
   );
   return b64urlEncode(JSON.stringify({ v: VERSION, s: seed >>> 0, w: width, h: height, e, c }));
 }
@@ -111,6 +119,7 @@ function decodeCommand(row: (string | number)[]): TimedCommand {
       vx: row[4] as number,
       vy: row[5] as number,
     };
+  if (row[1] === 'd') return { tick: row[0] as number, op: 'detonate', id: row[2] as number };
   return { tick: row[0] as number, op: 'ignite', id: row[2] as number };
 }
 

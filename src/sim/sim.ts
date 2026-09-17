@@ -15,8 +15,9 @@ import {
   stepProps,
   processExplosions,
   handleExplosiveContact,
+  queueExplosion,
 } from './explosives.js';
-import { isBugName, isExplosiveName, isPropName } from '../game/catalog.js';
+import { isBugName, isExplosiveName, isPropName, EXPLOSIVES } from '../game/catalog.js';
 import type { BugName, ExplosiveName } from '../game/catalog.js';
 import type { EntitySpec, Command, TimedCommand } from '../game/encode.js';
 import type { Cause, RecordedEvent, SimEvent } from './events.js';
@@ -151,6 +152,16 @@ export class Simulation {
     return true;
   }
 
+  // 遥控引信：点击已点燃的爆炸物立即引爆（引爆时机从运气变成技巧）。
+  // 同样走命令流 —— 分享码重放能复现每一次手动引爆。
+  playerDetonate(id: number): boolean {
+    const body = this.world.byId(id);
+    if (!body || body.kind !== 'explosive' || !body.alive) return false;
+    if (!body.data.lit || body.data.exploded) return false;
+    this.schedule(this.tick + 1, { op: 'detonate', id });
+    return true;
+  }
+
   // 运行中点击拾取：点击点附近最近的未点燃爆炸物（半径放宽到视觉尺寸的
   // ~2 倍，乱蹦时也点得中）。返回 body id 或 null。
   pickIgnitable(x: number, y: number, r = 14): number | null {
@@ -158,6 +169,21 @@ export class Simulation {
     let bestD = r * r;
     for (const b of this.world.bodies) {
       if (!b.alive || b.kind !== 'explosive' || b.data.lit) continue;
+      const d = (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y);
+      if (d <= bestD) {
+        bestD = d;
+        best = b.id;
+      }
+    }
+    return best;
+  }
+
+  // 遥控引信拾取：最近已点燃未爆炸的爆炸物
+  pickDetonatable(x: number, y: number, r = 14): number | null {
+    let best: number | null = null;
+    let bestD = r * r;
+    for (const b of this.world.bodies) {
+      if (!b.alive || b.kind !== 'explosive' || !b.data.lit || b.data.exploded) continue;
       const d = (b.x - x) * (b.x - x) + (b.y - y) * (b.y - y);
       if (d <= bestD) {
         bestD = d;
@@ -180,6 +206,13 @@ export class Simulation {
         igniteExplosive(this, body);
         this.commandLog.push({ op: 'ignite', tick: this.tick, id: op.id });
       }
+    } else if (op.op === 'detonate') {
+      // 遥控引信：立即引爆已点燃的爆炸物
+      const body = this.world.byId(op.id);
+      if (body && body.alive && body.kind === 'explosive' && body.data.lit && !body.data.exploded) {
+        queueExplosion(this, body, EXPLOSIVES[body.data.etype], 'fuse');
+        this.commandLog.push({ op: 'detonate', tick: this.tick, id: op.id });
+      }
     } else if (op.op === 'throw') {
       // 运行中玩家扔进一根点燃的炮仗（PRD 案例1 的灵魂操作）
       const body = spawnExplosive(this, 'firecracker', op.x, op.y, 0, []);
@@ -195,11 +228,11 @@ export class Simulation {
   step(): void {
     this.tick++;
     this.time = this.tick * DT;
-    const due = this.pending.get(this.tick);
-    if (due) for (const op of due) this._exec(op);
-
+    // 每步先清空本步事件/爆炸队列，再执行命令 —— 否则命令里入队的爆炸会被清掉
     this.eventsThisStep = [];
     this.pendingExplosions = [];
+    const due = this.pending.get(this.tick);
+    if (due) for (const op of due) this._exec(op);
     this.world.step(DT, {
       pre: () => {
         stepBugs(this, DT);

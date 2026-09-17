@@ -244,7 +244,7 @@ function startRun(useRecordedCommands = false): void {
   hideReport();
   els.skip.hidden = true;
   els.speed.hidden = true;
-  editor.onStatus('实验进行中：点未点燃的爆炸物随时点火；空白处拖拽可扔进点燃的炮仗！');
+  editor.onStatus('实验进行中：点未点燃物=点火；点已点燃的=💥遥控引爆；空白处拖拽=扔炮仗！');
   els.ignite.disabled = true;
   els.end.hidden = false;
 }
@@ -335,11 +335,13 @@ els.share.addEventListener('click', () => {
   if (!state.runExperiment || !state.sim) return toast('先跑一次实验再分享');
   const exp: Experiment = {
     ...state.runExperiment,
-    // 完整命令流：点燃与投掷都要带上，否则对方重放不出同一场事故
+    // 完整命令流：点燃/投掷/遥控引爆都要带上，否则对方重放不出同一场事故
     commands: state.sim.commandLog.map((c): TimedCommand =>
       c.op === 'throw'
         ? { tick: c.tick, op: 'throw', x: c.x, y: c.y, vx: c.vx, vy: c.vy }
-        : { tick: c.tick, op: 'ignite', id: c.id },
+        : c.op === 'detonate'
+          ? { tick: c.tick, op: 'detonate', id: c.id }
+          : { tick: c.tick, op: 'ignite', id: c.id },
     ),
   };
   const url = location.origin + location.pathname + toHash(exp);
@@ -392,6 +394,15 @@ canvas.addEventListener('pointerdown', (ev) => {
     const b = state.sim.world.byId(id);
     if (b) state.particles.spark(b.x, b.y, 4);
     editor.onStatus('点燃！');
+    return;
+  }
+  // 遥控引信：点已点燃的爆炸物 = 立即引爆（引爆时机从运气变成技巧）
+  const did = state.sim.pickDetonatable(x, y);
+  if (did !== null) {
+    state.sim.playerDetonate(did);
+    const b = state.sim.world.byId(did);
+    if (b) state.particles.spark(b.x, b.y, 6);
+    editor.onStatus('💥 遥控引爆！');
     return;
   }
   runDrag = { wx: x, wy: y, vx: 0, vy: 0 };
