@@ -26,6 +26,7 @@ const KNOWN_TYPES = new Set([
   'ice',
   'metal',
   'sand',
+  'balloon',
 ]);
 
 test('P30: 同一天两次生成 —— 种子与布局逐位一致', () => {

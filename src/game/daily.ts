@@ -90,5 +90,13 @@ export function buildDaily(dateKey: string): DailyExperiment {
     ];
   }
 
+  // 害虫日/火箭日：一只气球吊炮升空（吊炮会聚蝇 —— 空中目标自己送上门）
+  if (theme === 'pest' || theme === 'rockets') {
+    const bx = clampX(rng.range(60, 240));
+    add({ t: 'balloon', x: +bx.toFixed(1), y: 120 });
+    const fi = entities.length;
+    add({ t: 'firecracker', x: +bx.toFixed(1), y: 140, ropes: [[fi - 1, fi]] });
+  }
+
   return { dateKey, seed, theme, entities };
 }
