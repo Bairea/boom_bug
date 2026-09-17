@@ -64,6 +64,14 @@ export interface ThrowPreview {
   vy: number;
 }
 
+export interface FloatText {
+  x: number;
+  y: number;
+  text: string;
+  age: number;
+  ttl: number;
+}
+
 export interface DrawOptions {
   particles?: Particles;
   shakeX?: number;
@@ -71,6 +79,7 @@ export interface DrawOptions {
   time?: number;
   zoom?: number;
   scorches?: Scorch[];
+  floatTexts?: FloatText[];
   slowmoActive?: boolean;
   showAim?: boolean;
   ghost?: ItemView | null;
@@ -204,6 +213,25 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.beginPath();
     ctx.ellipse(sc.x * s, sc.y * s, sc.r * s, sc.r * 0.36 * s, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  // 连锁浮动大字：爆点冒出，先弹一下再上升淡出
+  for (const ft of opts.floatTexts ?? []) {
+    const k = Math.min(1, ft.age / ft.ttl);
+    const rise = 16 * k;
+    const pop = k < 0.16 ? 1 + (0.16 - k) * 2.4 : 1;
+    ctx.save();
+    ctx.translate(ft.x * s, (ft.y - rise) * s);
+    ctx.scale(pop, pop);
+    ctx.globalAlpha = Math.max(0, 1 - k * k);
+    ctx.font = 'bold 15px ui-monospace, monospace';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(24, 18, 8, 0.85)';
+    ctx.strokeText(ft.text, 0, 0);
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText(ft.text, 0, 0);
+    ctx.restore();
   }
 
   // 绳子

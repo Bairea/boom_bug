@@ -2,7 +2,7 @@
 
 import { Simulation, DT } from '../sim/sim.js';
 import { VIEW_W, VIEW_H, drawScene, viewFromSim, viewFromSpecs } from './render.js';
-import type { DrawOptions, ItemView, SceneView, Scorch } from './render.js';
+import type { DrawOptions, ItemView, SceneView, Scorch, FloatText } from './render.js';
 import { Particles } from './particles.js';
 import { Editor } from './editor.js';
 import { Recorder, buildReport } from '../game/replay.js';
@@ -75,6 +75,7 @@ interface GameState {
   slowmoUsed: boolean; // 一局只慢放第一次大连锁
   zoomPunch: number; // 镜头推近系数（表现层）
   scorches: Scorch[]; // 爆炸焦痕（纯表现层）
+  floatTexts: FloatText[]; // 连锁浮动大字（纯表现层）
 }
 
 const state: GameState = {
@@ -94,6 +95,7 @@ const state: GameState = {
   slowmoUsed: false,
   zoomPunch: 1,
   scorches: [],
+  floatTexts: [],
 };
 
 const editor = new Editor(canvas);
@@ -239,6 +241,7 @@ function startRun(useRecordedCommands = false): void {
   state.slowmoUsed = false;
   state.zoomPunch = 1;
   state.scorches = [];
+  state.floatTexts = [];
   state.mode = 'running';
   editor.locked = true;
   hideReport();
@@ -354,7 +357,9 @@ els.share.addEventListener('click', () => {
   const url = location.origin + location.pathname + toHash(exp);
   // 同步写进地址栏：①"复制失败请手动复制地址栏"的兜底真实可用；②刷新页面即重放这场事故
   history.replaceState(null, '', toHash(exp));
-  navigator.clipboard?.writeText(url).then(
+  // 文案带事故标题+战绩：粘贴到聊天里不用点开链接就想看
+  const headline = state.report ? `《${state.report.title}》连锁×${state.report.counts.chainMax}·击倒${state.report.counts.knockouts} —— ` : '';
+  navigator.clipboard?.writeText(headline + url).then(
     () => toast('分享链接已复制 ✓ 对方打开就是同一个实验'),
     () => toast('复制失败，请手动复制地址栏链接'),
   );
@@ -673,6 +678,9 @@ function tick(): void {
   // 焦痕老化
   for (const sc of state.scorches) sc.age += dt;
   state.scorches = state.scorches.filter((sc) => sc.age < sc.ttl);
+  // 连锁浮动大字老化
+  for (const ft of state.floatTexts) ft.age += dt;
+  state.floatTexts = state.floatTexts.filter((ft) => ft.age < ft.ttl);
 
   // 连锁慢镜头：真实时间变慢，模拟 tick 内容不变（不破坏确定性）
   if (state.slowmo > 0) {
@@ -733,10 +741,16 @@ function handleEvents(events: RecordedEvent[]): void {
         state.slowmo = Math.max(state.slowmo, 0.7);
         state.slowmoUsed = true;
       }
+      // 连锁浮动大字
+      if (e.depth >= 2) {
+        state.floatTexts.push({ x: e.x, y: e.y - 4, text: `连锁×${e.depth}`, age: 0, ttl: 1.1 });
+        if (state.floatTexts.length > 8) state.floatTexts.shift();
+      }
     } else if (e.type === 'knockout') {
       state.particles.spark(e.x, e.y, 8);
       sfx.knockout();
     } else if (e.type === 'multiKill') {
+      state.floatTexts.push({ x: e.x, y: e.y - 6, text: `一爆多杀 ×${e.count}`, age: 0, ttl: 1.2 });
       if (!state.slowmoUsed) {
         state.slowmo = Math.max(state.slowmo, 0.9);
         state.slowmoUsed = true;
@@ -784,6 +798,7 @@ function render(): void {
     time: performance.now() / 1000,
     zoom: state.zoomPunch,
     scorches: state.scorches,
+    floatTexts: state.floatTexts,
     slowmoActive: state.slowmo > 0,
   };
 
