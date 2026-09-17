@@ -30,6 +30,7 @@ const els = {
   ignite: $<HTMLButtonElement>('btn-ignite'),
   rerun: $<HTMLButtonElement>('btn-rerun'),
   newSeed: $<HTMLButtonElement>('btn-newseed'),
+  clear: $<HTMLButtonElement>('btn-clear'),
   share: $<HTMLButtonElement>('btn-share'),
   replayShare: $<HTMLButtonElement>('btn-replay-share'),
   end: $<HTMLButtonElement>('btn-end'),
@@ -294,6 +295,15 @@ els.newSeed.addEventListener('click', () => {
   toast('新种子 #' + state.seed.toString(36).toUpperCase() + '（虫子行为将不同）');
   if (state.mode !== 'edit') backToEdit();
 });
+// 清空重摆：编辑模式下一键清掉所有摆放（含自由实验的本地存档）
+els.clear.addEventListener('click', () => {
+  if (state.mode !== 'edit') return;
+  editor.clear();
+  try {
+    localStorage.removeItem('bbl-free-layout');
+  } catch {}
+  editor.onStatus('已清空 —— 重新摆放你的实验吧');
+});
 els.share.addEventListener('click', () => {
   if (!state.runExperiment || !state.sim) return toast('先跑一次实验再分享');
   const exp: Experiment = {
@@ -398,7 +408,19 @@ function showReport(rep: Report): void {
   const rows: [string, string | number][] = [
     ['爆炸次数', c.explosions],
     ['最大连锁', '×' + c.chainMax],
-    ['击倒玩具', c.knockouts + (c.koByType.roach ? `（蟑螂×${c.koByType.roach}）` : '')],
+    [
+      '击倒玩具',
+      c.knockouts +
+        (() => {
+          // 击倒分类全列出：案例2 蟑螂、案例5 苍蝇等狩猎目标一眼可读
+          const names: Record<string, string> = { roach: '蟑螂', locust: '蝗虫', scarab: '清道夫', snail: '蜗牛', fly: '苍蝇' };
+          const detail = Object.entries(c.koByType ?? {})
+            .filter(([, n]) => (n as number) > 0)
+            .map(([t, n]) => `${names[t] ?? t}×${n}`)
+            .join(' ');
+          return detail ? `（${detail}）` : '';
+        })(),
+    ],
     ['意外事件', c.unexpected],
     ['绳子断裂', c.ropesBroken],
     ['大头针命中', c.pins],
