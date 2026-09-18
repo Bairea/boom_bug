@@ -896,6 +896,8 @@ function handleEvents(events: RecordedEvent[]): void {
       sfx.fuse();
     } else if (e.type === 'slimeBurn') {
       state.particles.puff(e.x, e.y);
+    } else if (e.type === 'locustJump') {
+      state.itemFx.pop(e.id, 0.45); // 起跳蹬地：蓄力压缩弹回
     } else if (e.type === 'armorCrack') {
       state.itemFx.pop(e.id, 0.7); // 裂甲：重击感
     } else if (e.type === 'douse') {
@@ -972,6 +974,10 @@ function render(): void {
   }
   // 运行中画布外框环境光变暖（CSS 类驱动）
   canvas.classList.toggle('running', state.mode === 'running');
+  // 编辑模式：点选类工具悬停到可作用目标时光标变 pointer（可供性）
+  if (state.mode === 'edit') {
+    canvas.style.cursor = editor.hoverIdx != null ? 'pointer' : 'crosshair';
+  }
 
   // 实况统计 HUD：玻璃拟态圆角芯片
   if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
