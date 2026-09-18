@@ -312,6 +312,7 @@ function startRun(useRecordedCommands = false): void {
   els.skip.hidden = true;
   els.speed.hidden = true;
   editor.onStatus('实验进行中：点未点燃物=点火；点已点燃的=💥遥控引爆；空白处拖拽=扔炮仗！');
+  document.title = '🔥 实验进行中 · 擦炮虫虫实验室';
   els.ignite.disabled = true;
   els.end.hidden = false;
 }
@@ -321,6 +322,7 @@ function finishRun(): void {
   editor.locked = false;
   if (!state.sim) return;
   editor.onStatus(`实验结束 —— 报告已生成（爆炸${state.sim.stats.explosions} · 连锁×${state.sim.stats.chainMax}）`);
+  document.title = '📋 事故报告 · 擦炮虫虫实验室';
   state.report = buildReport(state.sim, getScenario(state.scenarioId));
   // 本机最佳：分享来的自定义实验记入 custom 键；每日实验按日期入账（对照上次=今天上一局）
   const key = state.runExperiment?.custom ? 'custom' : state.dailyKey ? `daily-${state.dailyKey}` : state.scenarioId;
