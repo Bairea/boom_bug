@@ -400,6 +400,21 @@
         max-width: min(80%, 700px);
         overflow-wrap: break-word;
       }
+      /* 模式指示点：编辑=蓝 / 运行=橙 */
+      #status::before {
+        content: '';
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-right: 8px;
+        vertical-align: 1px;
+        background: var(--accent);
+        transition: background-color 200ms ease;
+      }
+      #status.running::before {
+        background: var(--hot);
+      }
 
       /* ---- 事故报告 ---- */
       #report {

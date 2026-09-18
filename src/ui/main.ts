@@ -1215,6 +1215,8 @@ function render(): void {
   }
   // 运行中画布外框环境光变暖（CSS 类驱动）
   canvas.classList.toggle('running', state.mode === 'running');
+  // 状态胶囊模式指示点
+  els.status.classList.toggle('running', state.mode === 'running');
   // 运行中隐藏不适用的工具栏按钮（防误触打断实验，移动端也省空间）
   const midRun = state.mode === 'running';
   els.rerun.hidden = midRun;
