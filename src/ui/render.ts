@@ -69,6 +69,7 @@ export interface ThrowPreview {
   y: number;
   vx: number;
   vy: number;
+  power?: number; // 拖拽力度 0..1（速度/750）
 }
 
 export interface FloatText {
@@ -1729,7 +1730,7 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
     ctx.stroke();
   }
   ctx.restore();
-  // 起投点：一根点着的炮仗（带引信火花感）
+  // 起投点：一根点着的炮仗（带引信火花感）+ 力度弧
   ctx.fillStyle = '#c0392b';
   ctx.beginPath();
   ctx.arc(t.x * s, t.y * s, 1.6 * s, 0, Math.PI * 2);
@@ -1738,6 +1739,18 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   ctx.beginPath();
   ctx.arc((t.x + (t.vx / l) * 2.4) * s, (t.y + (t.vy / l) * 2.4) * s, 0.7 * s, 0, Math.PI * 2);
   ctx.fill();
+  if (t.power != null) {
+    // 力度弧：绕起投点的圆环，满力闭合（绿→黄→红渐进色）
+    const sweep = t.power * Math.PI * 1.6;
+    const hue = 120 - 120 * t.power;
+    ctx.strokeStyle = `hsl(${hue} 80% 55%)`;
+    ctx.lineWidth = 0.9 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(t.x * s, t.y * s, 3.4 * s, -Math.PI / 2, -Math.PI / 2 + sweep);
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+  }
 }
 
 // 气球：球体+系结，随时间轻微摇曳（绳的连接感交给绳子渲染）。

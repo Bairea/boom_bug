@@ -1071,7 +1071,16 @@ function render(): void {
     if (state.mode === 'running') {
       opts.showAim = true;
       // 弹道预览：runDrag 用的是 wx/wy（世界坐标起投点），换名成绘制要的 x/y
-      if (runDrag) opts.throwPreview = { x: runDrag.wx, y: runDrag.wy, vx: runDrag.vx, vy: runDrag.vy };
+      if (runDrag) {
+        const spd = Math.hypot(runDrag.vx, runDrag.vy);
+        opts.throwPreview = {
+          x: runDrag.wx,
+          y: runDrag.wy,
+          vx: runDrag.vx,
+          vy: runDrag.vy,
+          power: Math.min(1, spd / 750), // 拖拽力度（与 pointermove 限幅一致）
+        };
+      }
       // 运行中悬停高亮
       if (runHover) {
         opts.hoverId = runHover.id;
