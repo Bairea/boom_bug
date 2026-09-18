@@ -27,6 +27,7 @@ interface RingParticle extends ParticleBase {
   type: 'ring';
   r: number;
   vr: number;
+  blue?: boolean; // 时间涟漪（慢镜头触发）
 }
 interface EmberParticle extends ParticleBase {
   type: 'ember';
@@ -338,6 +339,11 @@ export class Particles {
     }
   }
 
+  // 时间涟漪：慢镜头聚光灯触发时从爆点扩散的蓝环
+  timeRing(x: number, y: number): void {
+    this.add({ type: 'ring', x, y, r: 4, vr: 55, life: 0.9, age: 0, blue: true });
+  }
+
   update(dt: number): void {
     this.shake = Math.max(0, this.shake - dt * 26);
     for (const p of this.list) {
@@ -407,14 +413,15 @@ export class Particles {
         ctx.arc(p.x * s, p.y * s, p.r * 0.34 * s * k, 0, Math.PI * 2);
         ctx.fill();
       } else if (p.type === 'ring') {
-        // 双描边冲击环：外柔内锐
+        // 双描边冲击环：外柔内锐（蓝=时间涟漪，金=爆炸冲击波），随生命衰减
         ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = `rgba(255,200,130,${0.22 * k})`;
+        ctx.globalAlpha = k;
+        ctx.strokeStyle = p.blue ? 'rgba(126,200,255,0.3)' : 'rgba(255,200,130,0.3)';
         ctx.lineWidth = 4.5 * s * k;
         ctx.beginPath();
         ctx.arc(p.x * s, p.y * s, p.r * s, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.strokeStyle = `rgba(255,235,190,${0.75 * k})`;
+        ctx.strokeStyle = p.blue ? 'rgba(190,230,255,0.9)' : 'rgba(255,235,190,0.85)';
         ctx.lineWidth = 1.2 * s * k;
         ctx.stroke();
       } else if (p.type === 'spark') {

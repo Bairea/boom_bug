@@ -173,6 +173,13 @@
     cursor: crosshair;
     touch-action: none;
     background: #14171d;
+    transition: box-shadow 400ms ease;
+  }
+  canvas.running {
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.6),
+      0 0 70px rgba(255, 130, 70, 0.13),
+      inset 0 0 0 1px rgba(255, 200, 150, 0.05);
   }
 
   /* ---- 主工具栏 ---- */

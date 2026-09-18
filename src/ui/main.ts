@@ -807,6 +807,7 @@ function handleEvents(events: RecordedEvent[]): void {
       if (e.depth >= 2 && !state.slowmoUsed) {
         state.slowmo = Math.max(state.slowmo, 0.7);
         state.slowmoUsed = true;
+        state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感
       }
       // 连锁浮动大字
       if (e.depth >= 2) {
@@ -914,6 +915,8 @@ function render(): void {
     state.itemFx.observe(view.items, state.lastDt); // 着陆/撞击检测（表现层）
     drawScene(ctx, W, H, view, opts);
   }
+  // 运行中画布外框环境光变暖（CSS 类驱动）
+  canvas.classList.toggle('running', state.mode === 'running');
 
   // 实况统计 HUD：玻璃拟态圆角芯片
   if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
