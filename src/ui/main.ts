@@ -189,10 +189,17 @@ try {
 function toggleFullscreen(): void {
   const el = document.getElementById('stage-wrap');
   if (!el) return;
-  if (document.fullscreenElement) {
-    document.exitFullscreen?.();
-  } else {
-    el.requestFullscreen?.();
+  try {
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else {
+      const p = el.requestFullscreen?.();
+      if (p && typeof (p as Promise<void>).catch === 'function') {
+        (p as Promise<void>).catch(() => toast('当前环境不支持全屏'));
+      }
+    }
+  } catch {
+    toast('当前环境不支持全屏');
   }
 }
 document.getElementById('btn-full')?.addEventListener('click', toggleFullscreen);
