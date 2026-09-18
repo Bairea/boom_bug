@@ -863,6 +863,18 @@ function stepOnce(): void {
     }
     if (inWater.size > 400) inWater.clear();
   }
+  // 冰面滑行霜痕：在冰面上高速横移时脚下溅冰晶（纯表现层）
+  {
+    const ice = state.sim.world.bodies.filter((b) => b.alive && b.kind === 'prop' && b.data.propType === 'ice' && b.data.materialZone);
+    if (ice.length) {
+      for (const b of state.sim.world.bodies) {
+        if (!b.alive || b.data.waterZone || b.data.materialZone) continue;
+        if (Math.abs(b.vx) > 190 && ice.some((z) => Math.hypot(b.x - z.x, b.y - z.y) < z.radius + b.radius)) {
+          state.particles.frost(b.x, b.y + b.radius * 0.6);
+        }
+      }
+    }
+  }
   state.particles.update(DT);
 }
 

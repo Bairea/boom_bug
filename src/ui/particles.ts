@@ -318,6 +318,22 @@ export class Particles {
     });
   }
 
+  // 冰霜滑痕：冰面高速滑行时脚下溅起的冷色微粒
+  frost(x: number, y: number): void {
+    for (let i = 0; i < 2; i++) {
+      this.add({
+        type: 'drop',
+        x: x + (Math.random() - 0.5) * 3,
+        y,
+        vx: (Math.random() - 0.5) * 40,
+        vy: -14 - Math.random() * 22,
+        r: 0.45 + Math.random() * 0.5,
+        life: 0.25 + Math.random() * 0.15,
+        age: 0,
+      });
+    }
+  }
+
   // 水花：浇灭/落水时的蓝白水滴上溅（douse 事件调用）
   splash(x: number, y: number): void {
     for (let i = 0; i < 9; i++) {
