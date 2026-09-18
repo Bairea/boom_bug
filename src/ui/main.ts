@@ -763,9 +763,9 @@ function tick(): void {
   for (const ft of state.floatTexts) ft.age += dt;
   state.floatTexts = state.floatTexts.filter((ft) => ft.age < ft.ttl);
 
-  // 表现层反馈衰减：trauma 线性衰减（震屏量 = trauma²）、白闪快衰、顿帧走真实时间
+  // 表现层反馈衰减：trauma 线性衰减（震屏量 = trauma²）、白闪快衰（连锁时防过曝）、顿帧走真实时间
   state.trauma = Math.max(0, state.trauma - dt * 1.7);
-  state.flash = Math.max(0, state.flash - dt * 2.4);
+  state.flash = Math.max(0, state.flash - dt * 3.4);
   if (state.hitStop > 0) state.hitStop = Math.max(0, state.hitStop - dt);
 
   // 慢镜头镜头缓推：向爆心平移（限幅），结束回中
@@ -849,7 +849,7 @@ function handleEvents(events: RecordedEvent[]): void {
       // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
       const motionK = reducedMotion ? 0.35 : 1;
       state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
-      state.flash = Math.min(0.5, state.flash + Math.min(0.4, e.power / 260) * motionK);
+      state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300) * motionK);
       if (!reducedMotion && e.power >= 40) {
         state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
       }
