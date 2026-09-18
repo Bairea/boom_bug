@@ -699,15 +699,31 @@ function showReport(rep: Report): void {
     html +=
       '<div class="timeline">' +
       rep.timeline
-        .map(
-          (t) =>
-            `<span${t.depth ? ` style="${chipStyle(t.depth)}"` : ''}>${t.t.toFixed(2)}s · ${causeName(t.cause)}${t.depth ? ` · 连锁${t.depth}` : ''}</span>`,
-        )
+        .map((t) => {
+          const tick = Math.max(0, Math.round(t.t * 60));
+          const style = t.depth ? ` style="${chipStyle(t.depth)}"` : '';
+          return `<span class="chip-jump" data-tick="${tick}"${style}>${t.t.toFixed(2)}s · ${causeName(t.cause)}${t.depth ? ` · 连锁${t.depth}` : ''}</span>`;
+        })
         .join('') +
       '</div>';
   }
   els.reportBody.innerHTML = html;
   els.report.hidden = false;
+  // 时间线芯片点击 → 跳到该时刻回放（从爆炸前 0.5s 开始看）
+  els.reportBody.querySelectorAll('.chip-jump').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const tick = Number((chip as HTMLElement).dataset.tick ?? 0);
+      startReplay();
+      const rp = state.replay;
+      if (rp) {
+        const cur = Math.max(rp.startTick ?? 0, tick - 30);
+        rp.cursor = cur;
+        const events = state.sim?.eventLog ?? [];
+        rp.eventIdx = events.findIndex((e) => (e.tick ?? 0) >= cur);
+        if (rp.eventIdx < 0) rp.eventIdx = events.length;
+      }
+    });
+  });
   // 整数统计滚动计数（600ms ease-out，纯装饰不影响数值本身）
   if (!reducedMotion) {
     const dur = 600;
