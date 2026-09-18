@@ -23,7 +23,12 @@ function $<T extends HTMLElement>(id: string): T {
 }
 
 const canvas = $<HTMLCanvasElement>('stage');
+// 高 DPI 锐化：内部按 devicePixelRatio 放大，逻辑坐标仍是 960×576（绘制代码无感知）
+const DPR = Math.min(2, Math.max(1, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1));
+canvas.width = canvas.width * DPR;
+canvas.height = canvas.height * DPR;
 const ctx = canvas.getContext('2d', { alpha: false })!; // 背景全幅不透明：关 alpha 走更快合成路径
+ctx.scale(DPR, DPR);
 const W = canvas.width;
 const H = canvas.height;
 

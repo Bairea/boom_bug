@@ -203,20 +203,28 @@ function specRadius(t: string): number {
 let bgCache: { key: string; cv: HTMLCanvasElement } | null = null;
 
 function drawBackdrop(ctx: CanvasRenderingContext2D, W: number, H: number, s: number): void {
-  const key = `${W}x${H}`;
+  // ctx 可能被调用方按 DPR 缩放过：从变换矩阵反推像素密度，让缓存原生分辨率渲染
+  let dpr = 1;
+  try {
+    dpr = Math.max(1, ctx.getTransform().a || 1);
+  } catch {
+    // 假 ctx（无头测试）等无 getTransform 的环境保持 dpr=1
+  }
+  const key = `${W}x${H}@${dpr}`;
   if (typeof document !== 'undefined') {
     if (bgCache?.key === key) {
-      ctx.drawImage(bgCache.cv, 0, 0);
+      ctx.drawImage(bgCache.cv, 0, 0, W, H);
       return;
     }
     const cv = document.createElement('canvas');
-    cv.width = W;
-    cv.height = H;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
     const c = cv.getContext('2d');
     if (c) {
+      c.scale(dpr, dpr);
       paintBackdrop(c, W, H, s);
       bgCache = { key, cv };
-      ctx.drawImage(cv, 0, 0);
+      ctx.drawImage(cv, 0, 0, W, H);
       return;
     }
   }
