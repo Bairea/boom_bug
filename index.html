@@ -41,6 +41,11 @@
     overflow: hidden;
     padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
       env(safe-area-inset-left);
+    animation: page-in 420ms ease;
+  }
+  @keyframes page-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 
   /* ---- 通用按钮 ---- */
