@@ -112,6 +112,12 @@ const state: GameState = {
 const editor = new Editor(canvas);
 editor.onStatus = (msg) => (els.status.textContent = msg);
 
+// 减少动态偏好（无障碍）：系统开启时压低震屏/白闪/滚转，跳过顿帧与彩带
+let reducedMotion = false;
+try {
+  reducedMotion = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+} catch {}
+
 // 音效：首个用户手势（点燃/点击画布）后创建 AudioContext
 const sfx = new Sfx(typeof window !== 'undefined' && window.AudioContext ? () => new AudioContext() : null);
 // 本机最佳战绩
@@ -279,7 +285,7 @@ function finishRun(): void {
   state.report.isNewRecord = isNew;
   if (isNew) {
     sfx.fanfare();
-    state.particles.confetti(VIEW_W); // 全屏彩带雨（表现层）
+    if (!reducedMotion) state.particles.confetti(VIEW_W); // 全屏彩带雨（表现层；减少动态时跳过）
     toast('🏆 新纪录！');
   }
   // 今日已挑战 → 按钮挂 ✓
@@ -765,9 +771,12 @@ function handleEvents(events: RecordedEvent[]): void {
       // 镜头推近一点，随时间回弹
       state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
       // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
-      state.trauma = Math.min(1, state.trauma + 0.22 + Math.min(0.55, e.power / 200));
-      state.flash = Math.min(0.5, state.flash + Math.min(0.4, e.power / 260));
-      if (e.power >= 40) state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
+      const motionK = reducedMotion ? 0.35 : 1;
+      state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
+      state.flash = Math.min(0.5, state.flash + Math.min(0.4, e.power / 260) * motionK);
+      if (!reducedMotion && e.power >= 40) {
+        state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
+      }
       // 贴地爆炸 → 地面扬尘浪
       if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
       // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
