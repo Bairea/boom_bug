@@ -111,6 +111,9 @@ const state: GameState = {
 
 const editor = new Editor(canvas);
 editor.onStatus = (msg) => (els.status.textContent = msg);
+editor.onPlace = (x, y) => {
+  state.particles.puff(x, y + 2); // 摆放落点的小烟尘反馈
+};
 
 // 减少动态偏好（无障碍）：系统开启时压低震屏/白闪/滚转，跳过顿帧与彩带
 let reducedMotion = false;
