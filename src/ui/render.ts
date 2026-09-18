@@ -250,29 +250,6 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   // 盒子
   const ox = (W - VIEW_W * s) / 2;
   const oy = (H - VIEW_H * s) / 2;
-
-  // 桌面刻度尺：盒子下方每 10 世界单位的刻度（实验室图纸感）
-  {
-    const rulerY = Math.min(H - 8, oy + VIEW_H * s + 6 * s);
-    ctx.strokeStyle = 'rgba(190,215,240,0.22)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let u = 0; u <= VIEW_W; u += 10) {
-      const x = ox + u * s;
-      const tick = u % 50 === 0 ? 4 : u % 20 === 0 ? 2.6 : 1.5;
-      ctx.moveTo(x, rulerY);
-      ctx.lineTo(x, rulerY + tick * s * 0.5);
-    }
-    ctx.stroke();
-    ctx.fillStyle = 'rgba(190,215,240,0.3)';
-    ctx.font = `${Math.max(7, 3.2 * s)}px ui-monospace, monospace`;
-    ctx.textAlign = 'center';
-    for (const u of [0, 100, 200, 300]) {
-      ctx.fillText(String(u), ox + u * s, rulerY + 9 * s);
-    }
-    ctx.textAlign = 'left';
-  }
-
   const zoom = opts.zoom ?? 1;
   const cx = (VIEW_W * s) / 2;
   const cy = (VIEW_H * s) / 2;
