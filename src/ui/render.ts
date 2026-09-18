@@ -1362,6 +1362,17 @@ function drawOil(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: n
   ctx.beginPath();
   ctx.ellipse(w * (0.18 - ir), 2.5 * s, w * 0.3, w * 0.1, 0.15, 0, Math.PI * 2);
   ctx.stroke();
+  // 上浮气泡：一颗气泡缓慢升起破裂（周期循环，与水盆涟漪对仗）
+  {
+    const bp = ((time * 0.42 + it.x * 0.17) % 1 + 1) % 1;
+    const by = 2 * s - bp * w * 0.5;
+    const bs = (0.25 + bp * 0.5) * Math.sin(bp * Math.PI) * 2 + 0.3;
+    ctx.strokeStyle = `rgba(190, 160, 230, ${0.5 * Math.sin(bp * Math.PI)})`;
+    ctx.lineWidth = 0.3 * s;
+    ctx.beginPath();
+    ctx.arc(-w * 0.3, by, 1.2 * s * bs, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   if (it.onFire) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -1421,10 +1432,11 @@ function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time:
   const r = 3 * s;
   const face = it.knocked ? 1 : Math.sign(it.speedX ?? 1);
   knockedTint(ctx, it, s, () => {
-    // 腹足
+    // 腹足（爬行时轻微蠕动波纹）
+    const crawl = !it.knocked && (it.speed ?? 0) > 1 ? Math.sin(time * 8 + (it.id ?? 0)) * 0.05 : 0;
     ctx.fillStyle = it.knocked ? '#9aa38a' : '#b7c98a';
     ctx.beginPath();
-    ctx.ellipse(-face * r * 0.3, r * 0.45, r * 1.25, r * 0.42, 0, 0, Math.PI * 2);
+    ctx.ellipse(-face * r * 0.3, r * 0.45, r * 1.25, r * (0.42 + crawl), 0, 0, Math.PI * 2);
     ctx.fill();
     // 足底反光
     ctx.fillStyle = 'rgba(255,255,255,0.18)';
