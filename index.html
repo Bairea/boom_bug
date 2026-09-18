@@ -336,7 +336,11 @@
     from { opacity: 0; transform: scale(0.94); }
     to { opacity: 1; transform: scale(1); }
   }
-  #report .timeline { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px; }
+  #report .timeline {
+    margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px;
+    max-height: 96px; overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+  }
   #report .timeline span {
     font-size: 11px; color: var(--dim);
     background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px;
