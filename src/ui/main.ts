@@ -1064,13 +1064,14 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     }
     // 贴地爆炸 → 地面扬尘浪
     if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
-    // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
-    if (live && e.depth >= 2 && !state.slowmoUsed) {
-      state.slowmo = Math.max(state.slowmo, 0.7);
-      state.slowmoUsed = true;
-      state.slowmoCenter = { x: e.x, y: e.y };
-      state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感
-    }
+      // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
+      if (e.depth >= 2 && !state.slowmoUsed) {
+        state.slowmo = Math.max(state.slowmo, 0.7);
+        state.slowmoUsed = true;
+        state.slowmoCenter = { x: e.x, y: e.y };
+        state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感（双环）
+        state.particles.add({ type: 'ring', x: e.x, y: e.y, r: 1.5, vr: 34, life: 0.8, age: 0, blue: true });
+      }
     // 连锁浮动大字
     if (e.depth >= 2) {
       state.floatTexts.push({ x: e.x, y: e.y - 4, text: `连锁×${e.depth}`, age: 0, ttl: 1.1 });
