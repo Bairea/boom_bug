@@ -1638,6 +1638,8 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   const vx = t.vx;
   let vy = t.vy;
   const stepDt = 1 / 20;
+  let lx = -1;
+  let ly = -1;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 8; i++) {
@@ -1645,6 +1647,8 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
     px += vx * stepDt;
     py += vy * stepDt;
     if (px < 2 || px > 298 || py < 2 || py > 178) break;
+    lx = px;
+    ly = py;
     ctx.globalAlpha = 0.8 - i * 0.09;
     ctx.fillStyle = 'rgba(255,217,160,0.9)';
     ctx.beginPath();
@@ -1654,6 +1658,15 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
     ctx.beginPath();
     ctx.arc(px * s, py * s, 1.8 * s, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // 落点标记：预测终点的小圆环
+  if (lx > 0) {
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = 'rgba(255,217,160,0.9)';
+    ctx.lineWidth = 0.5 * s;
+    ctx.beginPath();
+    ctx.arc(lx * s, ly * s, 2.2 * s, 0, Math.PI * 2);
+    ctx.stroke();
   }
   ctx.restore();
   // 起投点：一根点着的炮仗（带引信火花感）
