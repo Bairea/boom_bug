@@ -215,6 +215,10 @@ function loadScenario(id: string): void {
   try {
     localStorage.setItem('bbl-last-scenario', id);
   } catch {}
+  // 场景切换画布淡入（轻过渡，标记新布置）
+  canvas.classList.remove('scene-swap');
+  void canvas.offsetWidth; // 重启动画
+  canvas.classList.add('scene-swap');
 }
 
 // 自由实验的布置持久化：刷新/关页不丢摆放
