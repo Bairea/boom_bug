@@ -147,3 +147,11 @@
 | R219 | 05:20 ♿ reduced-motion 跳过 zoom punch（镜头运动类反馈与偏好完全一致）。 | main.ts（152 全绿） | R219 commit |
 | R220 | 05:25 ✨ 点燃瞬间微闪启动反馈（0.07 白闪）。 | main.ts（152 全绿） | R220 commit |
 | R221 | 05:30 ✅ 18 局随机点击 soak（点燃/引爆/拖拽混合）全部入报告、零 JS 错误。 | 巡检记录（152 全绿） | — |
+| R213-R218 | 03:30-03:40 📝 字段引用自查 + playtest-log 多批补齐 + 分享码 hash 回归（刷新恢复实验 ✓）+ console/debugger 残留扫描（零）。 | docs + fx.ts + 巡检（152 全绿） | 对应 commits |
+| R219 | ✅ reduced-motion 跳过 zoom punch（镜头运动类反馈与偏好一致）。 | main.ts（152 全绿） | R219 commit |
+| R220 | ✅ 点燃瞬间微闪启动反馈（0.07 白闪）。 | main.ts（152 全绿） | R220 commit |
+| R221 | ✅ 18 局随机点击 soak（点燃/引爆/拖拽混合）全部入报告、零 JS 错误。 | 巡检（152 全绿） | — |
+| R222 | ♿ mute 按钮 title 提示（静音开关 M）。 | index.html（152 全绿） | R222 commit |
+| R225 | 🎨 prettier 全量格式化（仓库 format 脚本+index.html），消除 12 文件漂移；行为零变化。 | 12 files（152 全绿） | R225 commit |
+| R226 | 📸 三张展示图以最终视觉状态重拍至 .shots（桌面尺寸）。 | .shots（无代码变更） | — |
+| R228 | 🎯 弹道落点入水蓝色警示圈（会熄灭预警，case6 教学可读性）。 | render.ts + main.ts（152 全绿） | R228 commit |
