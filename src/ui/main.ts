@@ -871,23 +871,32 @@ function render(): void {
     drawScene(ctx, W, H, view, opts);
   }
 
-  // 实况统计 HUD
+  // 实况统计 HUD：玻璃拟态圆角芯片
   if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
     const st = state.sim.stats;
     const goalFn = getScenario(state.scenarioId).goal;
     const goal = goalFn && state.sim ? goalFn(state.sim) : null; // goal 是函数，需求值
     const throwCap = getScenario(state.scenarioId).maxThrows;
-    ctx.fillStyle = 'rgba(10,12,16,0.55)';
-    ctx.fillRect(12, 12, 236, goal ? 46 : 30);
+    const chipW = 244;
+    const chipH = goal ? 50 : 32;
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(12, 12, chipW, chipH, 9);
+    ctx.fillStyle = 'rgba(12,15,21,0.62)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(126,200,255,0.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
     ctx.fillStyle = '#ffd166';
     ctx.font = 'bold 15px ui-monospace, monospace';
     const throwInfo = throwCap ? `  投掷${st.throws ?? 0}/${throwCap}` : '';
-    ctx.fillText(`💥${st.explosions}  连锁×${st.chainMax}  击倒${st.knockouts}${throwInfo}`, 22, 33);
+    ctx.fillText(`💥${st.explosions}  连锁×${st.chainMax}  击倒${st.knockouts}${throwInfo}`, 24, 34);
     if (goal) {
-      ctx.fillStyle = 'rgba(215,221,230,0.75)';
+      ctx.fillStyle = goal.done ? '#9fe6a0' : 'rgba(215,221,230,0.75)';
       ctx.font = '12px system-ui, sans-serif';
-      ctx.fillText('目标：' + goal.label + (goal.done ? ' ✓' : ''), 22, 50);
+      ctx.fillText('目标：' + goal.label + (goal.done ? ' ✓' : ''), 24, 51);
     }
+    ctx.restore();
   }
 }
 // ---- 启动 ----

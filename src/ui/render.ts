@@ -316,13 +316,15 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.fill();
   }
 
-  // 连锁浮动大字：爆点冒出，先弹一下再上升淡出
+  // 连锁浮动大字：爆点冒出，先弹一下再上升淡出（描边+渐变字面+微倾斜）
   for (const ft of opts.floatTexts ?? []) {
     const k = Math.min(1, ft.age / ft.ttl);
     const rise = 16 * k;
     const pop = k < 0.16 ? 1 + (0.16 - k) * 2.4 : 1;
+    const tilt = ((ft.x * 7) % 6 - 3) * 0.02; // 由坐标衍生的稳定微倾斜
     ctx.save();
     ctx.translate(ft.x * s, (ft.y - rise) * s);
+    ctx.rotate(tilt);
     ctx.scale(pop, pop);
     ctx.globalAlpha = Math.max(0, 1 - k * k);
     ctx.font = 'bold 15px ui-monospace, monospace';
@@ -330,7 +332,10 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.lineWidth = 3;
     ctx.strokeStyle = 'rgba(24, 18, 8, 0.85)';
     ctx.strokeText(ft.text, 0, 0);
-    ctx.fillStyle = '#ffd166';
+    const tg = ctx.createLinearGradient(0, -8 * s, 0, 4 * s);
+    tg.addColorStop(0, '#fff3c4');
+    tg.addColorStop(1, '#ffb347');
+    ctx.fillStyle = tg;
     ctx.fillText(ft.text, 0, 0);
     ctx.restore();
   }
@@ -364,9 +369,9 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     }
   }
 
-  // 幽灵预览
+  // 幽灵预览（放置提示）：呼吸透明度
   if (opts.ghost) {
-    ctx.globalAlpha = 0.45;
+    ctx.globalAlpha = 0.38 + 0.12 * Math.sin(time * 5);
     drawItem(ctx, opts.ghost, s, time);
     if (opts.ghost.t === 'bottle' || opts.ghost.t === 'skyrocket') drawAim(ctx, opts.ghost, s);
     ctx.globalAlpha = 1;
@@ -445,23 +450,50 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
 
   // HUD
   if (opts.recDot) {
+    // 录制指示：呼吸脉冲的红点 + REC
+    const pulse = 0.55 + 0.45 * Math.sin(time * 4.2);
+    ctx.save();
+    ctx.globalAlpha = 0.35 + 0.65 * pulse;
     ctx.fillStyle = '#ff5555';
     ctx.beginPath();
     ctx.arc(W - 74, 26, 6, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = 0.25 * pulse;
+    const rg = ctx.createRadialGradient(W - 74, 26, 0, W - 74, 26, 12);
+    rg.addColorStop(0, 'rgba(255,85,85,0.8)');
+    rg.addColorStop(1, 'rgba(255,85,85,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath();
+    ctx.arc(W - 74, 26, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 14px ui-monospace, monospace';
     ctx.fillText('REC', W - 62, 31);
   }
   if (opts.replayWatermark) {
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = 'bold 34px ui-monospace, monospace';
-    ctx.fillText('⟲ REPLAY', 24, 52);
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.font = 'bold 30px ui-monospace, monospace';
+    ctx.fillText('⟲ REPLAY', 24, 50);
+    ctx.fillStyle = 'rgba(126,200,255,0.75)';
+    ctx.font = '11px ui-monospace, monospace';
+    ctx.fillText('INCIDENT ARCHIVE · SLOW MOTION', 25, 66);
+    ctx.restore();
     if (opts.replayProgress != null) {
-      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      // 底部进度条：轨道 + 发光进度头
+      ctx.fillStyle = 'rgba(255,255,255,0.14)';
       ctx.fillRect(ox, H - 10, VIEW_W * s, 4);
       ctx.fillStyle = '#7ec8ff';
       ctx.fillRect(ox, H - 10, VIEW_W * s * opts.replayProgress, 4);
+      const hx = ox + VIEW_W * s * opts.replayProgress;
+      const hg = ctx.createRadialGradient(hx, H - 8, 0, hx, H - 8, 10);
+      hg.addColorStop(0, 'rgba(126,200,255,0.9)');
+      hg.addColorStop(1, 'rgba(126,200,255,0)');
+      ctx.fillStyle = hg;
+      ctx.beginPath();
+      ctx.arc(hx, H - 8, 10, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 }
@@ -1396,17 +1428,27 @@ function drawRope(ctx: CanvasRenderingContext2D, r: RopeView, s: number): void {
 
 function drawAim(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const a = it.aim ?? 0;
+  const ex = it.x * s + Math.cos(a) * 16 * s;
+  const ey = it.y * s + Math.sin(a) * 16 * s;
+  // 主虚线 + 底下一条加法辉光线（发光瞄准）
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(126,200,255,0.18)';
+  ctx.lineWidth = 2.2 * s;
+  ctx.beginPath();
+  ctx.moveTo(it.x * s, it.y * s);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  ctx.restore();
   ctx.strokeStyle = 'rgba(126,200,255,0.8)';
   ctx.lineWidth = 0.5 * s;
   ctx.setLineDash([2 * s, 2 * s]);
   ctx.beginPath();
   ctx.moveTo(it.x * s, it.y * s);
-  ctx.lineTo(it.x * s + Math.cos(a) * 16 * s, it.y * s + Math.sin(a) * 16 * s);
+  ctx.lineTo(ex, ey);
   ctx.stroke();
   ctx.setLineDash([]);
   // 箭头
-  const ex = it.x * s + Math.cos(a) * 16 * s;
-  const ey = it.y * s + Math.sin(a) * 16 * s;
   ctx.beginPath();
   ctx.moveTo(ex, ey);
   ctx.lineTo(ex - Math.cos(a - 0.4) * 2.4 * s, ey - Math.sin(a - 0.4) * 2.4 * s);
@@ -1415,7 +1457,7 @@ function drawAim(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   ctx.stroke();
 }
 
-// 运行中拖拽投掷点燃炮仗的预览：起投点画一根点着的炮仗 + 重力弹道预测点
+// 运行中拖拽投掷点燃炮仗的预览：起投点画一根点着的炮仗 + 重力弹道预测点（加法辉光渐隐）
 function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: number): void {
   const l = Math.hypot(t.vx, t.vy);
   if (l < 10) return;
@@ -1425,19 +1467,25 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   const vx = t.vx;
   let vy = t.vy;
   const stepDt = 1 / 20;
-  ctx.fillStyle = 'rgba(255,217,160,0.85)';
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 8; i++) {
     vy += 560 * stepDt;
     px += vx * stepDt;
     py += vy * stepDt;
     if (px < 2 || px > 298 || py < 2 || py > 178) break;
     ctx.globalAlpha = 0.8 - i * 0.09;
+    ctx.fillStyle = 'rgba(255,217,160,0.9)';
     ctx.beginPath();
     ctx.arc(px * s, py * s, 0.9 * s, 0, Math.PI * 2);
     ctx.fill();
+    ctx.globalAlpha = (0.8 - i * 0.09) * 0.35;
+    ctx.beginPath();
+    ctx.arc(px * s, py * s, 1.8 * s, 0, Math.PI * 2);
+    ctx.fill();
   }
-  ctx.globalAlpha = 1;
-  // 起投点：一根点着的炮仗
+  ctx.restore();
+  // 起投点：一根点着的炮仗（带引信火花感）
   ctx.fillStyle = '#c0392b';
   ctx.beginPath();
   ctx.arc(t.x * s, t.y * s, 1.6 * s, 0, Math.PI * 2);
