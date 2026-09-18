@@ -625,7 +625,7 @@ function drawItem(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: 
   else if (it.t === 'skyrocket') drawSkyrocket(ctx, it, s, time);
   else if (it.t === 'bottle') drawBottle(ctx, it, s, time);
   else if (it.t === 'brick') drawBrick(ctx, it, s);
-  else if (it.t === 'glass') drawGlass(ctx, it, s);
+  else if (it.t === 'glass') drawGlass(ctx, it, s, time);
   else if (it.t === 'sponge') drawSponge(ctx, it, s);
   else if (it.t === 'water') drawWater(ctx, it, s, time);
   else if (it.t === 'oil') drawOil(ctx, it, s, time);
@@ -1056,7 +1056,7 @@ function drawBrick(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void
   }
 }
 
-function drawGlass(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
+function drawGlass(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time = 0): void {
   const w = 9 * s;
   ctx.fillStyle = 'rgba(150, 200, 235, 0.4)';
   roundRect(ctx, -w, -w * 0.66, w * 2, w * 1.32, 1 * s);
@@ -1071,6 +1071,15 @@ function drawGlass(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void
   ctx.moveTo(-w * 0.6, -w * 0.4);
   ctx.lineTo(-w * 0.1, -w * 0.55);
   ctx.stroke();
+  // 流动 glint：一颗高光沿顶边缓慢扫过（由坐标派生相位，避免同帧齐闪）
+  const phase = ((it.x * 0.13 + it.y * 0.07) % 1 + 1) % 1;
+  const t = ((time * 0.18 + phase) % 1 + 1) % 1;
+  const gx = (-w + 2 * w * t) * 1;
+  const fade = Math.sin(t * Math.PI);
+  ctx.fillStyle = `rgba(255,255,255,${0.35 * fade})`;
+  ctx.beginPath();
+  ctx.ellipse(gx, -w * 0.6, 1.2 * s, 0.35 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
   // 裂纹
   if (it.cracked) {
     ctx.strokeStyle = 'rgba(255,255,255,0.9)';
@@ -1120,6 +1129,13 @@ function drawWater(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time:
   ctx.lineWidth = 0.45 * s;
   ctx.beginPath();
   ctx.ellipse(0, 2 * s, w, w * 0.42, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  // 环境涟漪：一圈缓慢扩散消隐的水纹（周期循环）
+  const rp = ((time * 0.33 + it.x * 0.11) % 1 + 1) % 1;
+  ctx.strokeStyle = `rgba(190, 230, 255, ${0.3 * Math.sin(rp * Math.PI)})`;
+  ctx.lineWidth = 0.35 * s;
+  ctx.beginPath();
+  ctx.ellipse(0, 2 * s, w * 0.25 + rp * w * 0.7, (w * 0.25 + rp * w * 0.7) * 0.42, 0, 0, Math.PI * 2);
   ctx.stroke();
 }
 function drawGiftbox(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
