@@ -385,10 +385,12 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
         : 'rgba(126,200,255,0.4)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 3]);
+    ctx.lineDashOffset = -time * 8; // 蚂蚁线：虚线流动的选中语言
     ctx.beginPath();
     ctx.arc(it.x * s, it.y * s, ((it.radius ?? 6) + 5) * s, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
   }
   // 绳子连接预览：第一选点 → 鼠标（虚线垂弧）
   if (opts.ropePreview) {
@@ -399,11 +401,13 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.strokeStyle = 'rgba(126,200,255,0.55)';
     ctx.lineWidth = 0.7 * s;
     ctx.setLineDash([2.4 * s, 2 * s]);
+    ctx.lineDashOffset = -time * 10; // 蚂蚁线流动
     ctx.beginPath();
     ctx.moveTo(rp.ax * s, rp.ay * s);
     ctx.quadraticCurveTo(mx * s, my * s, rp.bx * s, rp.by * s);
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.lineDashOffset = 0;
     ctx.fillStyle = 'rgba(126,200,255,0.8)';
     ctx.beginPath();
     ctx.arc(rp.bx * s, rp.by * s, 1.2 * s, 0, Math.PI * 2);
