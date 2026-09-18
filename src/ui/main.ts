@@ -738,17 +738,28 @@ function showReport(rep: Report): void {
   els.reportBody.innerHTML = html;
   els.report.hidden = false;
   // 时间线芯片点击 → 跳到该时刻回放（从爆炸前 0.5s 开始看）
+  const jumpFromChip = (chip: HTMLElement): void => {
+    const tick = Number(chip.dataset.tick ?? 0);
+    startReplay();
+    const rp = state.replay;
+    if (rp) {
+      const cur = Math.max(rp.startTick ?? 0, tick - 30);
+      rp.cursor = cur;
+      const events = state.sim?.eventLog ?? [];
+      rp.eventIdx = events.findIndex((e) => (e.tick ?? 0) >= cur);
+      if (rp.eventIdx < 0) rp.eventIdx = events.length;
+    }
+  };
   els.reportBody.querySelectorAll('.chip-jump').forEach((chip) => {
-    chip.addEventListener('click', () => {
-      const tick = Number((chip as HTMLElement).dataset.tick ?? 0);
-      startReplay();
-      const rp = state.replay;
-      if (rp) {
-        const cur = Math.max(rp.startTick ?? 0, tick - 30);
-        rp.cursor = cur;
-        const events = state.sim?.eventLog ?? [];
-        rp.eventIdx = events.findIndex((e) => (e.tick ?? 0) >= cur);
-        if (rp.eventIdx < 0) rp.eventIdx = events.length;
+    const el = chip as HTMLElement;
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    el.setAttribute('title', '点击跳转到该时刻回放');
+    el.addEventListener('click', () => jumpFromChip(el));
+    el.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        jumpFromChip(el);
       }
     });
   });
