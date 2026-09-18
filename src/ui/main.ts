@@ -156,6 +156,8 @@ try {
       els.mute.textContent = '🔇';
       els.mute.setAttribute('aria-pressed', 'true');
     }
+  } else if (els.mute) {
+    els.mute.setAttribute('aria-pressed', 'false');
   }
 } catch {}
 els.mute?.addEventListener('click', () => {
