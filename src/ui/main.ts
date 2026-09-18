@@ -912,6 +912,10 @@ function handleEvents(events: RecordedEvent[]): void {
       const motionK = reducedMotion ? 0.35 : 1;
       state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
       state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300) * motionK);
+      // 方向性推镜：镜头被冲击波往爆点反方向推一下（回中弹簧自动收回）
+      const kick = Math.min(2.5, e.power / 80) * motionK;
+      state.panX = Math.max(-4, Math.min(4, state.panX - ((e.x - VIEW_W / 2) / (VIEW_W / 2)) * kick));
+      state.panY = Math.max(-3, Math.min(3, state.panY - ((e.y - VIEW_H / 2) / (VIEW_H / 2)) * kick));
       if (!reducedMotion && e.power >= 40) {
         state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
       }
