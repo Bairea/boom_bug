@@ -1722,7 +1722,7 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   let ly = -1;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 36; i++) {
     vy += 560 * stepDt;
     px += vx * stepDt;
     py += vy * stepDt;
