@@ -827,8 +827,23 @@ function stepOnce(): void {
       }
     }
   }
+  // 落水水花：物体从水盆外进入水盆且在下坠（纯表现层状态检测）
+  {
+    const zones = state.sim.world.bodies.filter((b) => b.alive && b.data.waterZone);
+    for (const b of state.sim.world.bodies) {
+      if (!b.alive || b.data.waterZone) continue;
+      const inside = zones.some((z) => Math.hypot(b.x - z.x, b.y - z.y) < z.radius + b.radius * 0.3);
+      const was = inWater.get(b.id) ?? false;
+      if (inside && !was && b.vy > 40) state.particles.splash(b.x, b.y - b.radius * 0.4);
+      inWater.set(b.id, inside);
+    }
+    if (inWater.size > 400) inWater.clear();
+  }
   state.particles.update(DT);
 }
+
+// 落水检测的每实体记忆（表现层）
+const inWater = new Map<number, boolean>();
 
 function frame(_now: number): void {
   tick();
