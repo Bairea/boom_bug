@@ -46,7 +46,10 @@ test('R62: 油盆语义 —— 油中爆炸被放大且油面被点燃', () => {
     seed: 3,
     width: 300,
     height: 180,
-    entities: [{ t: 'oil', x: 150, y: 172 }, { t: 'firecracker', x: 150, y: 172, delay: 0 }],
+    entities: [
+      { t: 'oil', x: 150, y: 172 },
+      { t: 'firecracker', x: 150, y: 172, delay: 0 },
+    ],
   });
   sim.runFor(3);
   const boom = sim.eventLog.find((e) => e.type === 'explosion');

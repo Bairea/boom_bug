@@ -480,7 +480,9 @@ els.share.addEventListener('click', () => {
   // 同步写进地址栏：①"复制失败请手动复制地址栏"的兜底真实可用；②刷新页面即重放这场事故
   history.replaceState(null, '', toHash(exp));
   // 文案带事故标题+战绩：粘贴到聊天里不用点开链接就想看
-  const headline = state.report ? `《${state.report.title}》连锁×${state.report.counts.chainMax}·击倒${state.report.counts.knockouts} —— ` : '';
+  const headline = state.report
+    ? `《${state.report.title}》连锁×${state.report.counts.chainMax}·击倒${state.report.counts.knockouts} —— `
+    : '';
   navigator.clipboard?.writeText(headline + url).then(
     () => toast('分享链接已复制 ✓ 对方打开就是同一个实验'),
     () => toast('复制失败，请手动复制地址栏链接'),
@@ -633,7 +635,9 @@ function showReport(rep: Report): void {
     ['装甲裂纹', c.cracks],
     ['实验时长', rep.duration.toFixed(1) + 's'],
   ];
-  let html = rows.map(([k, v], i) => `<div class="stat" style="animation-delay:${i * 45}ms"><span>${k}</span><b>${v}</b></div>`).join('');
+  let html = rows
+    .map(([k, v], i) => `<div class="stat" style="animation-delay:${i * 45}ms"><span>${k}</span><b>${v}</b></div>`)
+    .join('');
   // 零爆炸 = 新玩家最可能的迷路点：报告的第一使命是教会下一步，嘲讽只配当第二句
   if (c.explosions === 0) {
     const teachStyle = 'color:#ffd9a0;border-color:rgba(255,200,120,0.3);background:rgba(255,200,120,0.07)';
@@ -652,7 +656,8 @@ function showReport(rep: Report): void {
     const dKo = rep.counts.knockouts - rep.lastRun.knockouts;
     const dExp = rep.counts.explosions - rep.lastRun.explosions;
     if (dChain === 0 && dKo === 0 && dExp === 0) {
-      html += '<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px;color:#9fe6a0">与上次完全一致 —— 确定性 ✓（同种子同操作 = 同一场灾难）</b></div>';
+      html +=
+        '<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px;color:#9fe6a0">与上次完全一致 —— 确定性 ✓（同种子同操作 = 同一场灾难）</b></div>';
     } else {
       const delta = (d: number): string => {
         if (d === 0) return '<span style="color:var(--dim)">＝</span>';
@@ -661,7 +666,8 @@ function showReport(rep: Report): void {
       html += `<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px">连锁${delta(dChain)} · 击倒${delta(dKo)} · 爆炸${delta(dExp)}</b></div>`;
     }
   } else {
-    html += '<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px;color:var(--dim)">首局 —— 同场景再跑一次即可对比</b></div>';
+    html +=
+      '<div class="stat" style="border-bottom:none"><span>对照上次</span><b style="font-weight:400;font-size:12px;color:var(--dim)">首局 —— 同场景再跑一次即可对比</b></div>';
   }
   if (rep.best) {
     html += `<div class="goal" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07)">本机最佳 · 连锁×${rep.best.chain} · 击倒 ${rep.best.knockouts}${rep.isNewRecord ? ' 🎉 新纪录！' : ''}</div>`;
@@ -957,7 +963,9 @@ function stepOnce(): void {
   }
   // 冰面滑行霜痕：在冰面上高速横移时脚下溅冰晶（纯表现层）
   {
-    const ice = state.sim.world.bodies.filter((b) => b.alive && b.kind === 'prop' && b.data.propType === 'ice' && b.data.materialZone);
+    const ice = state.sim.world.bodies.filter(
+      (b) => b.alive && b.kind === 'prop' && b.data.propType === 'ice' && b.data.materialZone,
+    );
     if (ice.length) {
       for (const b of state.sim.world.bodies) {
         if (!b.alive || b.data.waterZone || b.data.materialZone) continue;
@@ -991,8 +999,8 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     // 焦痕：地面战损记忆（最多 24 个，12s 淡去）
     state.scorches.push({ x: e.x, y: Math.min(e.y + 4, 178), r: 5 + e.power * 0.12, age: 0, ttl: 12 });
     if (state.scorches.length > 24) state.scorches.shift();
-      // 镜头推近一点，随时间回弹（减少动态时跳过这类镜头运动）
-      if (!reducedMotion) state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
+    // 镜头推近一点，随时间回弹（减少动态时跳过这类镜头运动）
+    if (!reducedMotion) state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
     // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
     const motionK = reducedMotion ? 0.35 : 1;
     state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);

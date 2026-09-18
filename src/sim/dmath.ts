@@ -29,19 +29,19 @@ const TWO_PI_LO = TWO_PI - TWO_PI_HI; // 精确（差值仅 20 位有效位）
 const INV_TWO_PI = 1 / TWO_PI;
 
 // fdlibm k_sin.c 极小极大多项式系数（[-π/4,π/4] 上误差 <1 ulp，跨语言公版常量）
-const SIN_S1 = -1.66666666666666324348e-01;
-const SIN_S2 = 8.33333333332248946124e-03;
-const SIN_S3 = -1.98412698298579493134e-04;
-const SIN_S4 = 2.75573137070700676789e-06;
-const SIN_S5 = -2.50507602534068634195e-08;
+const SIN_S1 = -1.66666666666666324348e-1;
+const SIN_S2 = 8.33333333332248946124e-3;
+const SIN_S3 = -1.98412698298579493134e-4;
+const SIN_S4 = 2.75573137070700676789e-6;
+const SIN_S5 = -2.50507602534068634195e-8;
 const SIN_S6 = 1.58969099521155010221e-10;
 
 // fdlibm k_cos.c 同上
-const COS_C1 = 4.16666666666666019037e-02;
-const COS_C2 = -1.38888888888741095749e-03;
-const COS_C3 = 2.48015872894767294178e-05;
-const COS_C4 = -2.75573143513906633035e-07;
-const COS_C5 = 2.08757232129817482790e-09;
+const COS_C1 = 4.16666666666666019037e-2;
+const COS_C2 = -1.38888888888741095749e-3;
+const COS_C3 = 2.48015872894767294178e-5;
+const COS_C4 = -2.75573143513906633035e-7;
+const COS_C5 = 2.0875723212981748279e-9;
 const COS_C6 = -1.13596475577881948265e-11;
 
 // √(x²+y²)。缩放到最大分量再还原：比值 ∈[0,1] 不溢出，×hi 不下溢
@@ -101,7 +101,16 @@ function datanUnit(z: number): number {
   let t = z / (1 + Math.sqrt(1 + z * z));
   t = t / (1 + Math.sqrt(1 + t * t));
   const t2 = t * t;
-  const p = 1 + t2 * (-1 / 3 + t2 * (1 / 5 + t2 * (-1 / 7 + t2 * (1 / 9 + t2 * (-1 / 11 + t2 * (1 / 13 + t2 * (-1 / 15 + t2 * (1 / 17 + t2 * (-1 / 19 + t2 * (1 / 21))))))))));
+  const p =
+    1 +
+    t2 *
+      (-1 / 3 +
+        t2 *
+          (1 / 5 +
+            t2 *
+              (-1 / 7 +
+                t2 *
+                  (1 / 9 + t2 * (-1 / 11 + t2 * (1 / 13 + t2 * (-1 / 15 + t2 * (1 / 17 + t2 * (-1 / 19 + t2 * (1 / 21))))))))));
   return 4 * t * p;
 }
 
@@ -114,9 +123,12 @@ export function ddatan2(y: number, x: number): number {
   const ay = y < 0 ? -y : y;
   const ax = x < 0 ? -x : x;
   let base: number; // base ∈ [0, π/2]
-  if (!Number.isFinite(ax) && !Number.isFinite(ay)) base = QUARTER_PI; // 双无穷
-  else if (!Number.isFinite(ay)) base = HALF_PI; // y=±∞, x 有限
-  else if (!Number.isFinite(ax)) base = 0; // x=±∞, y 有限
+  if (!Number.isFinite(ax) && !Number.isFinite(ay))
+    base = QUARTER_PI; // 双无穷
+  else if (!Number.isFinite(ay))
+    base = HALF_PI; // y=±∞, x 有限
+  else if (!Number.isFinite(ax))
+    base = 0; // x=±∞, y 有限
   else if (ax >= ay) base = datanUnit(ay / ax);
   else base = HALF_PI - datanUnit(ax / ay);
   if (x < 0) base = PI - base;

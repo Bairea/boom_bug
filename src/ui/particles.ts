@@ -183,7 +183,7 @@ export class Particles {
       });
     }
     // 碎片：炮仗纸屑/碎壳
-    const nd = Math.min(10, 4 + (power * 0.06) | 0);
+    const nd = Math.min(10, (4 + power * 0.06) | 0);
     for (let i = 0; i < nd; i++) {
       const a = Math.random() * Math.PI * 2;
       const sp = 90 + Math.random() * 200;

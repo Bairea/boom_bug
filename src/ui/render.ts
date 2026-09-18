@@ -389,7 +389,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     const k = Math.min(1, ft.age / ft.ttl);
     const rise = 16 * k;
     const pop = k < 0.16 ? 1 + (0.16 - k) * 2.4 : 1;
-    const tilt = ((ft.x * 7) % 6 - 3) * 0.02; // 由坐标衍生的稳定微倾斜
+    const tilt = (((ft.x * 7) % 6) - 3) * 0.02; // 由坐标衍生的稳定微倾斜
     ctx.save();
     ctx.translate(ft.x * s, (ft.y - rise) * s);
     ctx.rotate(tilt);
@@ -420,11 +420,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   for (const it of view.items) {
     if (!it.picked && !it.hover) continue;
     const destructive = !it.picked && it.hover && opts.hoverDestructive;
-    ctx.strokeStyle = it.picked
-      ? 'rgba(126,200,255,0.9)'
-      : destructive
-        ? 'rgba(255,99,71,0.75)'
-        : 'rgba(126,200,255,0.4)';
+    ctx.strokeStyle = it.picked ? 'rgba(126,200,255,0.9)' : destructive ? 'rgba(255,99,71,0.75)' : 'rgba(126,200,255,0.4)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 3]);
     ctx.lineDashOffset = -time * 8; // 蚂蚁线：虚线流动的选中语言
@@ -520,7 +516,14 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, VIEW_W * s, VIEW_H * s);
     const pulse = 0.5 + 0.5 * Math.sin(time * 5);
-    const rg = ctx.createRadialGradient(VIEW_W * s / 2, VIEW_H * s / 2, VIEW_H * s * 0.3, VIEW_W * s / 2, VIEW_H * s / 2, VIEW_W * s * 0.62);
+    const rg = ctx.createRadialGradient(
+      (VIEW_W * s) / 2,
+      (VIEW_H * s) / 2,
+      VIEW_H * s * 0.3,
+      (VIEW_W * s) / 2,
+      (VIEW_H * s) / 2,
+      VIEW_W * s * 0.62,
+    );
     rg.addColorStop(0, 'rgba(126,200,255,0)');
     rg.addColorStop(1, `rgba(90,160,235,${0.1 + 0.06 * pulse})`);
     ctx.fillStyle = rg;
@@ -574,10 +577,10 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.fillStyle = '#c9d6e8';
     ctx.font = `${Math.max(11, 5.5 * s)}px system-ui, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillText(opts.centerHint, VIEW_W * s / 2, VIEW_H * s / 2);
+    ctx.fillText(opts.centerHint, (VIEW_W * s) / 2, (VIEW_H * s) / 2);
     ctx.font = `${Math.max(9, 3.6 * s)}px system-ui, sans-serif`;
     ctx.globalAlpha *= 0.75;
-    ctx.fillText('点燃之后，物理会替你完成剩下的故事', VIEW_W * s / 2, VIEW_H * s / 2 + 7 * s);
+    ctx.fillText('点燃之后，物理会替你完成剩下的故事', (VIEW_W * s) / 2, (VIEW_H * s) / 2 + 7 * s);
     ctx.textAlign = 'left';
     ctx.restore();
   }
@@ -1160,8 +1163,8 @@ function drawGlass(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time 
   ctx.lineTo(-w * 0.1, -w * 0.55);
   ctx.stroke();
   // 流动 glint：一颗高光沿顶边缓慢扫过（由坐标派生相位，避免同帧齐闪）
-  const phase = ((it.x * 0.13 + it.y * 0.07) % 1 + 1) % 1;
-  const t = ((time * 0.18 + phase) % 1 + 1) % 1;
+  const phase = (((it.x * 0.13 + it.y * 0.07) % 1) + 1) % 1;
+  const t = (((time * 0.18 + phase) % 1) + 1) % 1;
   const gx = (-w + 2 * w * t) * 1;
   const fade = Math.sin(t * Math.PI);
   ctx.fillStyle = `rgba(255,255,255,${0.35 * fade})`;
@@ -1219,7 +1222,7 @@ function drawWater(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time:
   ctx.ellipse(0, 2 * s, w, w * 0.42, 0, 0, Math.PI * 2);
   ctx.stroke();
   // 环境涟漪：一圈缓慢扩散消隐的水纹（周期循环）
-  const rp = ((time * 0.33 + it.x * 0.11) % 1 + 1) % 1;
+  const rp = (((time * 0.33 + it.x * 0.11) % 1) + 1) % 1;
   ctx.strokeStyle = `rgba(190, 230, 255, ${0.3 * Math.sin(rp * Math.PI)})`;
   ctx.lineWidth = 0.35 * s;
   ctx.beginPath();
@@ -1422,7 +1425,7 @@ function drawSand(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: 
   ctx.fill();
   // 风纹：一道暗带缓慢游移（风吹沙动）
   {
-    const t = ((time * 0.1 + it.x * 0.19) % 1 + 1) % 1;
+    const t = (((time * 0.1 + it.x * 0.19) % 1) + 1) % 1;
     ctx.strokeStyle = `rgba(160, 130, 70, ${0.3 * Math.sin(t * Math.PI)})`;
     ctx.lineWidth = 0.6 * s;
     ctx.beginPath();
@@ -1464,7 +1467,7 @@ function drawOil(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: n
   ctx.stroke();
   // 上浮气泡：一颗气泡缓慢升起破裂（周期循环，与水盆涟漪对仗）
   {
-    const bp = ((time * 0.42 + it.x * 0.17) % 1 + 1) % 1;
+    const bp = (((time * 0.42 + it.x * 0.17) % 1) + 1) % 1;
     const by = 2 * s - bp * w * 0.5;
     const bs = (0.25 + bp * 0.5) * Math.sin(bp * Math.PI) * 2 + 0.3;
     ctx.strokeStyle = `rgba(190, 160, 230, ${0.5 * Math.sin(bp * Math.PI)})`;
@@ -1596,7 +1599,15 @@ function drawFly(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: n
       // 残影（半透明扇面）
       ctx.fillStyle = 'rgba(200,220,255,0.16)';
       ctx.beginPath();
-      ctx.ellipse(-dirX * r * 0.3, side * r * 0.5, r * 1.05, r * (0.55 + Math.abs(flap) * 0.35), flap * side * 0.5, 0, Math.PI * 2);
+      ctx.ellipse(
+        -dirX * r * 0.3,
+        side * r * 0.5,
+        r * 1.05,
+        r * (0.55 + Math.abs(flap) * 0.35),
+        flap * side * 0.5,
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
       // 实翅
       ctx.fillStyle = 'rgba(210,230,255,0.5)';

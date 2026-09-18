@@ -126,7 +126,8 @@ test('P29: ddatan2 特例与 Math.atan2 一致（零/无穷，除双零有意归
 });
 
 test('P29: 静态扫描 —— sim 层与编辑器禁止引擎相关数学（ hypot/sin/cos/…( 带调用括号）', () => {
-  const forbidden = /Math\.(hypot|sin|cos|tan|asin|acos|atan2|atan|pow|exp|log|log2|log10|expm1|log1p|cbrt|sinh|cosh|tanh|asinh|acosh|atanh|random)\s*\(/;
+  const forbidden =
+    /Math\.(hypot|sin|cos|tan|asin|acos|atan2|atan|pow|exp|log|log2|log10|expm1|log1p|cbrt|sinh|cosh|tanh|asinh|acosh|atanh|random)\s*\(/;
   // sim 全目录 + editor（它算出的 angle 会进分享码）。
   // render/particles/main 的 Math.* 是纯视觉（不影响确定性），不在守护范围。
   const targets = ['../src/sim/'];

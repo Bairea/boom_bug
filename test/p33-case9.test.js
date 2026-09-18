@@ -35,7 +35,8 @@ test('P33: 理想玩家 20 种子达成率 ≥ 85%', () => {
         if (b.kind !== 'explosive' || !b.alive || b.data.lit) continue;
         if (b.y > 120 || b.y < 50) continue; // 只在苍蝇带内出手
         const near = sim.world.bodies.some(
-          (o) => o.kind === 'bug' && o.data.bugType === 'fly' && o.alive && !o.data.knocked && dist2(b.x, b.y, o.x, o.y) < 45 * 45,
+          (o) =>
+            o.kind === 'bug' && o.data.bugType === 'fly' && o.alive && !o.data.knocked && dist2(b.x, b.y, o.x, o.y) < 45 * 45,
         );
         if (near) sim.playerIgnite(b.id);
       }

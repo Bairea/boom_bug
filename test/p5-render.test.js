@@ -113,7 +113,10 @@ test('R71: viewFromSpecs 按 pickedIndex 标记 picked（默认全不标）', ()
     { t: 'roach', x: 200, y: 100 },
   ];
   const plain = viewFromSpecs(specs);
-  assert.ok(plain.items.every((i) => !i.picked), '不传 pickedIndex 时无人被标');
+  assert.ok(
+    plain.items.every((i) => !i.picked),
+    '不传 pickedIndex 时无人被标',
+  );
   const marked = viewFromSpecs(specs, [], 1);
   assert.equal(marked.items[0].picked, false);
   assert.equal(marked.items[1].picked, true, '1 号实体应被标 picked');

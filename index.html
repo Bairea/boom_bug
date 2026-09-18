@@ -1,659 +1,939 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#10131a" />
-<meta name="mobile-web-app-capable" content="yes" />
-<link rel="manifest" href="./manifest.webmanifest" />
-<link rel="icon" href="./icon.svg" type="image/svg+xml" />
-<title>擦炮虫虫实验室 · Boom Bug Lab</title>
-<style>
-  :root {
-    color-scheme: dark;
-    --bg: #10131a;
-    --bg-deep: #0b0e14;
-    --panel: #171c26;
-    --panel-2: #1d2430;
-    --line: #2a3242;
-    --line-bright: #3a465c;
-    --text: #dde4ee;
-    --dim: #8a94a6;
-    --accent: #7ec8ff;
-    --accent-soft: rgba(126, 200, 255, 0.14);
-    --hot: #ff7840;
-    --gold: #ffd166;
-    --ok: #9fe6a0;
-    --radius: 10px;
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    background:
-      radial-gradient(1200px 500px at 50% -160px, rgba(126, 200, 255, 0.06), transparent 70%),
-      linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
-    color: var(--text);
-    font-family: system-ui, "Segoe UI", "Microsoft YaHei", sans-serif;
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
-      env(safe-area-inset-left);
-    animation: page-in 420ms ease;
-  }
-  @keyframes page-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#10131a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <title>擦炮虫虫实验室 · Boom Bug Lab</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #10131a;
+        --bg-deep: #0b0e14;
+        --panel: #171c26;
+        --panel-2: #1d2430;
+        --line: #2a3242;
+        --line-bright: #3a465c;
+        --text: #dde4ee;
+        --dim: #8a94a6;
+        --accent: #7ec8ff;
+        --accent-soft: rgba(126, 200, 255, 0.14);
+        --hot: #ff7840;
+        --gold: #ffd166;
+        --ok: #9fe6a0;
+        --radius: 10px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 500px at 50% -160px, rgba(126, 200, 255, 0.06), transparent 70%),
+          linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+        color: var(--text);
+        font-family: system-ui, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        animation: page-in 420ms ease;
+      }
+      @keyframes page-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
 
-  /* ---- 通用按钮 ---- */
-  button, select {
-    font-family: inherit;
-    touch-action: manipulation;
-    transition: transform 120ms ease, border-color 120ms ease, background-color 120ms ease,
-      box-shadow 120ms ease, color 120ms ease, opacity 120ms ease;
-  }
-  button:focus-visible, select:focus-visible, input:focus-visible + span, a:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-    border-radius: 8px;
-  }
-  button:active:not(:disabled) { transform: translateY(1px) scale(0.985); }
-  button:disabled { opacity: 0.45; cursor: not-allowed; }
+      /* ---- 通用按钮 ---- */
+      button,
+      select {
+        font-family: inherit;
+        touch-action: manipulation;
+        transition:
+          transform 120ms ease,
+          border-color 120ms ease,
+          background-color 120ms ease,
+          box-shadow 120ms ease,
+          color 120ms ease,
+          opacity 120ms ease;
+      }
+      button:focus-visible,
+      select:focus-visible,
+      input:focus-visible + span,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 8px;
+      }
+      button:active:not(:disabled) {
+        transform: translateY(1px) scale(0.985);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
 
-  /* ---- 顶栏 ---- */
-  header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 8px 16px;
-    background: linear-gradient(180deg, #1b212d 0%, #151a23 100%);
-    border-bottom: 1px solid var(--line);
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
-  }
-  header h1 {
-    font-size: 17px;
-    margin: 0;
-    letter-spacing: 0.5px;
-    background: linear-gradient(92deg, #ffe9c2 0%, #ffb37a 55%, #ff8a5c 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    text-shadow: 0 0 24px rgba(255, 150, 80, 0.25);
-    white-space: nowrap;
-  }
-  header .sub { color: var(--dim); font-size: 12px; letter-spacing: 0.3px; }
-  header .spacer { margin-left: auto; }
-  header select {
-    background: var(--panel);
-    color: var(--text);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 6px 10px;
-    cursor: pointer;
-  }
-  header select:hover { border-color: var(--line-bright); }
-  .chip-btn {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    color: var(--text);
-    border-radius: 8px;
-    padding: 6px 11px;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    min-width: 34px;
-    min-height: 34px;
-  }
-  .chip-btn:hover { border-color: var(--accent); background: var(--panel-2); }
+      /* ---- 顶栏 ---- */
+      header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 16px;
+        background: linear-gradient(180deg, #1b212d 0%, #151a23 100%);
+        border-bottom: 1px solid var(--line);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+      }
+      header h1 {
+        font-size: 17px;
+        margin: 0;
+        letter-spacing: 0.5px;
+        background: linear-gradient(92deg, #ffe9c2 0%, #ffb37a 55%, #ff8a5c 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 0 24px rgba(255, 150, 80, 0.25);
+        white-space: nowrap;
+      }
+      header .sub {
+        color: var(--dim);
+        font-size: 12px;
+        letter-spacing: 0.3px;
+      }
+      header .spacer {
+        margin-left: auto;
+      }
+      header select {
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+      header select:hover {
+        border-color: var(--line-bright);
+      }
+      .chip-btn {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 6px 11px;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        min-width: 34px;
+        min-height: 34px;
+      }
+      .chip-btn:hover {
+        border-color: var(--accent);
+        background: var(--panel-2);
+      }
 
-  main { display: flex; flex: 1; min-height: 0; }
+      main {
+        display: flex;
+        flex: 1;
+        min-height: 0;
+      }
 
-  /* ---- 工具箱 ---- */
-  #toolbox {
-    width: 124px;
-    background: linear-gradient(180deg, #161b25 0%, #12161f 100%);
-    border-right: 1px solid var(--line);
-    padding: 10px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--line) transparent;
-  }
-  #toolbox::-webkit-scrollbar { width: 8px; }
-  #toolbox::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
-  #toolbox .cat {
-    color: var(--dim);
-    font-size: 11px;
-    margin: 8px 2px 3px;
-    letter-spacing: 1px;
-    position: sticky;
-    top: -10px;
-    background: linear-gradient(180deg, #161b25 85%, rgba(22, 27, 37, 0));
-    padding: 2px;
-    z-index: 1;
-  }
-  #toolbox button {
-    display: flex; align-items: center; gap: 6px;
-    background: transparent;
-    color: var(--text);
-    border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 5px 8px;
-    cursor: pointer;
-    font-size: 13px;
-    text-align: left;
-    position: relative;
-  }
-  #toolbox button:hover {
-    border-color: var(--line);
-    background: var(--panel);
-    transform: translateX(2px);
-  }
-  #toolbox button.active {
-    border-color: rgba(126, 200, 255, 0.55);
-    background: var(--accent-soft);
-    box-shadow: inset 3px 0 0 var(--accent), 0 0 14px rgba(126, 200, 255, 0.12);
-  }
-  #toolbox label { color: var(--dim); font-size: 12px; display: flex; gap: 6px; align-items: center; margin-top: 4px; cursor: pointer; }
+      /* ---- 工具箱 ---- */
+      #toolbox {
+        width: 124px;
+        background: linear-gradient(180deg, #161b25 0%, #12161f 100%);
+        border-right: 1px solid var(--line);
+        padding: 10px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line) transparent;
+      }
+      #toolbox::-webkit-scrollbar {
+        width: 8px;
+      }
+      #toolbox::-webkit-scrollbar-thumb {
+        background: var(--line);
+        border-radius: 4px;
+      }
+      #toolbox .cat {
+        color: var(--dim);
+        font-size: 11px;
+        margin: 8px 2px 3px;
+        letter-spacing: 1px;
+        position: sticky;
+        top: -10px;
+        background: linear-gradient(180deg, #161b25 85%, rgba(22, 27, 37, 0));
+        padding: 2px;
+        z-index: 1;
+      }
+      #toolbox button {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        color: var(--text);
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 5px 8px;
+        cursor: pointer;
+        font-size: 13px;
+        text-align: left;
+        position: relative;
+      }
+      #toolbox button:hover {
+        border-color: var(--line);
+        background: var(--panel);
+        transform: translateX(2px);
+      }
+      #toolbox button.active {
+        border-color: rgba(126, 200, 255, 0.55);
+        background: var(--accent-soft);
+        box-shadow:
+          inset 3px 0 0 var(--accent),
+          0 0 14px rgba(126, 200, 255, 0.12);
+      }
+      #toolbox label {
+        color: var(--dim);
+        font-size: 12px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        margin-top: 4px;
+        cursor: pointer;
+      }
 
-  /* ---- 舞台 ---- */
-  #stage-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    min-width: 0;
-    padding: 10px;
-    background: radial-gradient(900px 420px at 50% 42%, rgba(126, 200, 255, 0.05), transparent 75%);
-  }
-  canvas {
-    width: min(100%, calc((100vh - 170px) * 1.6667));
-    max-height: 100%;
-    border-radius: 12px;
-    border: 1px solid rgba(126, 200, 255, 0.14);
-    box-shadow:
-      0 24px 80px rgba(0, 0, 0, 0.6),
-      0 0 60px rgba(126, 200, 255, 0.07),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.03);
-    cursor: crosshair;
-    touch-action: none;
-    background: #14171d;
-    transition: box-shadow 400ms ease;
-  }
-  canvas.running {
-    box-shadow:
-      0 24px 80px rgba(0, 0, 0, 0.6),
-      0 0 70px rgba(255, 130, 70, 0.13),
-      inset 0 0 0 1px rgba(255, 200, 150, 0.05);
-  }
-  /* 全屏模式：画布最大化 + 工具栏悬浮 */
-  #stage-wrap:fullscreen {
-    background: var(--bg-deep);
-    justify-content: center;
-  }
-  #stage-wrap:fullscreen canvas {
-    width: min(100%, calc(100vh * 1.6667));
-    max-height: calc(100vh - 90px);
-  }
-  #stage-wrap:fullscreen #toolbar {
-    position: absolute;
-    bottom: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(16, 19, 26, 0.72);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 8px 12px;
-  }
-  /* 场景切换淡入 */
-  canvas.scene-swap { animation: scene-in 320ms ease; }
-  @keyframes scene-in {
-    from { opacity: 0.35; }
-    to { opacity: 1; }
-  }
-  /* 目标达成：外框泛绿 */
-  canvas.goal-done {
-    border-color: rgba(159, 230, 160, 0.55);
-    box-shadow:
-      0 24px 80px rgba(0, 0, 0, 0.6),
-      0 0 70px rgba(120, 230, 140, 0.18),
-      inset 0 0 0 1px rgba(159, 230, 160, 0.06);
-  }
+      /* ---- 舞台 ---- */
+      #stage-wrap {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        min-width: 0;
+        padding: 10px;
+        background: radial-gradient(900px 420px at 50% 42%, rgba(126, 200, 255, 0.05), transparent 75%);
+      }
+      canvas {
+        width: min(100%, calc((100vh - 170px) * 1.6667));
+        max-height: 100%;
+        border-radius: 12px;
+        border: 1px solid rgba(126, 200, 255, 0.14);
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.6),
+          0 0 60px rgba(126, 200, 255, 0.07),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+        cursor: crosshair;
+        touch-action: none;
+        background: #14171d;
+        transition: box-shadow 400ms ease;
+      }
+      canvas.running {
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.6),
+          0 0 70px rgba(255, 130, 70, 0.13),
+          inset 0 0 0 1px rgba(255, 200, 150, 0.05);
+      }
+      /* 全屏模式：画布最大化 + 工具栏悬浮 */
+      #stage-wrap:fullscreen {
+        background: var(--bg-deep);
+        justify-content: center;
+      }
+      #stage-wrap:fullscreen canvas {
+        width: min(100%, calc(100vh * 1.6667));
+        max-height: calc(100vh - 90px);
+      }
+      #stage-wrap:fullscreen #toolbar {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(16, 19, 26, 0.72);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 8px 12px;
+      }
+      /* 场景切换淡入 */
+      canvas.scene-swap {
+        animation: scene-in 320ms ease;
+      }
+      @keyframes scene-in {
+        from {
+          opacity: 0.35;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      /* 目标达成：外框泛绿 */
+      canvas.goal-done {
+        border-color: rgba(159, 230, 160, 0.55);
+        box-shadow:
+          0 24px 80px rgba(0, 0, 0, 0.6),
+          0 0 70px rgba(120, 230, 140, 0.18),
+          inset 0 0 0 1px rgba(159, 230, 160, 0.06);
+      }
 
-  /* ---- 主工具栏 ---- */
-  #toolbar {
-    display: flex;
-    gap: 8px;
-    padding: 10px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  #toolbar button {
-    background: linear-gradient(180deg, var(--panel-2), var(--panel));
-    border: 1px solid var(--line);
-    color: var(--text);
-    border-radius: 9px;
-    padding: 9px 18px;
-    font-size: 14px;
-    cursor: pointer;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-  }
-  #toolbar button:hover:not(:disabled) {
-    border-color: var(--accent);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(126, 200, 255, 0.1);
-  }
-  #toolbar button.primary {
-    background: linear-gradient(180deg, #ff9a5c, #ff6a3c);
-    border-color: #ff8a5c;
-    color: #241109;
-    font-weight: 700;
-    box-shadow: 0 2px 18px rgba(255, 120, 64, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-    animation: ignite-breathe 2.8s ease-in-out infinite;
-  }
-  @keyframes ignite-breathe {
-    0%, 100% { box-shadow: 0 2px 18px rgba(255, 120, 64, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
-    50% { box-shadow: 0 2px 26px rgba(255, 130, 70, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
-  }
-  #toolbar button.primary:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(255, 120, 64, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-  }
-  /* 每日实验未完成：按钮角上挂呼吸点 */
-  #btn-daily.undone { position: relative; }
-  #btn-daily.undone::after {
-    content: '';
-    position: absolute;
-    top: -3px;
-    right: -3px;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    background: var(--gold);
-    box-shadow: 0 0 8px rgba(255, 209, 102, 0.8);
-    animation: daily-pulse 2.2s ease-in-out infinite;
-  }
-  @keyframes daily-pulse {
-    0%, 100% { transform: scale(1); opacity: 0.75; }
-    50% { transform: scale(1.25); opacity: 1; }
-  }
+      /* ---- 主工具栏 ---- */
+      #toolbar {
+        display: flex;
+        gap: 8px;
+        padding: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      #toolbar button {
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        border: 1px solid var(--line);
+        color: var(--text);
+        border-radius: 9px;
+        padding: 9px 18px;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+      #toolbar button:hover:not(:disabled) {
+        border-color: var(--accent);
+        transform: translateY(-1px);
+        box-shadow:
+          0 4px 16px rgba(0, 0, 0, 0.4),
+          0 0 12px rgba(126, 200, 255, 0.1);
+      }
+      #toolbar button.primary {
+        background: linear-gradient(180deg, #ff9a5c, #ff6a3c);
+        border-color: #ff8a5c;
+        color: #241109;
+        font-weight: 700;
+        box-shadow:
+          0 2px 18px rgba(255, 120, 64, 0.35),
+          inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        animation: ignite-breathe 2.8s ease-in-out infinite;
+      }
+      @keyframes ignite-breathe {
+        0%,
+        100% {
+          box-shadow:
+            0 2px 18px rgba(255, 120, 64, 0.3),
+            inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+        50% {
+          box-shadow:
+            0 2px 26px rgba(255, 130, 70, 0.5),
+            inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+      }
+      #toolbar button.primary:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow:
+          0 6px 24px rgba(255, 120, 64, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      }
+      /* 每日实验未完成：按钮角上挂呼吸点 */
+      #btn-daily.undone {
+        position: relative;
+      }
+      #btn-daily.undone::after {
+        content: '';
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--gold);
+        box-shadow: 0 0 8px rgba(255, 209, 102, 0.8);
+        animation: daily-pulse 2.2s ease-in-out infinite;
+      }
+      @keyframes daily-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.75;
+        }
+        50% {
+          transform: scale(1.25);
+          opacity: 1;
+        }
+      }
 
-  /* ---- 状态胶囊 ---- */
-  #status {
-    position: absolute;
-    top: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(18, 22, 30, 0.72);
-    border: 1px solid var(--line);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    padding: 5px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    color: var(--dim);
-    pointer-events: none;
-    white-space: normal;
-    text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    max-width: min(80%, 700px);
-    overflow-wrap: break-word;
-  }
+      /* ---- 状态胶囊 ---- */
+      #status {
+        position: absolute;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(18, 22, 30, 0.72);
+        border: 1px solid var(--line);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        padding: 5px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        color: var(--dim);
+        pointer-events: none;
+        white-space: normal;
+        text-align: center;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        max-width: min(80%, 700px);
+        overflow-wrap: break-word;
+      }
 
-  /* ---- 事故报告 ---- */
-  #report {
-    position: absolute;
-    top: 56px;
-    right: 12px;
-    width: min(352px, 92%);
-    max-height: calc(100% - 120px);
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--line) transparent;
-    background: linear-gradient(180deg, rgba(24, 28, 38, 0.97), rgba(17, 20, 28, 0.97));
-    border: 1px solid var(--line-bright);
-    border-radius: 14px;
-    padding: 14px 16px;
-    box-shadow:
-      0 24px 70px rgba(0, 0, 0, 0.65),
-      0 0 0 1px rgba(126, 200, 255, 0.06),
-      0 0 40px rgba(255, 120, 64, 0.05);
-    z-index: 5;
-    animation: report-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
-  }
-  @keyframes report-in {
-    from { opacity: 0; transform: translateY(-10px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-  #report-close {
-    position: absolute;
-    top: 8px;
-    right: 10px;
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    border: 1px solid var(--line);
-    background: var(--panel);
-    color: var(--dim);
-    cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-  }
-  #report-close:hover { border-color: var(--accent); color: var(--text); }
-  #report h2 {
-    margin: 0 0 10px;
-    font-size: 17px;
-    color: var(--hot);
-    font-family: ui-monospace, monospace;
-    letter-spacing: 1px;
-    font-variant-numeric: tabular-nums;
-    animation: title-glow 3.2s ease-in-out infinite;
-  }
-  @keyframes title-glow {
-    0%, 100% { text-shadow: 0 0 6px rgba(255, 120, 64, 0.15); }
-    50% { text-shadow: 0 0 16px rgba(255, 140, 70, 0.45); }
-  }
-  #report .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
-  #report .stat {
-    display: flex; justify-content: space-between;
-    font-size: 13px; color: var(--dim);
-    border-bottom: 1px dashed var(--line);
-    padding: 3px 0;
-    animation: stat-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1.15) both;
-  }
-  @keyframes stat-in {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  #report .stat b { color: var(--text); font-variant-numeric: tabular-nums; }
-  #report .goal {
-    margin-top: 10px; font-size: 13px;
-    color: #ff9a8a; background: rgba(255, 120, 64, 0.08);
-    border: 1px solid rgba(255, 120, 64, 0.25);
-    border-radius: 8px; padding: 6px 10px;
-    animation: stat-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1.15) 360ms both;
-  }
-  #report .goal.done { color: var(--ok); border-color: rgba(120, 230, 140, 0.3); background: rgba(120, 230, 140, 0.08); animation: goal-pop 360ms cubic-bezier(0.2, 0.9, 0.3, 1.4) 200ms both; }
-  @keyframes goal-pop {
-    from { opacity: 0; transform: scale(0.94); }
-    to { opacity: 1; transform: scale(1); }
-  }
-  #report .timeline {
-    margin-top: 10px; display: flex; flex-wrap: wrap; gap: 4px;
-    max-height: 96px; overflow-y: auto;
-    scrollbar-width: thin; scrollbar-color: var(--line) transparent;
-  }
-  #report .timeline span {
-    font-size: 11px; color: var(--dim);
-    background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px;
-    font-family: ui-monospace, monospace;
-    font-variant-numeric: tabular-nums;
-    transition: color 120ms ease, border-color 120ms ease;
-  }
-  #report .timeline span:hover { color: var(--text); border-color: var(--line-bright); }
-  #report .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
-  #report .actions button {
-    flex: 1;
-    background: linear-gradient(180deg, var(--panel-2), var(--panel)); color: var(--text);
-    border: 1px solid var(--line); border-radius: 8px;
-    padding: 8px 6px; cursor: pointer; font-size: 13px;
-  }
-  #report .actions button:hover { border-color: var(--accent); transform: translateY(-1px); }
+      /* ---- 事故报告 ---- */
+      #report {
+        position: absolute;
+        top: 56px;
+        right: 12px;
+        width: min(352px, 92%);
+        max-height: calc(100% - 120px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line) transparent;
+        background: linear-gradient(180deg, rgba(24, 28, 38, 0.97), rgba(17, 20, 28, 0.97));
+        border: 1px solid var(--line-bright);
+        border-radius: 14px;
+        padding: 14px 16px;
+        box-shadow:
+          0 24px 70px rgba(0, 0, 0, 0.65),
+          0 0 0 1px rgba(126, 200, 255, 0.06),
+          0 0 40px rgba(255, 120, 64, 0.05);
+        z-index: 5;
+        animation: report-in 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+      }
+      @keyframes report-in {
+        from {
+          opacity: 0;
+          transform: translateY(-10px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      #report-close {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--dim);
+        cursor: pointer;
+        font-size: 13px;
+        line-height: 1;
+      }
+      #report-close:hover {
+        border-color: var(--accent);
+        color: var(--text);
+      }
+      #report h2 {
+        margin: 0 0 10px;
+        font-size: 17px;
+        color: var(--hot);
+        font-family: ui-monospace, monospace;
+        letter-spacing: 1px;
+        font-variant-numeric: tabular-nums;
+        animation: title-glow 3.2s ease-in-out infinite;
+      }
+      @keyframes title-glow {
+        0%,
+        100% {
+          text-shadow: 0 0 6px rgba(255, 120, 64, 0.15);
+        }
+        50% {
+          text-shadow: 0 0 16px rgba(255, 140, 70, 0.45);
+        }
+      }
+      #report .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 14px;
+      }
+      #report .stat {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: var(--dim);
+        border-bottom: 1px dashed var(--line);
+        padding: 3px 0;
+        animation: stat-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1.15) both;
+      }
+      @keyframes stat-in {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      #report .stat b {
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      #report .goal {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #ff9a8a;
+        background: rgba(255, 120, 64, 0.08);
+        border: 1px solid rgba(255, 120, 64, 0.25);
+        border-radius: 8px;
+        padding: 6px 10px;
+        animation: stat-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1.15) 360ms both;
+      }
+      #report .goal.done {
+        color: var(--ok);
+        border-color: rgba(120, 230, 140, 0.3);
+        background: rgba(120, 230, 140, 0.08);
+        animation: goal-pop 360ms cubic-bezier(0.2, 0.9, 0.3, 1.4) 200ms both;
+      }
+      @keyframes goal-pop {
+        from {
+          opacity: 0;
+          transform: scale(0.94);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      #report .timeline {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        max-height: 96px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--line) transparent;
+      }
+      #report .timeline span {
+        font-size: 11px;
+        color: var(--dim);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 2px 6px;
+        font-family: ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+        transition:
+          color 120ms ease,
+          border-color 120ms ease;
+      }
+      #report .timeline span:hover {
+        color: var(--text);
+        border-color: var(--line-bright);
+      }
+      #report .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+      #report .actions button {
+        flex: 1;
+        background: linear-gradient(180deg, var(--panel-2), var(--panel));
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 6px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      #report .actions button:hover {
+        border-color: var(--accent);
+        transform: translateY(-1px);
+      }
 
-  /* ---- Toast ---- */
-  #toast {
-    position: fixed;
-    bottom: 74px;
-    left: 50%;
-    transform: translateX(-50%) translateY(20px);
-    background: rgba(126, 200, 255, 0.14);
-    border: 1px solid var(--accent);
-    color: var(--text);
-    border-radius: 10px;
-    padding: 8px 16px;
-    font-size: 13px;
-    opacity: 0;
-    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.3);
-    pointer-events: none;
-    z-index: 9;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4), 0 0 20px rgba(126, 200, 255, 0.1);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+      /* ---- Toast ---- */
+      #toast {
+        position: fixed;
+        bottom: 74px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: rgba(126, 200, 255, 0.14);
+        border: 1px solid var(--accent);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 8px 16px;
+        font-size: 13px;
+        opacity: 0;
+        transition:
+          opacity 0.25s ease,
+          transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+        pointer-events: none;
+        z-index: 9;
+        box-shadow:
+          0 8px 30px rgba(0, 0, 0, 0.4),
+          0 0 20px rgba(126, 200, 255, 0.1);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+      #toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
 
-  /* ---- 帮助层 ---- */
-  #help[hidden] { display: none; }
-  #help {
-    position: absolute;
-    inset: 0;
-    background: rgba(8, 10, 15, 0.82);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    z-index: 20;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    animation: help-in 200ms ease;
-  }
-  @keyframes help-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  #help h2 { color: var(--accent); margin: 0 0 6px; letter-spacing: 2px; }
-  #help .hint { color: var(--dim); font-size: 13px; margin: 0 0 12px; }
-  #help .cols { display: flex; gap: 28px; max-width: 760px; }
-  #help h3 { color: var(--hot); font-size: 13px; margin: 10px 0 4px; letter-spacing: 1px; }
-  #help ul { margin: 0; padding-left: 18px; color: var(--text); font-size: 12.5px; line-height: 1.7; }
-  #help kbd {
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-    border-bottom-width: 2px;
-    border-radius: 4px;
-    padding: 0 5px;
-    font-family: ui-monospace, monospace;
-    font-size: 11px;
-    color: var(--accent);
-  }
-  #help button {
-    margin-top: 16px;
-    background: linear-gradient(180deg, #ff9a5c, #ff6a3c);
-    border: none; border-radius: 9px;
-    color: #241109; font-weight: 700;
-    padding: 10px 28px; cursor: pointer; font-size: 14px;
-    box-shadow: 0 4px 20px rgba(255, 120, 64, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  }
-  #help button:hover { transform: translateY(-1px); box-shadow: 0 8px 28px rgba(255, 120, 64, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+      /* ---- 帮助层 ---- */
+      #help[hidden] {
+        display: none;
+      }
+      #help {
+        position: absolute;
+        inset: 0;
+        background: rgba(8, 10, 15, 0.82);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        animation: help-in 200ms ease;
+      }
+      @keyframes help-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      #help h2 {
+        color: var(--accent);
+        margin: 0 0 6px;
+        letter-spacing: 2px;
+      }
+      #help .hint {
+        color: var(--dim);
+        font-size: 13px;
+        margin: 0 0 12px;
+      }
+      #help .cols {
+        display: flex;
+        gap: 28px;
+        max-width: 760px;
+      }
+      #help h3 {
+        color: var(--hot);
+        font-size: 13px;
+        margin: 10px 0 4px;
+        letter-spacing: 1px;
+      }
+      #help ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--text);
+        font-size: 12.5px;
+        line-height: 1.7;
+      }
+      #help kbd {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        padding: 0 5px;
+        font-family: ui-monospace, monospace;
+        font-size: 11px;
+        color: var(--accent);
+      }
+      #help button {
+        margin-top: 16px;
+        background: linear-gradient(180deg, #ff9a5c, #ff6a3c);
+        border: none;
+        border-radius: 9px;
+        color: #241109;
+        font-weight: 700;
+        padding: 10px 28px;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow:
+          0 4px 20px rgba(255, 120, 64, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      }
+      #help button:hover {
+        transform: translateY(-1px);
+        box-shadow:
+          0 8px 28px rgba(255, 120, 64, 0.5),
+          inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      }
 
-  /* ---- 无障碍：减少动态 ---- */
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
-    button, select, #toast { transition-duration: 0.01ms !important; }
-  }
+      /* ---- 无障碍：减少动态 ---- */
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+        }
+        button,
+        select,
+        #toast {
+          transition-duration: 0.01ms !important;
+        }
+      }
 
-  /* 触控基础：禁双击缩放 / 点按高亮 / 拖拽时的文字选择 */
-  body { -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+      /* 触控基础：禁双击缩放 / 点按高亮 / 拖拽时的文字选择 */
+      body {
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+      }
 
-  /* ---- 竖屏/窄屏：上下布局，工具箱变底部横向滑动条（拇指可及） ---- */
-  @media (max-width: 720px) {
-    body { height: 100dvh; }
-    header { padding: 6px 8px; gap: 6px; }
-    header .sub { display: none; }
-    header h1 { font-size: 12px; white-space: nowrap; flex-shrink: 0; }
-    header select { min-width: 0; flex: 0 1 auto; max-width: 130px; }
-    header button { white-space: nowrap; padding: 5px 7px; }
-    /* 窄屏隐藏全屏按钮（移动端浏览器自带沉浸手势，顶栏空间优先给分享） */
-    #btn-full { display: none; }
-    main { flex-direction: column; }
-    #stage-wrap { padding: 6px; order: 1; }
-    canvas { width: 100%; }
-    #toolbar { padding: 6px 4px; }
-    #toolbar button { padding: 11px 14px; font-size: 15px; }
-    #toolbox {
-      order: 2;
-      width: 100%;
-      height: auto;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 8px 6px;
-      gap: 6px;
-      border-right: none;
-      border-top: 1px solid var(--line);
-      -webkit-overflow-scrolling: touch;
-    }
-    #toolbox .cat { display: none; }
-    #toolbox button { flex: 0 0 auto; padding: 9px 11px; font-size: 14px; }
-    #toolbox button:hover { transform: none; }
-    #toolbox label { flex: 0 0 auto; white-space: nowrap; }
-    #status { font-size: 12px; max-width: 92%; white-space: normal; }
-    #report {
-      top: auto; left: 8px; right: 8px; bottom: 8px;
-      width: auto;
-      max-height: 72dvh;
-      overflow-y: auto;
-    }
-    #help { overflow-y: auto; justify-content: flex-start; padding-top: 40px; }
-    #help .cols { flex-direction: column; gap: 0; }
-    #toast { bottom: 130px; }
-  }
-</style>
-</head>
-<body>
-<header>
-  <h1>🧨 擦炮虫虫实验室</h1>
-  <span class="sub">微型灾难实验室 · 摆放 → 点燃 → 目睹失控 → 回放分享</span>
-  <select id="scenario" aria-label="选择场景"></select>
-  <span class="spacer"></span>
-  <button id="btn-help" class="chip-btn" aria-label="实验手册">？</button>
-  <button id="btn-mute" class="chip-btn" aria-label="静音开关">🔊</button>
-  <button id="btn-full" class="chip-btn" aria-label="全屏切换" title="全屏（F）">⛶</button>
-  <button id="btn-share" class="chip-btn" aria-label="复制分享链接">🔗 分享</button>
-</header>
-<main>
-  <div id="toolbox">
-    <div class="cat">玩具虫</div>
-    <button data-tool="roach" title="蟑螂：高速逃窜、急转弯">🪳 蟑螂</button>
-    <button data-tool="locust" title="蝗虫：随机跳跃、高弹性">🦗 蝗虫</button>
-    <button data-tool="scarab" title="清道夫：装甲厚重，可固定">🪲 清道夫</button>
-    <button data-tool="snail" title="蜗牛：慢吞吞，爬过留下黏液让一切打滑">🐌 蜗牛</button>
-    <button data-tool="fly" title="苍蝇：悬空乱飞、极难命中">🪰 苍蝇</button>
-    <label><input type="checkbox" id="fix-scarab" checked /> 固定清道夫</label>
-    <div class="cat">爆炸物</div>
-    <button data-tool="firecracker" title="小炮仗：点燃后随机引信爆炸">🧨 小炮仗</button>
-    <button data-tool="skyrocket" title="冲天炮：竖直上冲（拖拽瞄准）">🎆 冲天炮</button>
-    <button data-tool="bottle" title="窜天猴：定向飞行（拖拽瞄准）">🚀 窜天猴</button>
-    <div class="cat">配件 · 点爆炸物安装</div>
-    <button data-tool="toothpick" title="牙签：高穿透、更轻">🥢 牙签</button>
-    <button data-tool="pin" title="大头针：极高穿透、命中钉住">📌 大头针</button>
-    <button data-tool="glue" title="胶水：命中粘附原地爆炸">🫙 胶水</button>
-    <button data-tool="rope" title="绳子：连接两个物体，超载会断">🪢 绳子</button>
-    <div class="cat">道具</div>
-    <button data-tool="eraser" title="删除：点击要移除的物体">🗑 删除</button>
-    <button data-tool="balloon" title="气球：轻于空气会飘走；绳子吊上炮仗就是空袭，爆炸和火苗会打爆它">🎈 气球</button>
-    <button data-tool="brick" title="砖头：固定平台">🧱 砖头</button>
-    <button data-tool="glass" title="玻璃砖：可被炸碎的隔断">🪟 玻璃砖</button>
-    <button data-tool="sponge" title="海绵垫：吸收冲击，落地不弹、爆炸减伤">🧽 海绵垫</button>
-    <button data-tool="water" title="水盆：浮力区，浇灭引信，水中爆炸减弱">💧 水盆</button>
-    <button data-tool="oil" title="油盆：可燃油区，遇火爆燃并放大爆炸">🛢 油盆</button>
-    <button data-tool="giftbox" title="礼物盒：炸开弹出内含的虫和炮仗（套娃）">🎁 礼物盒</button>
-    <button data-tool="wood" title="木板：可点燃，燃烧灼烧周围">🪵 木板</button>
-    <button data-tool="ice" title="冰面：永久光滑，物体打滑">🧊 冰面</button>
-    <button data-tool="metal" title="金属板：高弹反弹">⚙️ 金属板</button>
-    <button data-tool="sand" title="沙坑：陷入减速">⛱ 沙坑</button>
-  </div>
-  <div id="stage-wrap">
-    <div id="status" role="status" aria-live="polite">选择左侧工具摆放实验（摆放时物理暂停，点燃后才开跑）</div>
-    <canvas id="stage" width="960" height="576" tabindex="-1" role="img" aria-label="实验画布：摆放玩具虫与爆炸物的物理沙盒"></canvas>
-    <div id="toolbar">
-    <button id="btn-ignite" class="primary">🔥 点燃！</button>
-    <button id="btn-end" hidden>⏹ 结束实验</button>
-    <button id="btn-replay-share" hidden>⟲ 重放这场事故</button>
-    <button id="btn-skip" hidden>⏭ 跳过回放</button>
-    <button id="btn-speed" hidden>⏱ 0.5×</button>
-    <button id="btn-rerun">🔄 再来一次</button>
-    <button id="btn-newseed">🎲 新实验</button>
-    <button id="btn-daily" title="全世界今天同一份布局（确定性生成），跑完和今天上一局比">📅 每日实验</button>
-    <button id="btn-clear">🧹 清空重摆</button>
+      /* ---- 竖屏/窄屏：上下布局，工具箱变底部横向滑动条（拇指可及） ---- */
+      @media (max-width: 720px) {
+        body {
+          height: 100dvh;
+        }
+        header {
+          padding: 6px 8px;
+          gap: 6px;
+        }
+        header .sub {
+          display: none;
+        }
+        header h1 {
+          font-size: 12px;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        header select {
+          min-width: 0;
+          flex: 0 1 auto;
+          max-width: 130px;
+        }
+        header button {
+          white-space: nowrap;
+          padding: 5px 7px;
+        }
+        /* 窄屏隐藏全屏按钮（移动端浏览器自带沉浸手势，顶栏空间优先给分享） */
+        #btn-full {
+          display: none;
+        }
+        main {
+          flex-direction: column;
+        }
+        #stage-wrap {
+          padding: 6px;
+          order: 1;
+        }
+        canvas {
+          width: 100%;
+        }
+        #toolbar {
+          padding: 6px 4px;
+        }
+        #toolbar button {
+          padding: 11px 14px;
+          font-size: 15px;
+        }
+        #toolbox {
+          order: 2;
+          width: 100%;
+          height: auto;
+          flex-direction: row;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          overflow-y: hidden;
+          padding: 8px 6px;
+          gap: 6px;
+          border-right: none;
+          border-top: 1px solid var(--line);
+          -webkit-overflow-scrolling: touch;
+        }
+        #toolbox .cat {
+          display: none;
+        }
+        #toolbox button {
+          flex: 0 0 auto;
+          padding: 9px 11px;
+          font-size: 14px;
+        }
+        #toolbox button:hover {
+          transform: none;
+        }
+        #toolbox label {
+          flex: 0 0 auto;
+          white-space: nowrap;
+        }
+        #status {
+          font-size: 12px;
+          max-width: 92%;
+          white-space: normal;
+        }
+        #report {
+          top: auto;
+          left: 8px;
+          right: 8px;
+          bottom: 8px;
+          width: auto;
+          max-height: 72dvh;
+          overflow-y: auto;
+        }
+        #help {
+          overflow-y: auto;
+          justify-content: flex-start;
+          padding-top: 40px;
+        }
+        #help .cols {
+          flex-direction: column;
+          gap: 0;
+        }
+        #toast {
+          bottom: 130px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🧨 擦炮虫虫实验室</h1>
+      <span class="sub">微型灾难实验室 · 摆放 → 点燃 → 目睹失控 → 回放分享</span>
+      <select id="scenario" aria-label="选择场景"></select>
+      <span class="spacer"></span>
+      <button id="btn-help" class="chip-btn" aria-label="实验手册">？</button>
+      <button id="btn-mute" class="chip-btn" aria-label="静音开关">🔊</button>
+      <button id="btn-full" class="chip-btn" aria-label="全屏切换" title="全屏（F）">⛶</button>
+      <button id="btn-share" class="chip-btn" aria-label="复制分享链接">🔗 分享</button>
+    </header>
+    <main>
+      <div id="toolbox">
+        <div class="cat">玩具虫</div>
+        <button data-tool="roach" title="蟑螂：高速逃窜、急转弯">🪳 蟑螂</button>
+        <button data-tool="locust" title="蝗虫：随机跳跃、高弹性">🦗 蝗虫</button>
+        <button data-tool="scarab" title="清道夫：装甲厚重，可固定">🪲 清道夫</button>
+        <button data-tool="snail" title="蜗牛：慢吞吞，爬过留下黏液让一切打滑">🐌 蜗牛</button>
+        <button data-tool="fly" title="苍蝇：悬空乱飞、极难命中">🪰 苍蝇</button>
+        <label><input type="checkbox" id="fix-scarab" checked /> 固定清道夫</label>
+        <div class="cat">爆炸物</div>
+        <button data-tool="firecracker" title="小炮仗：点燃后随机引信爆炸">🧨 小炮仗</button>
+        <button data-tool="skyrocket" title="冲天炮：竖直上冲（拖拽瞄准）">🎆 冲天炮</button>
+        <button data-tool="bottle" title="窜天猴：定向飞行（拖拽瞄准）">🚀 窜天猴</button>
+        <div class="cat">配件 · 点爆炸物安装</div>
+        <button data-tool="toothpick" title="牙签：高穿透、更轻">🥢 牙签</button>
+        <button data-tool="pin" title="大头针：极高穿透、命中钉住">📌 大头针</button>
+        <button data-tool="glue" title="胶水：命中粘附原地爆炸">🫙 胶水</button>
+        <button data-tool="rope" title="绳子：连接两个物体，超载会断">🪢 绳子</button>
+        <div class="cat">道具</div>
+        <button data-tool="eraser" title="删除：点击要移除的物体">🗑 删除</button>
+        <button data-tool="balloon" title="气球：轻于空气会飘走；绳子吊上炮仗就是空袭，爆炸和火苗会打爆它">🎈 气球</button>
+        <button data-tool="brick" title="砖头：固定平台">🧱 砖头</button>
+        <button data-tool="glass" title="玻璃砖：可被炸碎的隔断">🪟 玻璃砖</button>
+        <button data-tool="sponge" title="海绵垫：吸收冲击，落地不弹、爆炸减伤">🧽 海绵垫</button>
+        <button data-tool="water" title="水盆：浮力区，浇灭引信，水中爆炸减弱">💧 水盆</button>
+        <button data-tool="oil" title="油盆：可燃油区，遇火爆燃并放大爆炸">🛢 油盆</button>
+        <button data-tool="giftbox" title="礼物盒：炸开弹出内含的虫和炮仗（套娃）">🎁 礼物盒</button>
+        <button data-tool="wood" title="木板：可点燃，燃烧灼烧周围">🪵 木板</button>
+        <button data-tool="ice" title="冰面：永久光滑，物体打滑">🧊 冰面</button>
+        <button data-tool="metal" title="金属板：高弹反弹">⚙️ 金属板</button>
+        <button data-tool="sand" title="沙坑：陷入减速">⛱ 沙坑</button>
+      </div>
+      <div id="stage-wrap">
+        <div id="status" role="status" aria-live="polite">选择左侧工具摆放实验（摆放时物理暂停，点燃后才开跑）</div>
+        <canvas
+          id="stage"
+          width="960"
+          height="576"
+          tabindex="-1"
+          role="img"
+          aria-label="实验画布：摆放玩具虫与爆炸物的物理沙盒"
+        ></canvas>
+        <div id="toolbar">
+          <button id="btn-ignite" class="primary">🔥 点燃！</button>
+          <button id="btn-end" hidden>⏹ 结束实验</button>
+          <button id="btn-replay-share" hidden>⟲ 重放这场事故</button>
+          <button id="btn-skip" hidden>⏭ 跳过回放</button>
+          <button id="btn-speed" hidden>⏱ 0.5×</button>
+          <button id="btn-rerun">🔄 再来一次</button>
+          <button id="btn-newseed">🎲 新实验</button>
+          <button id="btn-daily" title="全世界今天同一份布局（确定性生成），跑完和今天上一局比">📅 每日实验</button>
+          <button id="btn-clear">🧹 清空重摆</button>
+        </div>
+      </div>
+    </main>
+    <div id="report" role="dialog" aria-label="事故调查报告" hidden>
+      <button id="report-close" title="关闭报告，回到编辑（Esc）" aria-label="关闭报告">✕</button>
+      <h2 id="report-title">THE INCIDENT</h2>
+      <div id="report-body"></div>
+      <div class="actions">
+        <button id="btn-overlay-replay">🎬 回放</button>
+        <button id="btn-overlay-share">🔗 分享</button>
+        <button id="btn-overlay-rerun">🔄 再来一次</button>
+        <button id="btn-overlay-edit">✏️ 继续改造</button>
+      </div>
     </div>
-  </div>
-</main>
-<div id="report" role="dialog" aria-label="事故调查报告" hidden>
-  <button id="report-close" title="关闭报告，回到编辑（Esc）" aria-label="关闭报告">✕</button>
-  <h2 id="report-title">THE INCIDENT</h2>
-  <div id="report-body"></div>
-  <div class="actions">
-    <button id="btn-overlay-replay">🎬 回放</button>
-    <button id="btn-overlay-share">🔗 分享</button>
-    <button id="btn-overlay-rerun">🔄 再来一次</button>
-    <button id="btn-overlay-edit">✏️ 继续改造</button>
-  </div>
-</div>
-<div id="toast" role="status" aria-live="polite"></div>
-<div id="help" role="dialog" aria-modal="true" aria-label="实验手册" hidden>
-  <h2>实验手册</h2>
-  <p class="hint">这里的每样东西都只有<b>物理属性</b>，没有特化规则 —— 组合它们，发明你自己的灾难。</p>
-  <div class="cols">
-    <div>
-      <h3>玩具虫</h3>
-      <ul>
-        <li>🪳 蟑螂：高速逃窜、急转弯，hp 30</li>
-        <li>🦗 蝗虫：随机跳跃、高弹性，hp 22</li>
-        <li>🪲 清道夫：装甲减伤 60%，hp 90，可固定</li>
-        <li>🐌 蜗牛：龟速，沿途留黏液（摩擦 ×0.12），hp 80</li>
-        <li>🪰 苍蝇：半空乱飞、极难命中，会被附近的爆炸物吸引聚拢，hp 14</li>
-      </ul>
-      <h3>爆炸物</h3>
-      <ul>
-        <li>🧨 小炮仗：随机引信 0.9-1.5s，末期乱蹦，r60</li>
-        <li>🎆 冲天炮：竖直上冲 0.55s 燃尽即爆，r70</li>
-        <li>🚀 窜天猴：发射初速+摆动，撞什么炸什么，r50</li>
-      </ul>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="help" role="dialog" aria-modal="true" aria-label="实验手册" hidden>
+      <h2>实验手册</h2>
+      <p class="hint">这里的每样东西都只有<b>物理属性</b>，没有特化规则 —— 组合它们，发明你自己的灾难。</p>
+      <div class="cols">
+        <div>
+          <h3>玩具虫</h3>
+          <ul>
+            <li>🪳 蟑螂：高速逃窜、急转弯，hp 30</li>
+            <li>🦗 蝗虫：随机跳跃、高弹性，hp 22</li>
+            <li>🪲 清道夫：装甲减伤 60%，hp 90，可固定</li>
+            <li>🐌 蜗牛：龟速，沿途留黏液（摩擦 ×0.12），hp 80</li>
+            <li>🪰 苍蝇：半空乱飞、极难命中，会被附近的爆炸物吸引聚拢，hp 14</li>
+          </ul>
+          <h3>爆炸物</h3>
+          <ul>
+            <li>🧨 小炮仗：随机引信 0.9-1.5s，末期乱蹦，r60</li>
+            <li>🎆 冲天炮：竖直上冲 0.55s 燃尽即爆，r70</li>
+            <li>🚀 窜天猴：发射初速+摆动，撞什么炸什么，r50</li>
+          </ul>
+        </div>
+        <div>
+          <h3>配件（点爆炸物安装，最多 2 个）</h3>
+          <ul>
+            <li>🥢 牙签：穿透 0.6，更轻</li>
+            <li>📌 大头针：穿透 0.95，命中钉住 0.25s</li>
+            <li>🫙 胶水：命中粘附原地起爆</li>
+            <li>🪢 绳子：连接两物，超载拉断</li>
+          </ul>
+          <h3>道具</h3>
+          <ul>
+            <li>🧱 砖头：永固平台</li>
+            <li>🪟 玻璃砖：可炸碎成飞散碎片</li>
+            <li>🧽 海绵垫：吸收冲击，落地不弹、爆炸减伤</li>
+            <li>💧 水盆：浮力区，浇灭引信成哑弹，水中爆炸减弱</li>
+            <li>🛢 油盆：遇火爆燃并放大爆炸（×1.4），水可扑灭</li>
+            <li>🧊 冰面 / ⛱ 沙坑：脚下打滑 / 陷入减速+闷灭火苗（安全区）</li>
+            <li>🎈 气球：轻于空气会飘走，恰好吊得动一根炮仗 —— 绳子+气球+遥控引信=自造空袭</li>
+          </ul>
+          <h3>操作</h3>
+          <ul>
+            <li>水/油/冰/沙是"材质区"：不挡路，只有脚下效果</li>
+            <li>绳子工具连接有预览虚线；删除工具悬停目标变红示警</li>
+            <li>同款火箭工具点已放置的火箭 = 重新瞄准</li>
+            <li>运行中：点未点燃物=点火；点已点燃的=💥遥控引爆；空白处拖拽=扔炮仗</li>
+            <li>
+              <kbd>空格</kbd>=点燃/重来/跳过回放 · <kbd>R</kbd>=重来 · <kbd>N</kbd>=新种子 · <kbd>M</kbd>=静音 ·
+              <kbd>Esc</kbd>=结束/关手册
+            </li>
+            <li>殉爆：冲击波会引爆已点燃的炮仗，连锁靠它传播</li>
+            <li>📅 每日实验：全世界同一天同一份布局，跑完和今天上一局比</li>
+          </ul>
+        </div>
+      </div>
+      <button id="btn-help-close">明白，开炸</button>
     </div>
-    <div>
-      <h3>配件（点爆炸物安装，最多 2 个）</h3>
-      <ul>
-        <li>🥢 牙签：穿透 0.6，更轻</li>
-        <li>📌 大头针：穿透 0.95，命中钉住 0.25s</li>
-        <li>🫙 胶水：命中粘附原地起爆</li>
-        <li>🪢 绳子：连接两物，超载拉断</li>
-      </ul>
-      <h3>道具</h3>
-      <ul>
-        <li>🧱 砖头：永固平台</li>
-        <li>🪟 玻璃砖：可炸碎成飞散碎片</li>
-        <li>🧽 海绵垫：吸收冲击，落地不弹、爆炸减伤</li>
-        <li>💧 水盆：浮力区，浇灭引信成哑弹，水中爆炸减弱</li>
-        <li>🛢 油盆：遇火爆燃并放大爆炸（×1.4），水可扑灭</li>
-        <li>🧊 冰面 / ⛱ 沙坑：脚下打滑 / 陷入减速+闷灭火苗（安全区）</li>
-        <li>🎈 气球：轻于空气会飘走，恰好吊得动一根炮仗 —— 绳子+气球+遥控引信=自造空袭</li>
-      </ul>
-      <h3>操作</h3>
-      <ul>
-        <li>水/油/冰/沙是"材质区"：不挡路，只有脚下效果</li>
-        <li>绳子工具连接有预览虚线；删除工具悬停目标变红示警</li>
-        <li>同款火箭工具点已放置的火箭 = 重新瞄准</li>
-        <li>运行中：点未点燃物=点火；点已点燃的=💥遥控引爆；空白处拖拽=扔炮仗</li>
-        <li><kbd>空格</kbd>=点燃/重来/跳过回放 · <kbd>R</kbd>=重来 · <kbd>N</kbd>=新种子 · <kbd>M</kbd>=静音 · <kbd>Esc</kbd>=结束/关手册</li>
-        <li>殉爆：冲击波会引爆已点燃的炮仗，连锁靠它传播</li>
-        <li>📅 每日实验：全世界同一天同一份布局，跑完和今天上一局比</li>
-      </ul>
-    </div>
-  </div>
-  <button id="btn-help-close">明白，开炸</button>
-</div>
-<script type="module" src="./src/ui/main.js"></script>
-</body>
+    <script type="module" src="./src/ui/main.js"></script>
+  </body>
 </html>

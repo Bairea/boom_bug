@@ -18,7 +18,7 @@ function setup() {
 
 test('P31: playerDetonate —— 已点燃的炮仗下 tick 即爆', () => {
   const sim = setup();
-  const fc = sim.ents.find((b) => b.kind === "explosive");
+  const fc = sim.ents.find((b) => b.kind === 'explosive');
   sim.step(); // 过 1 tick，绕开 delay 调度（本布局无 delay）
   assert.ok(sim.playerIgnite(fc.id), '点燃应成功');
   sim.step(); // ignite 调度执行，body.lit = true
@@ -35,8 +35,8 @@ test('P31: playerDetonate —— 已点燃的炮仗下 tick 即爆', () => {
 
 test('P31: 遥控引爆不合法目标全部拒绝', () => {
   const sim = setup();
-  const fc = sim.ents.find((b) => b.kind === "explosive");
-  const roach = sim.ents.find((b) => b.kind === "bug");
+  const fc = sim.ents.find((b) => b.kind === 'explosive');
+  const roach = sim.ents.find((b) => b.kind === 'bug');
   assert.equal(sim.playerDetonate(fc.id), false, '未点燃不可引爆');
   assert.equal(sim.playerDetonate(roach.id), false, '虫子不可引爆');
   assert.equal(sim.playerDetonate(9999), false, '不存在的 id');
@@ -75,7 +75,7 @@ test('P31: pickDetonatable —— 只拾取已点燃未爆炸的，且取最近'
 test('P31: 分享码往返 —— 带 detonate 命令重放同一场事故', () => {
   const sim = setup();
   sim.step();
-  const fc = sim.ents.find((b) => b.kind === "explosive");
+  const fc = sim.ents.find((b) => b.kind === 'explosive');
   sim.playerIgnite(fc.id);
   // 让它烧 0.8 秒再遥控引爆（引信 0.9-1.5s，此时必然还活着；时机即技巧）
   sim.runFor(0.8);
@@ -92,7 +92,10 @@ test('P31: 分享码往返 —— 带 detonate 命令重放同一场事故', () 
     commands: sim.commandLog,
   });
   const back = decodeExperiment(code);
-  assert.ok(back.commands.some((c) => c.op === 'detonate'), '分享码应携带 detonate');
+  assert.ok(
+    back.commands.some((c) => c.op === 'detonate'),
+    '分享码应携带 detonate',
+  );
   const replay = new Simulation(back);
   replay.runFor(sim.tick / 60); // 与原局等长对拍
   assert.equal(replay.stateChecksum(), sim.stateChecksum(), '重放校验和不一致');

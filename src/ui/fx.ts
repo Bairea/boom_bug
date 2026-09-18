@@ -21,7 +21,11 @@ export class ItemFx {
 
   observe(items: { id?: number; speedX?: number; speedY?: number; y?: number }[], dt: number): void {
     for (const p of this.pops) this.pops.set(p[0], p[1] + dt);
-    for (const id of this.pops.keys()) if (this.pops.get(id)! > POP_TTL) { this.pops.delete(id); this.bumps.delete(id); }
+    for (const id of this.pops.keys())
+      if (this.pops.get(id)! > POP_TTL) {
+        this.pops.delete(id);
+        this.bumps.delete(id);
+      }
     for (const it of items) {
       if (it.id == null || it.speedY == null || it.y == null) continue;
       const last = this.prev.get(it.id);

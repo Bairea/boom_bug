@@ -85,9 +85,7 @@ export function buildDaily(dateKey: string): DailyExperiment {
 
   // 连锁日：把两根炮仗拴在一起 —— 断绳/连爆都是戏
   if (theme === 'chain' && fireIdx.length >= 2) {
-    entities[fireIdx[0]].ropes = [
-      [fireIdx[0], fireIdx[1]],
-    ];
+    entities[fireIdx[0]].ropes = [[fireIdx[0], fireIdx[1]]];
   }
 
   // 害虫日/火箭日：一只气球吊炮升空（吊炮会聚蝇 —— 空中目标自己送上门）
