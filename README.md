@@ -11,7 +11,7 @@
 ```bash
 npm install        # 仅一个 devDependency：TypeScript
 npm start          # tsc 编译 → 启动静态服务器 → http://localhost:8123
-npm test           # tsc 类型检查 + eslint + 140+ 个无头测试（模拟核心全量覆盖）
+npm test           # tsc 类型检查 + eslint + 151 个无头测试（模拟核心全量覆盖）
 ```
 
 源码是 `src/**/*.ts`（严格模式）；`tsc` 只做类型擦除、原地输出原生 ESM（`src/**/*.js`，已 gitignore），
@@ -62,7 +62,7 @@ src/
             bugs/状态机AI · explosives/引信推力爆炸连锁 · accessories/配件修饰器
             events/模拟事件联合类型
   game/     catalog/物品数值表 · encode/分享码与命令流 · replay/回放与事故报告 · scenario/预设
-  ui/       render/Canvas玩具风渲染 · particles/粒子震屏 · editor/摆放瞄准 · main/状态机
+  ui/       render/Canvas玩具风渲染(辉光/氛围) · particles/加法粒子 · fx/挤压弹跳 · editor/摆放瞄准 · main/状态机
 test/       分阶段回归测试（node:test，无头，只 import 编译产物）
 ```
 
@@ -82,6 +82,24 @@ test/       分阶段回归测试（node:test，无头，只 import 编译产物
 类型模型（TS 严格模式）：`Body` 按 `kind` 判别联合（`ExplosiveBody/BugBody/PropBody`），各自的 data
 必需字段在 `ExplosiveData/BugData/PropData` 收紧；跨 kind 读取的运行时状态放 `EntityDataBase` 可选层；
 模拟事件是 `SimEvent` 17 种联合、命令流是 `Ignite/Throw` 判别——多态字段打错名直接编译失败。
+
+## 视觉与手感（R89-R94）
+
+表现层大翻新，模拟层一字未动（确定性不受影响）：
+
+- **场景氛围**：分层桌面背景（渐变+台灯辉光+暗角，DOM 环境预渲染缓存）、玻璃盒质感
+  （后壁光/地面沉降/对角反光/金属渐变边框+螺丝）、双层软阴影、焦痕层次。
+- **辉光粒子**：加法混合（`lighter`）+ 预渲染辉光精灵——三层爆闪、双描边冲击环、
+  渐冷色火花、余烬上飘、纸屑碎片、火场暖烟；引信与尾焰辉光。
+- **手感 juice**：trauma² 平滑震屏（分层正弦+小幅滚转，替换每帧随机抖动）、大威力顿帧
+  hit-stop（时间缩放实现，不碰模拟）、爆炸全屏白闪、squash & stretch
+  （速度对齐拉伸 + 着陆骤停检测 + 击倒/裂甲/钉住弹跳弹簧）。
+- **物件美术**：全部物件渐变/高光/倒角重绘（蟑螂壳、炮仗纸筒、砖面、水面闪点、
+  木板火舌、礼盒缎带、金属拉丝、冰面棱面、油面虹彩、苍蝇翅残影……），
+  顺手修复气球双重位移 bug；虫虫 idle 生命感（苍蝇悬停浮动、蟑螂触角轻摆、蜗牛眼柄摇曳）。
+- **界面 chrome**：对齐 Vercel Web Interface Guidelines——color-scheme dark、渐变标题、
+  统一按钮体系（hover 抬升 / active 按压 / focus-visible 光环）、玻璃拟态状态胶囊与 HUD 芯片、
+  报告卡入场动画、图标按钮补 aria-label、`prefers-reduced-motion` 降级。
 
 ## 设计文档
 
