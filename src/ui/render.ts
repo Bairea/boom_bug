@@ -1797,7 +1797,7 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   ctx.beginPath();
   ctx.arc((t.x + (t.vx / l) * 2.4) * s, (t.y + (t.vy / l) * 2.4) * s, 0.7 * s, 0, Math.PI * 2);
   ctx.fill();
-  if (t.power != null) {
+  if (t.power != null && t.power > 0.08) {
     // 力度弧：绕起投点的圆环，满力闭合（绿→黄→红渐进色）
     const sweep = t.power * Math.PI * 1.6;
     const hue = 120 - 120 * t.power;
