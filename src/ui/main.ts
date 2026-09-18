@@ -1209,6 +1209,8 @@ window.addEventListener('keydown', (ev) => {
     state.runExperiment = null;
     toast('新种子 #' + state.seed.toString(36).toUpperCase());
     if (state.mode !== 'edit') backToEdit();
+  } else if (ev.key === 'm' || ev.key === 'M') {
+    els.mute?.click(); // 静音开关
   } else if (ev.key === 'Escape') {
     if (helpEl && !helpEl.hidden) closeHelp();
     else if (state.mode === 'running') finishRun();
