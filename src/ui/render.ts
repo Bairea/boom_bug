@@ -1775,7 +1775,8 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.strokeStyle = 'rgba(255,217,160,0.9)';
       ctx.lineWidth = 0.5 * s;
       ctx.beginPath();
-      ctx.arc(lx * s, ly * s, 2.2 * s, 0, Math.PI * 2);
+      // 轻微呼吸脉动
+      ctx.arc(lx * s, ly * s, 2.2 * s * (1 + 0.1 * Math.sin(performance.now() / 1000 * 5)), 0, Math.PI * 2);
       ctx.stroke();
     }
     // 投掷角度读数（与瞄准线读数对仗，方便复刻同一投掷）
