@@ -216,6 +216,24 @@
     transform: translateY(-1px);
     box-shadow: 0 6px 24px rgba(255, 120, 64, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
+  /* 每日实验未完成：按钮角上挂呼吸点 */
+  #btn-daily.undone { position: relative; }
+  #btn-daily.undone::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(255, 209, 102, 0.8);
+    animation: daily-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes daily-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.75; }
+    50% { transform: scale(1.25); opacity: 1; }
+  }
 
   /* ---- 状态胶囊 ---- */
   #status {

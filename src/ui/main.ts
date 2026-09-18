@@ -301,7 +301,10 @@ function finishRun(): void {
     toast('🏆 新纪录！');
   }
   // 今日已挑战 → 按钮挂 ✓
-  if (state.dailyKey) els.daily.textContent = '📅 每日实验 ✓';
+  if (state.dailyKey) {
+    els.daily.textContent = '📅 每日实验 ✓';
+    els.daily.classList.remove('undone');
+  }
   // 对照实验：与上一局的关键数字对比
   const lastKey = key + ':last';
   state.report.lastRun = records.load(lastKey) ?? undefined;
@@ -361,10 +364,15 @@ els.daily.addEventListener('click', () => {
     `📅 每日实验 #${key} · ${THEME_LABELS[daily.theme]} —— 全世界今天同一份布局（想改也行）。点燃开跑，跑完和今天上一局比！${doneToday ? '（今天已挑战过，试试打破自己的纪录）' : ''}`,
   );
 });
-// 今日已挑战过 → 按钮上挂个 ✓（留存钩子：让"今天玩过了吗"可见）
-try {
-  if (records.load(`daily-${todayKey()}`)) els.daily.textContent = '📅 每日实验 ✓';
-} catch {}
+// 今日已挑战过 → 按钮上挂个 ✓（未完成挂呼吸点）；留存钩子：让"今天玩过了吗"可见
+function refreshDailyBadge(): void {
+  try {
+    const done = !!records.load(`daily-${todayKey()}`);
+    els.daily.classList.toggle('undone', !done);
+    if (done) els.daily.textContent = '📅 每日实验 ✓';
+  } catch {}
+}
+refreshDailyBadge();
 // 清空重摆：编辑模式下一键清掉所有摆放（含自由实验的本地存档）
 els.clear.addEventListener('click', () => {
   if (state.mode !== 'edit') return;
