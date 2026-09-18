@@ -139,3 +139,8 @@
 | R210 | 05:40 ✨ propCrack 玻璃砖裂纹事件的细碎火花反馈（事件流视觉化补全）。 | main.ts（152 全绿） | R210 commit |
 | R211 | 03:30 📝 playtest-log 补 R209/R210。 | docs | R211 commit |
 | R212 | 03:40 🐛 **修复着陆检测从未触发的字段错配**——fx.observe 读 vy 但 ItemView 字段是 speedY（TS 结构类型允许可选缺失所以编译不报）；修正为 speedY/speedX，并新增横向撞击检测（撞墙/撞板挤压弹跳）。 | fx.ts + test（152 全绿） | R212 commit |
+| R213 | 03:30 📝 playtest-log 补 R211/R212；字段引用自查（fx.ts 已全部 speedY/speedX）。 | docs + fx.ts（152 全绿） | R213 commit |
+| R214 | 03:35 ✅ 分享码 hash 流程回归：分享→地址栏 hash→刷新恢复实验（16 实体+重放按钮）。 | 巡检（152 全绿） | — |
+| R215 | 03:40 🧹 源码 console/debugger 残留扫描：零残留。 | 巡检 | — |
+| R216 | 03:50 🐛 修复 ⛶ 按钮加入后 390px 顶栏溢出（窄屏隐藏全屏按钮+下拉 130px）。实机复检 ✓。 | index.html（152 全绿） | R216 commit |
+| R217 | 03:55 ✅ 390px 顶栏完整显示复检 ✓。 | 巡检 | — |
