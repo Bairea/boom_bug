@@ -814,8 +814,10 @@ function finishReplay(): void {
   if (state.report) showReport(state.report);
 }
 
+const REPLAY_SPEEDS = [0.5, 1, 0.25]; // 回放倍速循环档位
 function toggleReplaySpeed(): void {
-  replaySpeed = replaySpeed <= 0.5 ? 1 : 0.5;
+  const i = REPLAY_SPEEDS.indexOf(replaySpeed);
+  replaySpeed = REPLAY_SPEEDS[(i + 1) % REPLAY_SPEEDS.length];
   els.speed.textContent = `⏱ ${replaySpeed}×`;
 }
 
