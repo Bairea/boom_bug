@@ -412,6 +412,16 @@
   #help .cols { display: flex; gap: 28px; max-width: 760px; }
   #help h3 { color: var(--hot); font-size: 13px; margin: 10px 0 4px; letter-spacing: 1px; }
   #help ul { margin: 0; padding-left: 18px; color: var(--text); font-size: 12.5px; line-height: 1.7; }
+  #help kbd {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 0 5px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
   #help button {
     margin-top: 16px;
     background: linear-gradient(180deg, #ff9a5c, #ff6a3c);
@@ -589,7 +599,7 @@
         <li>绳子工具连接有预览虚线；删除工具悬停目标变红示警</li>
         <li>同款火箭工具点已放置的火箭 = 重新瞄准</li>
         <li>运行中：点未点燃物=点火；点已点燃的=💥遥控引爆；空白处拖拽=扔炮仗</li>
-        <li>空格=点燃/重来/跳过回放 · R=重来 · N=新种子 · Esc=结束</li>
+        <li><kbd>空格</kbd>=点燃/重来/跳过回放 · <kbd>R</kbd>=重来 · <kbd>N</kbd>=新种子 · <kbd>Esc</kbd>=结束</li>
         <li>殉爆：冲击波会引爆已点燃的炮仗，连锁靠它传播</li>
         <li>📅 每日实验：全世界同一天同一份布局，跑完和今天上一局比</li>
       </ul>
