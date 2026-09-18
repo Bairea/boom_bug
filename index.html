@@ -271,6 +271,10 @@
     top: 56px;
     right: 12px;
     width: min(352px, 92%);
+    max-height: calc(100% - 120px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
     background: linear-gradient(180deg, rgba(24, 28, 38, 0.97), rgba(17, 20, 28, 0.97));
     border: 1px solid var(--line-bright);
     border-radius: 14px;
