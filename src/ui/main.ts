@@ -1366,6 +1366,9 @@ window.addEventListener('keydown', (ev) => {
     if (state.mode !== 'edit') backToEdit();
   } else if (ev.key === 'm' || ev.key === 'M') {
     els.mute?.click(); // 静音开关
+  } else if (ev.key === 'h' || ev.key === 'H') {
+    if (helpEl && !helpEl.hidden) closeHelp();
+    else openHelp(); // 手册开关
   } else if (ev.key === 'f' || ev.key === 'F') {
     toggleFullscreen();
   } else if (ev.key === 'Escape') {
