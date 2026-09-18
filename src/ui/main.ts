@@ -680,6 +680,9 @@ function startReplay(): void {
     flashes: state.sim.eventLog.filter((e): e is ExplosionEvent & { tick: number } => e.type === 'explosion'),
     flashSeen: 0,
   };
+  // 焦痕/浮字清空，由重演逐步重建（视觉与实况时间轴一致）
+  state.scorches = [];
+  state.floatTexts = [];
   // 快进到起始帧的爆炸进度
   while (state.replay.flashSeen < state.replay.flashes.length && state.replay.flashes[state.replay.flashSeen].tick < startTick) {
     state.replay.flashSeen++;
@@ -710,11 +713,20 @@ function stepReplay(dt: number): void {
   const frames = state.recorder?.frames;
   if (!rp || !frames || !frames.length) return;
   rp.cursor += dt * 60 * replaySpeed;
-  // 到达的爆炸事件 → 粒子 + 声音
+  // 到达的爆炸事件 → 粒子 + 声音 + 战损/浮字/震屏白闪重演（不重排时间轴）
   while (rp.flashSeen < rp.flashes.length && rp.flashes[rp.flashSeen].tick <= rp.cursor) {
     const e = rp.flashes[rp.flashSeen++];
     state.particles.explosion(e.x, e.y, e.power);
     sfx.explosion(e.power);
+    state.scorches.push({ x: e.x, y: Math.min(e.y + 4, 178), r: 5 + e.power * 0.12, age: 0, ttl: 12 });
+    if (state.scorches.length > 24) state.scorches.shift();
+    state.trauma = Math.min(1, state.trauma + 0.22 + Math.min(0.55, e.power / 200));
+    state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300));
+    if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
+    if (e.depth >= 2) {
+      state.floatTexts.push({ x: e.x, y: e.y - 4, text: `连锁×${e.depth}`, age: 0, ttl: 1.1 });
+      if (state.floatTexts.length > 8) state.floatTexts.shift();
+    }
   }
   if (rp.cursor >= frames[frames.length - 1].tick + 30) finishReplay();
 }
