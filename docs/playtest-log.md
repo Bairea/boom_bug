@@ -175,3 +175,6 @@
 | R246 | 06:10 ✅ 周期抽查 soak（case1/2/4/7/9）零 JS 错误。 | 巡检记录（152 全绿） | — |
 | R247 | 06:15 ♿ "挑战下一关"由 div 改为真 button（键盘可激活，guidelines 语义化）。 | main.ts（152 全绿） | R247 commit |
 | R249 | 06:30 ♿ 修复复选框键盘焦点样式选择器（input:focus-visible 直选）。 | index.html（152 全绿） | R249 commit |
+| R244 | 06:30 📐 投掷预览补角度读数（与瞄准线对仗）。 | render.ts（152 全绿） | R244 commit |
+| R252 | 06:40 🎯 弹道预测视界 24→36 步（0.6s），慢速高抛可见完整弧线。 | render.ts（152 全绿） | R252 commit |
+| R253 | 06:45 ⌨️ H 键开关实验手册（键盘替代入口）+手册快捷键行同步。 | main.ts + index.html（152 全绿） | R253 commit |
