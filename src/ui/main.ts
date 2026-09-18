@@ -136,12 +136,18 @@ els.mute = document.getElementById('btn-mute') as HTMLButtonElement | null;
 try {
   if (localStorage.getItem('bbl-muted') === '1') {
     sfx.muted = true;
-    if (els.mute) els.mute.textContent = '🔇';
+    if (els.mute) {
+      els.mute.textContent = '🔇';
+      els.mute.setAttribute('aria-pressed', 'true');
+    }
   }
 } catch {}
 els.mute?.addEventListener('click', () => {
   sfx.muted = !sfx.muted;
-  if (els.mute) els.mute.textContent = sfx.muted ? '🔇' : '🔊';
+  if (els.mute) {
+    els.mute.textContent = sfx.muted ? '🔇' : '🔊';
+    els.mute.setAttribute('aria-pressed', String(sfx.muted));
+  }
   try {
     localStorage.setItem('bbl-muted', sfx.muted ? '1' : '0');
   } catch {}
