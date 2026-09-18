@@ -241,6 +241,21 @@ export class Particles {
     }
   }
 
+  // 火箭尾迹烟：飞行中的冲天炮/窜天猴尾部冒烟（每两 tick 调一次）
+  rocketTrail(x: number, y: number): void {
+    this.add({
+      type: 'smoke',
+      x: x + (Math.random() - 0.5) * 2,
+      y: y + (Math.random() - 0.5) * 2,
+      vx: (Math.random() - 0.5) * 8,
+      vy: 6 + Math.random() * 10,
+      r: 1.2 + Math.random() * 1.4,
+      life: 0.45 + Math.random() * 0.35,
+      age: 0,
+      warm: 0.35,
+    });
+  }
+
   // 地面扬尘：贴地横铺的尘浪（大爆炸贴地时调用，floorY 为地面世界坐标）
   dust(x: number, floorY: number): void {
     for (let i = 0; i < 8; i++) {

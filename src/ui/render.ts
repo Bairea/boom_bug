@@ -1354,13 +1354,24 @@ function drawSponge(ctx: CanvasRenderingContext2D, it: ItemView, s: number): voi
 }
 
 function drawDebris(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
-  ctx.fillStyle = 'rgba(170, 215, 245, 0.75)';
+  // 玻璃碎片：棱面渐变三角 + 边缘高光
+  const g = ctx.createLinearGradient(-2 * s, -2.4 * s, 2 * s, 1.8 * s);
+  g.addColorStop(0, 'rgba(200, 230, 250, 0.95)');
+  g.addColorStop(0.55, 'rgba(170, 215, 245, 0.75)');
+  g.addColorStop(1, 'rgba(140, 190, 225, 0.6)');
+  ctx.fillStyle = g;
   ctx.beginPath();
   ctx.moveTo(0, -2.4 * s);
   ctx.lineTo(2 * s, 1.6 * s);
   ctx.lineTo(-1.8 * s, 1.8 * s);
   ctx.closePath();
   ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+  ctx.lineWidth = 0.3 * s;
+  ctx.beginPath();
+  ctx.moveTo(0, -2.4 * s);
+  ctx.lineTo(2 * s, 1.6 * s);
+  ctx.stroke();
 }
 
 function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {

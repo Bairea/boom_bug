@@ -818,6 +818,15 @@ function stepOnce(): void {
   state.sim.step();
   state.recorder.record(state.sim);
   handleEvents(state.sim.eventsThisStep);
+  // 火箭尾迹烟：飞行中的冲天炮/窜天猴每隔一 tick 冒一口（纯表现层）
+  if (state.sim.tick % 2 === 0) {
+    for (const b of state.sim.world.bodies) {
+      if (!b.alive || b.kind !== 'explosive') continue;
+      if ((b.data.burn ?? 0) > 0 && (b.data.etype === 'skyrocket' || b.data.etype === 'bottle')) {
+        state.particles.rocketTrail(b.x, b.y);
+      }
+    }
+  }
   state.particles.update(DT);
 }
 
