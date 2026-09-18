@@ -23,7 +23,7 @@ function $<T extends HTMLElement>(id: string): T {
 }
 
 const canvas = $<HTMLCanvasElement>('stage');
-const ctx = canvas.getContext('2d')!;
+const ctx = canvas.getContext('2d', { alpha: false })!; // 背景全幅不透明：关 alpha 走更快合成路径
 const W = canvas.width;
 const H = canvas.height;
 
@@ -824,7 +824,16 @@ function tick(): void {
     if (state.mode === 'replay') stepReplay(dt);
   }
 
-  render();
+  if (!shouldSkipRender()) render();
+}
+
+// 后台标签页不渲染（模拟照走，rAF 本就被节流，省电）；自动化 renderNow 不受影响
+function shouldSkipRender(): boolean {
+  try {
+    return typeof document !== 'undefined' && document.hidden;
+  } catch {
+    return false;
+  }
 }
 
 function stepOnce(): void {
