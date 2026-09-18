@@ -190,3 +190,6 @@
 | R251 | 06:20 ✅ 油盆落点预警巡检：预测弧诚实显示拖拽力度不足（落点在盆前），力度弧 40%/-13° 读数正常。 | 巡检 | — |
 | R254 | 06:35 ✅ 全量快速回归 soak（10 场景 report+replay）零 JS 错误。 | 巡检记录（152 全绿） | — |
 | R255 | 06:40 💡 固定清道夫复选框 title 说明（功能可发现性）。 | index.html（152 全绿） | R255 commit |
+| R258b | 06:45 ♿ 静音按钮初始 aria-pressed=false 补全。 | main.ts（152 全绿） | R258b commit |
+| R259b | 07:00 ♿ 时间线芯片键盘可访问（role=button+tabindex+Enter/Space 触发+title 提示）。 | main.ts（152 全绿） | R259b commit |
+| R260b | 07:10 📖 手册补时间线芯片跳转说明。 | index.html（152 全绿） | R260b commit |
