@@ -14,7 +14,7 @@ import { toHash, experimentFromHash } from '../game/encode.js';
 import { buildDaily, todayKey, THEME_LABELS } from '../game/daily.js';
 import { Sfx } from './sounds.js';
 import { createRecords } from '../game/records.js';
-import type { RecordedEvent, ExplosionEvent } from '../sim/events.js';
+import type { RecordedEvent } from '../sim/events.js';
 
 function $<T extends HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -53,8 +53,7 @@ type GameMode = 'edit' | 'running' | 'report' | 'replay';
 interface ReplayCursor {
   cursor: number;
   startTick?: number;
-  flashes: (ExplosionEvent & { tick: number })[];
-  flashSeen: number;
+  eventIdx: number; // 完整事件流重演指针
 }
 
 let replaySpeed = 0.5; // 回放倍速（0.5×/1×，按钮切换）
@@ -677,16 +676,12 @@ function startReplay(): void {
   state.replay = {
     cursor: startTick,
     startTick,
-    flashes: state.sim.eventLog.filter((e): e is ExplosionEvent & { tick: number } => e.type === 'explosion'),
-    flashSeen: 0,
+    eventIdx: state.sim.eventLog.findIndex((e) => (e.tick ?? 0) >= startTick),
   };
+  if ((state.replay.eventIdx ?? 0) < 0) state.replay.eventIdx = state.sim.eventLog.length;
   // 焦痕/浮字清空，由重演逐步重建（视觉与实况时间轴一致）
   state.scorches = [];
   state.floatTexts = [];
-  // 快进到起始帧的爆炸进度
-  while (state.replay.flashSeen < state.replay.flashes.length && state.replay.flashes[state.replay.flashSeen].tick < startTick) {
-    state.replay.flashSeen++;
-  }
   els.speed.textContent = `⏱ ${replaySpeed}×`;
   els.skip.hidden = false;
   els.speed.hidden = false;
@@ -713,20 +708,10 @@ function stepReplay(dt: number): void {
   const frames = state.recorder?.frames;
   if (!rp || !frames || !frames.length) return;
   rp.cursor += dt * 60 * replaySpeed;
-  // 到达的爆炸事件 → 粒子 + 声音 + 战损/浮字/震屏白闪重演（不重排时间轴）
-  while (rp.flashSeen < rp.flashes.length && rp.flashes[rp.flashSeen].tick <= rp.cursor) {
-    const e = rp.flashes[rp.flashSeen++];
-    state.particles.explosion(e.x, e.y, e.power);
-    sfx.explosion(e.power);
-    state.scorches.push({ x: e.x, y: Math.min(e.y + 4, 178), r: 5 + e.power * 0.12, age: 0, ttl: 12 });
-    if (state.scorches.length > 24) state.scorches.shift();
-    state.trauma = Math.min(1, state.trauma + 0.22 + Math.min(0.55, e.power / 200));
-    state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300));
-    if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
-    if (e.depth >= 2) {
-      state.floatTexts.push({ x: e.x, y: e.y - 4, text: `连锁×${e.depth}`, age: 0, ttl: 1.1 });
-      if (state.floatTexts.length > 8) state.floatTexts.shift();
-    }
+  // 到达的事件 → 表现层重演（完整事件流：爆炸/击倒/气球爆/断绳…，不重排时间轴）
+  const events = state.sim?.eventLog ?? [];
+  while (rp.eventIdx < events.length && (events[rp.eventIdx].tick ?? 0) <= rp.cursor) {
+    applyEventPresentation(events[rp.eventIdx++], false);
   }
   if (rp.cursor >= frames[frames.length - 1].tick + 30) finishReplay();
 }
@@ -910,87 +895,92 @@ function frame(_now: number): void {
 }
 setInterval(tick, 250); // 后台兜底驱动
 
+// 事件 → 表现层副作用。live=true（实况）允许改时间轴（顿帧/慢镜头）；回放重演只做视听反馈。
+function applyEventPresentation(e: RecordedEvent, live: boolean): void {
+  if (e.type === 'explosion') {
+    state.particles.explosion(e.x, e.y, e.power);
+    sfx.explosion(e.power);
+    // 焦痕：地面战损记忆（最多 24 个，12s 淡去）
+    state.scorches.push({ x: e.x, y: Math.min(e.y + 4, 178), r: 5 + e.power * 0.12, age: 0, ttl: 12 });
+    if (state.scorches.length > 24) state.scorches.shift();
+    // 镜头推近一点，随时间回弹
+    state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
+    // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
+    const motionK = reducedMotion ? 0.35 : 1;
+    state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
+    state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300) * motionK);
+    // 方向性推镜：镜头被冲击波往爆点反方向推一下（回中弹簧自动收回）
+    const kick = Math.min(2.5, e.power / 80) * motionK;
+    state.panX = Math.max(-4, Math.min(4, state.panX - ((e.x - VIEW_W / 2) / (VIEW_W / 2)) * kick));
+    state.panY = Math.max(-3, Math.min(3, state.panY - ((e.y - VIEW_H / 2) / (VIEW_H / 2)) * kick));
+    if (live && !reducedMotion && e.power >= 40) {
+      state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
+    }
+    // 贴地爆炸 → 地面扬尘浪
+    if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
+    // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
+    if (live && e.depth >= 2 && !state.slowmoUsed) {
+      state.slowmo = Math.max(state.slowmo, 0.7);
+      state.slowmoUsed = true;
+      state.slowmoCenter = { x: e.x, y: e.y };
+      state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感
+    }
+    // 连锁浮动大字
+    if (e.depth >= 2) {
+      state.floatTexts.push({ x: e.x, y: e.y - 4, text: `连锁×${e.depth}`, age: 0, ttl: 1.1 });
+      if (state.floatTexts.length > 8) state.floatTexts.shift();
+    }
+  } else if (e.type === 'knockout') {
+    state.particles.spark(e.x, e.y, 8);
+    sfx.knockout();
+    state.itemFx.pop(e.id, 1); // 击倒瞬间：翻壳 + 弹跳挤压
+    state.trauma = Math.min(1, state.trauma + 0.07);
+  } else if (e.type === 'multiKill') {
+    state.floatTexts.push({ x: e.x, y: e.y - 6, text: `一爆多杀 ×${e.count}`, age: 0, ttl: 1.2 });
+    if (live && !state.slowmoUsed) {
+      state.slowmo = Math.max(state.slowmo, 0.9);
+      state.slowmoUsed = true;
+    }
+  } else if (e.type === 'pinStick' || e.type === 'glueStick') {
+    state.particles.puff(e.x, e.y);
+    sfx.stick();
+    state.itemFx.pop(e.id, 0.5);
+  } else if (e.type === 'balloonPop') {
+    state.particles.spark(e.x, e.y, 5);
+    state.particles.rubberPop(e.x, e.y); // 橡胶碎片
+    sfx.pop();
+  } else if (e.type === 'ropeBreak') {
+    state.particles.spark(e.x, e.y, 4);
+    state.particles.ropeBits(e.x, e.y); // 断绳飞散
+    sfx.ropeBreak();
+    state.trauma = Math.min(1, state.trauma + 0.05);
+  } else if (e.type === 'ignite') {
+    state.particles.spark(e.x, e.y, 2);
+    sfx.fuse();
+  } else if (e.type === 'slimeBurn') {
+    state.particles.puff(e.x, e.y);
+  } else if (e.type === 'locustJump') {
+    state.itemFx.pop(e.id, 0.45); // 起跳蹬地：蓄力压缩弹回
+  } else if (e.type === 'armorCrack') {
+    state.itemFx.pop(e.id, 0.7); // 裂甲：重击感
+  } else if (e.type === 'douse') {
+    state.particles.puff(e.x, e.y);
+    state.particles.splash(e.x, e.y); // 水花
+    sfx.fuse(); // 呲——
+  } else if (e.type === 'fireTick') {
+    // 火焰火星 + 噼啪声
+    for (let i = 0; i < 3; i++) state.particles.spark(e.x + (Math.random() - 0.5) * 16, e.y - Math.random() * 8, 1);
+    sfx.crackle();
+  } else if (e.type === 'propBreak') {
+    state.particles.spark(e.x, e.y, 10);
+    sfx.glassBreak();
+    state.trauma = Math.min(1, state.trauma + 0.1);
+  }
+}
+
 function handleEvents(events: RecordedEvent[]): void {
   for (const e of events) {
-    if (e.type === 'explosion') {
-      state.particles.explosion(e.x, e.y, e.power);
-      sfx.explosion(e.power);
-      // 焦痕：地面战损记忆（最多 24 个，12s 淡去）
-      state.scorches.push({ x: e.x, y: Math.min(e.y + 4, 178), r: 5 + e.power * 0.12, age: 0, ttl: 12 });
-      if (state.scorches.length > 24) state.scorches.shift();
-      // 镜头推近一点，随时间回弹
-      state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
-      // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
-      const motionK = reducedMotion ? 0.35 : 1;
-      state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
-      state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300) * motionK);
-      // 方向性推镜：镜头被冲击波往爆点反方向推一下（回中弹簧自动收回）
-      const kick = Math.min(2.5, e.power / 80) * motionK;
-      state.panX = Math.max(-4, Math.min(4, state.panX - ((e.x - VIEW_W / 2) / (VIEW_W / 2)) * kick));
-      state.panY = Math.max(-3, Math.min(3, state.panY - ((e.y - VIEW_H / 2) / (VIEW_H / 2)) * kick));
-      if (!reducedMotion && e.power >= 40) {
-        state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
-      }
-      // 贴地爆炸 → 地面扬尘浪
-      if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
-      // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
-      if (e.depth >= 2 && !state.slowmoUsed) {
-        state.slowmo = Math.max(state.slowmo, 0.7);
-        state.slowmoUsed = true;
-        state.slowmoCenter = { x: e.x, y: e.y };
-        state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感
-      }
-      // 连锁浮动大字
-      if (e.depth >= 2) {
-        state.floatTexts.push({ x: e.x, y: e.y - 4, text: `连锁×${e.depth}`, age: 0, ttl: 1.1 });
-        if (state.floatTexts.length > 8) state.floatTexts.shift();
-      }
-    } else if (e.type === 'knockout') {
-      state.particles.spark(e.x, e.y, 8);
-      sfx.knockout();
-      state.itemFx.pop(e.id, 1); // 击倒瞬间：翻壳 + 弹跳挤压
-      state.trauma = Math.min(1, state.trauma + 0.07);
-    } else if (e.type === 'multiKill') {
-      state.floatTexts.push({ x: e.x, y: e.y - 6, text: `一爆多杀 ×${e.count}`, age: 0, ttl: 1.2 });
-      if (!state.slowmoUsed) {
-        state.slowmo = Math.max(state.slowmo, 0.9);
-        state.slowmoUsed = true;
-      }
-    } else if (e.type === 'pinStick' || e.type === 'glueStick') {
-      state.particles.puff(e.x, e.y);
-      sfx.stick();
-      state.itemFx.pop(e.id, 0.5);
-    } else if (e.type === 'balloonPop') {
-      state.particles.spark(e.x, e.y, 5);
-      state.particles.rubberPop(e.x, e.y); // 橡胶碎片
-      sfx.pop();
-    } else if (e.type === 'ropeBreak') {
-      state.particles.spark(e.x, e.y, 4);
-      state.particles.ropeBits(e.x, e.y); // 断绳飞散
-      sfx.ropeBreak();
-      state.trauma = Math.min(1, state.trauma + 0.05);
-    } else if (e.type === 'ignite') {
-      state.particles.spark(e.x, e.y, 2);
-      sfx.fuse();
-    } else if (e.type === 'slimeBurn') {
-      state.particles.puff(e.x, e.y);
-    } else if (e.type === 'locustJump') {
-      state.itemFx.pop(e.id, 0.45); // 起跳蹬地：蓄力压缩弹回
-    } else if (e.type === 'armorCrack') {
-      state.itemFx.pop(e.id, 0.7); // 裂甲：重击感
-    } else if (e.type === 'douse') {
-      state.particles.puff(e.x, e.y);
-      state.particles.splash(e.x, e.y); // 水花
-      sfx.fuse(); // 呲——
-    } else if (e.type === 'fireTick') {
-      // 火焰火星 + 噼啪声
-      for (let i = 0; i < 3; i++) state.particles.spark(e.x + (Math.random() - 0.5) * 16, e.y - Math.random() * 8, 1);
-      sfx.crackle();
-    } else if (e.type === 'propBreak') {
-      state.particles.spark(e.x, e.y, 10);
-      sfx.glassBreak();
-      state.trauma = Math.min(1, state.trauma + 0.1);
-    }
+    applyEventPresentation(e, true);
     if (['explosion', 'knockout', 'ropeBreak', 'multiKill', 'armorCrack', 'pinStick', 'glueStick'].includes(e.type)) {
       state.lastEventTick = e.tick;
     }
