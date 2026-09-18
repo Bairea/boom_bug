@@ -155,3 +155,5 @@
 | R225 | 🎨 prettier 全量格式化（仓库 format 脚本+index.html），消除 12 文件漂移；行为零变化。 | 12 files（152 全绿） | R225 commit |
 | R226 | 📸 三张展示图以最终视觉状态重拍至 .shots（桌面尺寸）。 | .shots（无代码变更） | — |
 | R228 | 🎯 弹道落点入水蓝色警示圈（会熄灭预警，case6 教学可读性）。 | render.ts + main.ts（152 全绿） | R228 commit |
+| R230 | 05:40 🎯 弹道落点油盆预警（橙色虚线圈=爆燃放大，与水蓝圈对仗）。 | render.ts + main.ts（152 全绿） | R230 commit |
+| R232 | 06:10 📄 meta description 补全（页面元信息完整）。 | index.html（152 全绿） | R232 commit |
