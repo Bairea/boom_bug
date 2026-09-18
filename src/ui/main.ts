@@ -820,6 +820,7 @@ function handleEvents(events: RecordedEvent[]): void {
       state.itemFx.pop(e.id, 0.7); // 裂甲：重击感
     } else if (e.type === 'douse') {
       state.particles.puff(e.x, e.y);
+      state.particles.splash(e.x, e.y); // 水花
       sfx.fuse(); // 呲——
     } else if (e.type === 'fireTick') {
       // 火焰火星 + 噼啪声

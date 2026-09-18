@@ -60,6 +60,12 @@ interface ConfettiParticle extends ParticleBase {
   color: string;
   sway: number;
 }
+interface DropParticle extends ParticleBase {
+  type: 'drop';
+  vx: number;
+  vy: number;
+  r: number;
+}
 type Particle =
   | SparkParticle
   | SmokeParticle
@@ -68,7 +74,8 @@ type Particle =
   | EmberParticle
   | DebrisParticle
   | DustParticle
-  | ConfettiParticle;
+  | ConfettiParticle
+  | DropParticle;
 
 // ---- 辉光精灵：有 DOM 时预渲染径向渐变小图（避免每帧建渐变/shadowBlur）----
 const glowCache = new Map<string, CanvasGradient | HTMLCanvasElement>();
@@ -261,6 +268,24 @@ export class Particles {
     }
   }
 
+  // 水花：浇灭/落水时的蓝白水滴上溅（douse 事件调用）
+  splash(x: number, y: number): void {
+    for (let i = 0; i < 9; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 1.5;
+      const sp = 60 + Math.random() * 140;
+      this.add({
+        type: 'drop',
+        x: x + (Math.random() - 0.5) * 5,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp,
+        r: 0.6 + Math.random() * 1,
+        life: 0.4 + Math.random() * 0.3,
+        age: 0,
+      });
+    }
+  }
+
   update(dt: number): void {
     this.shake = Math.max(0, this.shake - dt * 26);
     for (const p of this.list) {
@@ -295,6 +320,10 @@ export class Particles {
         p.x += (p.vx + Math.sin(p.age * 5 + p.sway) * 34) * dt;
         p.y += p.vy * dt;
         p.rot += p.vrot * dt;
+      } else if (p.type === 'drop') {
+        p.vy += 760 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
       }
     }
     this.list = this.list.filter((p) => p.age < p.life);
@@ -371,6 +400,12 @@ export class Particles {
         ctx.scale(1, 0.4 + 0.6 * Math.abs(Math.sin(p.age * 7 + p.sway))); // 翻面闪动
         ctx.fillStyle = p.color;
         ctx.fillRect(-p.r * s, -p.r * 0.55 * s, p.r * 2 * s, p.r * 1.1 * s);
+      } else if (p.type === 'drop') {
+        ctx.globalAlpha = k;
+        ctx.fillStyle = '#bfe3ff';
+        ctx.beginPath();
+        ctx.ellipse(p.x * s, p.y * s, p.r * 0.55 * s, p.r * s, 0, 0, Math.PI * 2);
+        ctx.fill();
       } else if (p.type === 'smoke') {
         // 径向渐变烟团：中心浓、边缘散（比实心圆柔和）
         ctx.globalAlpha = k * (0.3 + p.warm * 0.14);
