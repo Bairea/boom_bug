@@ -779,6 +779,8 @@ function tick(): void {
   state.trauma = Math.max(0, state.trauma - dt * 1.7);
   state.flash = Math.max(0, state.flash - dt * 3.4);
   if (state.hitStop > 0) state.hitStop = Math.max(0, state.hitStop - dt);
+  // 环境微尘：台灯光束里的漂浮微粒（纯装饰）
+  if (!reducedMotion && Math.random() < 0.1) state.particles.mote(VIEW_W, VIEW_H);
 
   // 慢镜头镜头缓推：向爆心平移（限幅），结束回中
   {

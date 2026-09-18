@@ -76,6 +76,13 @@ interface BitParticle extends ParticleBase {
   vrot: number;
   color: string;
 }
+interface MoteParticle extends ParticleBase {
+  type: 'mote';
+  vx: number;
+  vy: number;
+  r: number;
+  seed: number;
+}
 type Particle =
   | SparkParticle
   | SmokeParticle
@@ -86,7 +93,8 @@ type Particle =
   | DustParticle
   | ConfettiParticle
   | DropParticle
-  | BitParticle;
+  | BitParticle
+  | MoteParticle;
 
 // ---- 辉光精灵：有 DOM 时预渲染径向渐变小图（避免每帧建渐变/shadowBlur）----
 const glowCache = new Map<string, CanvasGradient | HTMLCanvasElement>();
@@ -294,6 +302,22 @@ export class Particles {
     }
   }
 
+  // 环境微尘：台灯光束里缓慢漂浮的微粒（每帧小概率补充，cap 内自灭）
+  mote(W: number, H: number): void {
+    if (this.list.length > 560) return;
+    this.add({
+      type: 'mote',
+      x: Math.random() * W,
+      y: Math.random() * H * 0.75,
+      vx: (Math.random() - 0.5) * 5,
+      vy: -2 - Math.random() * 4,
+      r: 0.35 + Math.random() * 0.55,
+      seed: Math.random() * 10,
+      life: 3 + Math.random() * 3,
+      age: 0,
+    });
+  }
+
   // 水花：浇灭/落水时的蓝白水滴上溅（douse 事件调用）
   splash(x: number, y: number): void {
     for (let i = 0; i < 9; i++) {
@@ -402,6 +426,9 @@ export class Particles {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.rot += p.vrot * dt;
+      } else if (p.type === 'mote') {
+        p.x += (p.vx + Math.sin(p.age * 1.7 + p.seed) * 3) * dt;
+        p.y += p.vy * dt;
       }
     }
     this.list = this.list.filter((p) => p.age < p.life);
@@ -496,6 +523,10 @@ export class Particles {
         ctx.moveTo(-p.len * s, 0);
         ctx.quadraticCurveTo(0, p.len * 0.35 * s, p.len * s, 0);
         ctx.stroke();
+      } else if (p.type === 'mote') {
+        // 微尘：极淡的暖白光点（加法混合，闪烁）
+        const tw = 0.5 + 0.5 * Math.sin(p.age * 2.4 + p.seed * 5);
+        drawGlow(ctx, p.x * s, p.y * s, 1.4 * s * p.r + 0.5 * s, 'rgb(255,238,210)', 0.1 + tw * 0.14);
       } else if (p.type === 'smoke') {
         // 径向渐变烟团：中心浓、边缘散（比实心圆柔和）
         ctx.globalAlpha = k * (0.3 + p.warm * 0.14);
