@@ -37,6 +37,7 @@ export interface ItemView {
   speedY?: number;
   onFire?: boolean;
   frozen?: boolean;
+  blocked?: boolean; // 幽灵专用：该类摆放已达上限
 }
 
 export interface RopeView {
@@ -369,10 +370,26 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     }
   }
 
-  // 幽灵预览（放置提示）：呼吸透明度
+  // 幽灵预览（放置提示）：呼吸透明度；该类达上限时半透明+红色禁止圈
   if (opts.ghost) {
-    ctx.globalAlpha = 0.38 + 0.12 * Math.sin(time * 5);
+    const blocked = !!opts.ghost.blocked;
+    ctx.globalAlpha = blocked ? 0.3 : 0.38 + 0.12 * Math.sin(time * 5);
     drawItem(ctx, opts.ghost, s, time);
+    if (blocked) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,90,70,0.9)';
+      ctx.lineWidth = 1.6 * s;
+      ctx.setLineDash([3 * s, 2.4 * s]);
+      ctx.beginPath();
+      ctx.arc(opts.ghost.x * s, opts.ghost.y * s, 7 * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(opts.ghost.x * s - 4.6 * s, opts.ghost.y * s - 4.6 * s);
+      ctx.lineTo(opts.ghost.x * s + 4.6 * s, opts.ghost.y * s + 4.6 * s);
+      ctx.stroke();
+      ctx.restore();
+    }
     if (opts.ghost.t === 'bottle' || opts.ghost.t === 'skyrocket') drawAim(ctx, opts.ghost, s);
     ctx.globalAlpha = 1;
   }

@@ -174,7 +174,7 @@ export class Editor {
         this.drag.angle = a;
       }
     }
-    // 幽灵预览
+    // 幽灵预览（该类摆放已达上限时标记 blocked，渲染成红色提示放不了）
     if (isBugName(this.tool) || isPropName(this.tool) || ['firecracker', 'skyrocket', 'bottle'].includes(this.tool)) {
       this.ghost = {
         t: this.tool,
@@ -184,6 +184,7 @@ export class Editor {
         angle: this.drag?.angle ?? (this.tool === 'skyrocket' ? -Math.PI / 2 : this.tool === 'bottle' ? -0.3 : 0),
         aim: this.drag?.angle,
         acc: [],
+        blocked: this._atLimit(this.tool),
       };
     } else this.ghost = null;
   }
@@ -213,6 +214,12 @@ export class Editor {
       return false;
     }
     return true;
+  }
+
+  // 静默版上限检查（幽灵预览标记用，不发 status）
+  _atLimit(t: string): boolean {
+    const kind = kindOf(t);
+    return this.specs.filter((s) => s.kind === kind).length >= LIMITS[kind];
   }
 
   addSpec(

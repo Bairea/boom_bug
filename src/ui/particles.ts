@@ -372,8 +372,14 @@ export class Particles {
         ctx.fillStyle = p.color;
         ctx.fillRect(-p.r * s, -p.r * 0.55 * s, p.r * 2 * s, p.r * 1.1 * s);
       } else if (p.type === 'smoke') {
-        ctx.globalAlpha = k * (0.16 + p.warm * 0.1);
-        ctx.fillStyle = p.warm > 0.4 ? '#6b5b4e' : '#666';
+        // 径向渐变烟团：中心浓、边缘散（比实心圆柔和）
+        ctx.globalAlpha = k * (0.3 + p.warm * 0.14);
+        const sg = ctx.createRadialGradient(p.x * s, p.y * s, 0, p.x * s, p.y * s, p.r * s);
+        const tone = p.warm > 0.4 ? '107, 91, 78' : '102, 102, 102';
+        sg.addColorStop(0, `rgba(${tone}, 0.85)`);
+        sg.addColorStop(0.7, `rgba(${tone}, 0.4)`);
+        sg.addColorStop(1, `rgba(${tone}, 0)`);
+        ctx.fillStyle = sg;
         ctx.beginPath();
         ctx.arc(p.x * s, p.y * s, p.r * s, 0, Math.PI * 2);
         ctx.fill();
