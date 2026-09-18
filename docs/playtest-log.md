@@ -76,3 +76,5 @@
 | R99 | 00:26 | ♿ prefers-reduced-motion 接入画布特效：减少动态时震屏/白闪 ×0.35、跳过顿帧与新纪录彩带（无障碍）。 | main.ts（152 全绿） | R99 commit |
 | R100 | 00:30 | 🧨 引信越烧越短：视图模型读 d.fuse 剩余秒数（kind 收窄），火花沿贝塞尔引信线按比例回缩（带加法辉光）——点燃阶段可读性经典细节。 | render.ts（152 全绿） | R100 commit |
 | R101 | 00:32 | 💧 浇灭水花：douse 事件溅起蓝白水滴（重力回落+椭圆水珠）。 | particles.ts + main.ts（152 全绿） | R101 commit |
+| R114 | 01:20 | 🦗 蝗虫起跳蹬地弹跳（LocustJumpEvent→itemFx）+ 编辑器点选类工具悬停光标 pointer（可供性）。 | main.ts（152 全绿） | R114 commit |
+| R116 | 01:25 | ↩️ R115 桌面刻度尺实机验证后回退：画布无桌沿留白（盒子占满画布），刻度落在盒内地面被工具栏遮挡且添乱 —— 做减法（canvas-design 技能的第二pass 原则：不adding，refining）。 | render.ts（152 全绿） | R116 commit |
