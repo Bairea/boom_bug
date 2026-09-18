@@ -300,6 +300,11 @@
     font-family: ui-monospace, monospace;
     letter-spacing: 1px;
     font-variant-numeric: tabular-nums;
+    animation: title-glow 3.2s ease-in-out infinite;
+  }
+  @keyframes title-glow {
+    0%, 100% { text-shadow: 0 0 6px rgba(255, 120, 64, 0.15); }
+    50% { text-shadow: 0 0 16px rgba(255, 140, 70, 0.45); }
   }
   #report .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
   #report .stat {
@@ -331,7 +336,9 @@
     background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px;
     font-family: ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
+    transition: color 120ms ease, border-color 120ms ease;
   }
+  #report .timeline span:hover { color: var(--text); border-color: var(--line-bright); }
   #report .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
   #report .actions button {
     flex: 1;
