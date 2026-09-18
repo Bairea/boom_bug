@@ -1779,11 +1779,13 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.arc(lx * s, ly * s, 2.2 * s * (1 + 0.1 * Math.sin(performance.now() / 1000 * 5)), 0, Math.PI * 2);
       ctx.stroke();
     }
-    // 投掷角度读数（与瞄准线读数对仗，方便复刻同一投掷）
+    // 投掷角度读数（与瞄准线读数对仗，方便复刻同一投掷）；文字位置钳制在画布内
     const throwDeg = Math.round((Math.atan2(-t.vy, t.vx) * 180) / Math.PI);
     ctx.fillStyle = 'rgba(126,200,255,0.75)';
     ctx.font = `${Math.max(8, 2.8 * s)}px ui-monospace, monospace`;
-    ctx.fillText(`${throwDeg}°`, lx * s + 3.2 * s, ly * s - 1.5 * s);
+    const tx = Math.max(30 * s, Math.min((298 - 14) * s, lx * s + 3.2 * s));
+    const ty = Math.max(14 * s, ly * s - 1.5 * s);
+    ctx.fillText(`${throwDeg}°`, tx, ty);
   }
   ctx.restore();
   // 起投点：一根点着的炮仗（带引信火花感）+ 力度弧
