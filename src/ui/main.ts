@@ -988,8 +988,8 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     // 焦痕：地面战损记忆（最多 24 个，12s 淡去）
     state.scorches.push({ x: e.x, y: Math.min(e.y + 4, 178), r: 5 + e.power * 0.12, age: 0, ttl: 12 });
     if (state.scorches.length > 24) state.scorches.shift();
-    // 镜头推近一点，随时间回弹
-    state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
+      // 镜头推近一点，随时间回弹（减少动态时跳过这类镜头运动）
+      if (!reducedMotion) state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
     // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
     const motionK = reducedMotion ? 0.35 : 1;
     state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
