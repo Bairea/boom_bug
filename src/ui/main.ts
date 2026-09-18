@@ -160,16 +160,25 @@ canvas.addEventListener('pointerdown', () => sfx.ensure(), { once: true });
 
 // ---- 实验手册 ----
 const helpEl = document.getElementById('help');
-document.getElementById('btn-help')?.addEventListener('click', () => {
-  if (helpEl) helpEl.hidden = false;
-});
-document.getElementById('btn-help-close')?.addEventListener('click', () => {
+const helpClose = document.getElementById('btn-help-close');
+
+function openHelp(): void {
+  if (helpEl) {
+    helpEl.hidden = false;
+    helpClose?.focus(); // dialog 焦点管理：Esc/回车即可关闭
+  }
+}
+
+function closeHelp(): void {
   if (helpEl) helpEl.hidden = true;
-});
+}
+
+document.getElementById('btn-help')?.addEventListener('click', openHelp);
+helpClose?.addEventListener('click', closeHelp);
 // 首次到访自动弹出（localStorage 记忆）
 try {
   if (!localStorage.getItem('bbl-help-seen')) {
-    if (helpEl) helpEl.hidden = false;
+    openHelp();
     localStorage.setItem('bbl-help-seen', '1');
   }
 } catch {
@@ -1201,7 +1210,8 @@ window.addEventListener('keydown', (ev) => {
     toast('新种子 #' + state.seed.toString(36).toUpperCase());
     if (state.mode !== 'edit') backToEdit();
   } else if (ev.key === 'Escape') {
-    if (state.mode === 'running') finishRun();
+    if (helpEl && !helpEl.hidden) closeHelp();
+    else if (state.mode === 'running') finishRun();
     else if (state.mode === 'replay') finishReplay();
     else if (state.mode === 'report') backToEdit();
   }
