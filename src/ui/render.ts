@@ -71,6 +71,7 @@ export interface ThrowPreview {
   vy: number;
   power?: number; // 拖拽力度 0..1（速度/750）
   waterZones?: { x: number; y: number; radius: number }[]; // 水盆区域（落点熄灭预警）
+  oilZones?: { x: number; y: number; radius: number }[]; // 油盆区域（落点爆燃放大预警）
 }
 
 export interface FloatText {
@@ -1736,9 +1737,10 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
     ctx.arc(px * s, py * s, 1.5 * s, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 落点标记：预测终点小圆环（终点落入水盆 → 蓝色"会熄灭"警示）
+  // 落点标记：预测终点小圆环（终点入水 → 蓝"熄灭"；入油 → 橙"爆燃放大"）
   if (lx > 0) {
     const inWater = (t.waterZones ?? []).some((z) => Math.hypot(lx - z.x, ly - z.y) < z.radius);
+    const inOil = (t.oilZones ?? []).some((z) => Math.hypot(lx - z.x, ly - z.y) < z.radius);
     ctx.globalAlpha = 0.7;
     if (inWater) {
       ctx.strokeStyle = 'rgba(126,200,255,0.95)';
@@ -1750,6 +1752,14 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.beginPath();
       ctx.arc(lx * s, ly * s, 1.1 * s, 0, Math.PI * 2);
       ctx.fill();
+    } else if (inOil) {
+      ctx.strokeStyle = 'rgba(255,150,60,0.95)';
+      ctx.lineWidth = 0.7 * s;
+      ctx.setLineDash([1.6 * s, 1.2 * s]);
+      ctx.beginPath();
+      ctx.arc(lx * s, ly * s, 2.6 * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
     } else {
       ctx.strokeStyle = 'rgba(255,217,160,0.9)';
       ctx.lineWidth = 0.5 * s;

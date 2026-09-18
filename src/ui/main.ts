@@ -1139,6 +1139,11 @@ function render(): void {
               .filter((b) => b.alive && b.kind === 'prop' && b.data.waterZone)
               .map((b) => ({ x: b.x, y: b.y, radius: b.radius }))
           : [];
+        const oilZones = state.sim
+          ? state.sim.world.bodies
+              .filter((b) => b.alive && b.kind === 'prop' && (b.data.oilZone ?? false) && b.data.propType === 'oil')
+              .map((b) => ({ x: b.x, y: b.y, radius: b.radius }))
+          : [];
         opts.throwPreview = {
           x: runDrag.wx,
           y: runDrag.wy,
@@ -1146,6 +1151,7 @@ function render(): void {
           vy: runDrag.vy,
           power: Math.min(1, spd / 750), // 拖拽力度（与 pointermove 限幅一致）
           waterZones,
+          oilZones,
         };
       }
       // 运行中悬停高亮
