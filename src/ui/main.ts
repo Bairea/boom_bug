@@ -1039,6 +1039,10 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     state.particles.ropeBits(e.x, e.y); // 断绳飞散
     sfx.ropeBreak();
     state.trauma = Math.min(1, state.trauma + 0.05);
+  } else if (e.type === 'chainIgnite') {
+    // 殉爆引燃：火苗跳到下一根炮仗的瞬间
+    state.particles.spark(e.x, e.y, 3);
+    if (e.depth >= 2) state.trauma = Math.min(1, state.trauma + 0.04);
   } else if (e.type === 'ignite') {
     state.particles.spark(e.x, e.y, 2);
     sfx.fuse();
