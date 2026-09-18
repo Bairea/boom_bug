@@ -266,6 +266,16 @@ function loadScenario(id: string): void {
   state.mode = 'edit';
   editor.locked = false;
   hideReport();
+  // 表现层状态清零：上一局的震屏/白闪/慢镜/推镜不带入新场景
+  state.trauma = 0;
+  state.flash = 0;
+  state.hitStop = 0;
+  state.slowmo = 0;
+  state.slowmoUsed = false;
+  state.slowmoCenter = null;
+  state.panX = 0;
+  state.panY = 0;
+  state.zoomPunch = 1;
   state.particles = new Particles(); // 场景切换：上一局的烟尘不带入
   document.title = `擦炮虫虫实验室 · ${sc.label}`;
   editor.onStatus(restored ? '已恢复上次的自由实验布置 —— ' + sc.desc : sc.desc);
