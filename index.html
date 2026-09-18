@@ -193,6 +193,27 @@
       0 0 70px rgba(255, 130, 70, 0.13),
       inset 0 0 0 1px rgba(255, 200, 150, 0.05);
   }
+  /* 全屏模式：画布最大化 + 工具栏悬浮 */
+  #stage-wrap:fullscreen {
+    background: var(--bg-deep);
+    justify-content: center;
+  }
+  #stage-wrap:fullscreen canvas {
+    width: min(100%, calc(100vh * 1.6667));
+    max-height: calc(100vh - 90px);
+  }
+  #stage-wrap:fullscreen #toolbar {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(16, 19, 26, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 8px 12px;
+  }
   /* 场景切换淡入 */
   canvas.scene-swap { animation: scene-in 320ms ease; }
   @keyframes scene-in {
