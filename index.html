@@ -491,8 +491,10 @@
     header { padding: 6px 8px; gap: 6px; }
     header .sub { display: none; }
     header h1 { font-size: 12px; white-space: nowrap; flex-shrink: 0; }
-    header select { min-width: 0; flex: 0 1 auto; max-width: 150px; }
+    header select { min-width: 0; flex: 0 1 auto; max-width: 130px; }
     header button { white-space: nowrap; padding: 5px 7px; }
+    /* 窄屏隐藏全屏按钮（移动端浏览器自带沉浸手势，顶栏空间优先给分享） */
+    #btn-full { display: none; }
     main { flex-direction: column; }
     #stage-wrap { padding: 6px; order: 1; }
     canvas { width: 100%; }
