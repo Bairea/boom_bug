@@ -96,3 +96,5 @@
 | R143 | 02:30 🐛 移动端巡检发现：报告弹出后状态胶囊仍显示"实验进行中" → finishRun 同步更新为"实验结束——报告已生成+关键数字"。移动端报告卡/气球场景渲染巡检 ✓。 | main.ts（152 全绿，实机验证） | R143 commit |
 | R144 | 02:35 📱 刘海屏安全区适配——body padding 注入 env(safe-area-inset-*)。 | index.html（152 全绿） | R144 commit |
 | R145 | 02:40 📖 手册"操作"区补绳子连接预览/删除红圈说明。 | index.html（152 全绿） | R145 commit |
+| R146 | 02:50 💥 爆炸方向性推镜——镜头被冲击波向爆点反方向 kick（限幅 ±4/±3，回中弹簧收回，减少动态时 ×0.35）。 | main.ts（152 全绿） | R146 commit |
+| R147 | 02:55 ♿ help/report 层补 role="dialog" 语义（help 加 aria-modal/aria-label）。 | index.html（152 全绿） | R147 commit |
