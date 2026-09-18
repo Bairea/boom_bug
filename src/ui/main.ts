@@ -4,6 +4,7 @@ import { Simulation, DT } from '../sim/sim.js';
 import { VIEW_W, VIEW_H, drawScene, viewFromSim, viewFromSpecs } from './render.js';
 import type { DrawOptions, ItemView, SceneView, Scorch, FloatText } from './render.js';
 import { Particles } from './particles.js';
+import { ItemFx } from './fx.js';
 import { Editor } from './editor.js';
 import { Recorder, buildReport } from '../game/replay.js';
 import type { Report } from '../game/replay.js';
@@ -74,6 +75,11 @@ interface GameState {
   slowmo: number; // 慢镜头剩余秒数（表现层）
   slowmoUsed: boolean; // 一局只慢放第一次大连锁
   zoomPunch: number; // 镜头推近系数（表现层）
+  trauma: number; // 震屏创伤值 0..1（trauma² 驱动平滑震屏，表现层）
+  hitStop: number; // 顿帧剩余秒数（大爆炸时时间短暂凝滞，表现层）
+  flash: number; // 全屏白闪强度（表现层）
+  itemFx: ItemFx; // 实体挤压/弹跳动效（表现层）
+  lastDt: number; // 上一帧真实秒数（着陆检测用）
   scorches: Scorch[]; // 爆炸焦痕（纯表现层）
   floatTexts: FloatText[]; // 连锁浮动大字（纯表现层）
 }
@@ -94,6 +100,11 @@ const state: GameState = {
   slowmo: 0,
   slowmoUsed: false,
   zoomPunch: 1,
+  trauma: 0,
+  hitStop: 0,
+  flash: 0,
+  itemFx: new ItemFx(),
+  lastDt: 1 / 60,
   scorches: [],
   floatTexts: [],
 };
@@ -240,6 +251,10 @@ function startRun(useRecordedCommands = false): void {
   state.slowmo = 0;
   state.slowmoUsed = false;
   state.zoomPunch = 1;
+  state.trauma = 0;
+  state.hitStop = 0;
+  state.flash = 0;
+  state.itemFx.reset();
   state.scorches = [];
   state.floatTexts = [];
   state.mode = 'running';
@@ -636,6 +651,7 @@ function viewAtCursor(): SceneView {
   const k = f1.tick > f0.tick ? Math.min(1, (t - f0.tick) / (f1.tick - f0.tick)) : 0;
   const map1 = new Map(f1.bodies.map((b) => [b[0], b]));
   const items: ItemView[] = [];
+  const frameDt = f1.tick > f0.tick ? (f1.tick - f0.tick) / 60 : 0;
   for (const b of f0.bodies) {
     const b1 = map1.get(b[0]) ?? b;
     if (b[5] === 1) continue; // 已消耗
@@ -644,6 +660,7 @@ function viewAtCursor(): SceneView {
       kind: b[1] as ItemView['kind'],
       x: b[2] + (b1[2] - b[2]) * k,
       y: b[3] + (b1[3] - b[3]) * k,
+      id: b[0],
       angle: b[4] + (b1[4] - b[4]) * k,
       aim: null,
       lit: false,
@@ -651,6 +668,9 @@ function viewAtCursor(): SceneView {
       acc: [],
       knocked: b[5] === 2,
       frozen: b[5] === 3,
+      speed: frameDt > 0 ? Math.hypot(b1[2] - b[2], b1[3] - b[3]) / frameDt : 0,
+      speedX: frameDt > 0 ? (b1[2] - b[2]) / frameDt : 0,
+      speedY: frameDt > 0 ? (b1[3] - b[3]) / frameDt : 0,
     });
   }
   // 绳子：用 f0 帧端点近似画（断裂的不画）
@@ -674,6 +694,7 @@ function tick(): void {
   const now = performance.now();
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
+  state.lastDt = dt;
 
   // 焦痕老化
   for (const sc of state.scorches) sc.age += dt;
@@ -682,6 +703,11 @@ function tick(): void {
   for (const ft of state.floatTexts) ft.age += dt;
   state.floatTexts = state.floatTexts.filter((ft) => ft.age < ft.ttl);
 
+  // 表现层反馈衰减：trauma 线性衰减（震屏量 = trauma²）、白闪快衰、顿帧走真实时间
+  state.trauma = Math.max(0, state.trauma - dt * 1.7);
+  state.flash = Math.max(0, state.flash - dt * 2.4);
+  if (state.hitStop > 0) state.hitStop = Math.max(0, state.hitStop - dt);
+
   // 连锁慢镜头：真实时间变慢，模拟 tick 内容不变（不破坏确定性）
   if (state.slowmo > 0) {
     state.slowmo = Math.max(0, state.slowmo - dt);
@@ -689,7 +715,8 @@ function tick(): void {
   } else {
     state.zoomPunch += (1 - state.zoomPunch) * Math.min(1, dt * 6);
   }
-  const scale = state.slowmo > 0 ? 0.35 : 1;
+  // 顿帧 > 慢镜头 > 实时（都是时间缩放，不碰模拟内容）
+  const scale = state.hitStop > 0 ? 0.06 : state.slowmo > 0 ? 0.35 : 1;
   acc += dt * scale;
 
   if (state.mode === 'running') {
@@ -736,6 +763,10 @@ function handleEvents(events: RecordedEvent[]): void {
       if (state.scorches.length > 24) state.scorches.shift();
       // 镜头推近一点，随时间回弹
       state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
+      // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
+      state.trauma = Math.min(1, state.trauma + 0.22 + Math.min(0.55, e.power / 200));
+      state.flash = Math.min(0.5, state.flash + Math.min(0.4, e.power / 260));
+      if (e.power >= 40) state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
       // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
       if (e.depth >= 2 && !state.slowmoUsed) {
         state.slowmo = Math.max(state.slowmo, 0.7);
@@ -749,6 +780,8 @@ function handleEvents(events: RecordedEvent[]): void {
     } else if (e.type === 'knockout') {
       state.particles.spark(e.x, e.y, 8);
       sfx.knockout();
+      state.itemFx.pop(e.id, 1); // 击倒瞬间：翻壳 + 弹跳挤压
+      state.trauma = Math.min(1, state.trauma + 0.07);
     } else if (e.type === 'multiKill') {
       state.floatTexts.push({ x: e.x, y: e.y - 6, text: `一爆多杀 ×${e.count}`, age: 0, ttl: 1.2 });
       if (!state.slowmoUsed) {
@@ -758,17 +791,21 @@ function handleEvents(events: RecordedEvent[]): void {
     } else if (e.type === 'pinStick' || e.type === 'glueStick') {
       state.particles.puff(e.x, e.y);
       sfx.stick();
+      state.itemFx.pop(e.id, 0.5);
     } else if (e.type === 'balloonPop') {
       state.particles.spark(e.x, e.y, 5);
       sfx.pop();
     } else if (e.type === 'ropeBreak') {
       state.particles.spark(e.x, e.y, 4);
       sfx.ropeBreak();
+      state.trauma = Math.min(1, state.trauma + 0.05);
     } else if (e.type === 'ignite') {
       state.particles.spark(e.x, e.y, 2);
       sfx.fuse();
     } else if (e.type === 'slimeBurn') {
       state.particles.puff(e.x, e.y);
+    } else if (e.type === 'armorCrack') {
+      state.itemFx.pop(e.id, 0.7); // 裂甲：重击感
     } else if (e.type === 'douse') {
       state.particles.puff(e.x, e.y);
       sfx.fuse(); // 呲——
@@ -779,6 +816,7 @@ function handleEvents(events: RecordedEvent[]): void {
     } else if (e.type === 'propBreak') {
       state.particles.spark(e.x, e.y, 10);
       sfx.glassBreak();
+      state.trauma = Math.min(1, state.trauma + 0.1);
     }
     if (['explosion', 'knockout', 'ropeBreak', 'multiKill', 'armorCrack', 'pinStick', 'glueStick'].includes(e.type)) {
       state.lastEventTick = e.tick;
@@ -787,19 +825,25 @@ function handleEvents(events: RecordedEvent[]): void {
 }
 
 function render(): void {
-  const shake = state.particles.shake;
-  const shakeX = (Math.random() - 0.5) * shake;
-  const shakeY = (Math.random() - 0.5) * shake;
+  // trauma 震屏：trauma² 驱动、分层正弦采样（平滑不抖），附小幅滚转
+  const t2 = state.trauma * state.trauma;
+  const ts = performance.now() / 1000;
+  const shakeX = 12 * t2 * (0.6 * Math.sin(ts * 23.7) + 0.4 * Math.sin(ts * 41.1 + 1.3));
+  const shakeY = 8 * t2 * (0.6 * Math.sin(ts * 29.3 + 0.7) + 0.4 * Math.sin(ts * 47.9));
+  const shakeRoll = 0.035 * t2 * Math.sin(ts * 19.1 + 2.1);
   let view: SceneView | null = null;
   const opts: DrawOptions = {
     particles: state.particles,
     shakeX,
     shakeY,
-    time: performance.now() / 1000,
+    shakeRoll,
+    flash: state.flash,
+    time: ts,
     zoom: state.zoomPunch,
     scorches: state.scorches,
     floatTexts: state.floatTexts,
     slowmoActive: state.slowmo > 0,
+    itemFx: state.itemFx,
   };
 
   if (state.mode === 'edit') {
@@ -822,7 +866,10 @@ function render(): void {
     opts.replayWatermark = true;
     opts.replayProgress = Math.max(0, ((state.replay?.cursor ?? 0) - t0) / Math.max(1, t1 - t0));
   }
-  if (view) drawScene(ctx, W, H, view, opts);
+  if (view) {
+    state.itemFx.observe(view.items, state.lastDt); // 着陆/撞击检测（表现层）
+    drawScene(ctx, W, H, view, opts);
+  }
 
   // 实况统计 HUD
   if ((state.mode === 'running' || state.mode === 'report') && state.sim) {

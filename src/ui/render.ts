@@ -7,6 +7,7 @@ import { kindOfName } from '../game/catalog.js';
 import type { Simulation } from '../sim/sim.js';
 import type { SlimeDrop } from '../sim/world.js';
 import type { Particles } from './particles.js';
+import { ItemFx } from './fx.js';
 
 export const VIEW_W = 300;
 export const VIEW_H = 180;
@@ -17,6 +18,7 @@ export interface ItemView {
   kind: EntityKind;
   x: number;
   y: number;
+  id?: number;
   radius?: number;
   angle?: number;
   aim?: number | null;
@@ -32,6 +34,7 @@ export interface ItemView {
   maxHp?: number;
   speed?: number;
   speedX?: number;
+  speedY?: number;
   onFire?: boolean;
   frozen?: boolean;
 }
@@ -76,6 +79,8 @@ export interface DrawOptions {
   particles?: Particles;
   shakeX?: number;
   shakeY?: number;
+  shakeRoll?: number;
+  flash?: number; // 全屏白闪强度 0..1（大爆炸反馈）
   time?: number;
   zoom?: number;
   scorches?: Scorch[];
@@ -87,6 +92,7 @@ export interface DrawOptions {
   throwPreview?: ThrowPreview;
   replayWatermark?: boolean;
   replayProgress?: number;
+  itemFx?: ItemFx;
 }
 
 function typeNameOf(b: { kind: string; data: { etype?: string; bugType?: string; propType?: string } }): string {
@@ -104,6 +110,7 @@ export function viewFromSim(sim: Simulation): SceneView {
       kind: b.kind,
       x: b.x,
       y: b.y,
+      id: b.id,
       radius: b.radius,
       angle: b.angle,
       aim: b.data.aim,
@@ -117,6 +124,7 @@ export function viewFromSim(sim: Simulation): SceneView {
       maxHp: b.data.maxHp,
       speed: Math.hypot(b.vx, b.vy),
       speedX: b.vx,
+      speedY: b.vy,
       onFire: !!b.data.burning,
     });
   }
@@ -237,6 +245,13 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   const cy = (VIEW_H * s) / 2;
   ctx.save();
   ctx.translate(ox + (opts.shakeX ?? 0), oy + (opts.shakeY ?? 0));
+  // 震屏滚转（trauma 模型的 roll 分量）：绕盒子中心小幅旋转
+  const roll = opts.shakeRoll ?? 0;
+  if (roll !== 0) {
+    ctx.translate(cx, cy);
+    ctx.rotate(roll);
+    ctx.translate(-cx, -cy);
+  }
   if (zoom !== 1) {
     ctx.translate(cx, cy);
     ctx.scale(zoom, zoom);
@@ -325,7 +340,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
 
   // 物体（阴影 → 本体）
   for (const it of view.items) drawShadow(ctx, it, s);
-  for (const it of view.items) drawItem(ctx, it, s, time);
+  for (const it of view.items) drawItem(ctx, it, s, time, opts.itemFx);
 
   // 绳子第一选点高亮（虚线圆环）：玩家点完第一个端点能看到选中了谁
   // 悬停高亮（更淡）：配件/删除/绳子工具下提示"点下去会作用到谁"
@@ -419,6 +434,15 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
 
   ctx.restore();
 
+  // 大爆炸全屏白闪（曝光反馈）：强度外置、快速衰减由调用方控制
+  if (opts.flash && opts.flash > 0.005) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = `rgba(255,244,220,${Math.min(0.55, opts.flash)})`;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
   // HUD
   if (opts.recDot) {
     ctx.fillStyle = '#ff5555';
@@ -474,9 +498,20 @@ function drawShadow(ctx: CanvasRenderingContext2D, it: ItemView, s: number): voi
   ctx.fill();
 }
 
-function drawItem(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
+function drawItem(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number, fx?: ItemFx): void {
   ctx.save();
   ctx.translate(it.x * s, it.y * s);
+  // 手感动效：速度对齐的拉伸（动感）+ 弹跳挤压（冲击），两者都绕本体原点，保体积
+  const speed = it.speed ?? 0;
+  const stretch = ItemFx.stretch(speed);
+  const pop = fx?.scaleOf(it.id);
+  if (pop) ctx.scale(pop.sx, pop.sy);
+  if (stretch > 0 && (it.speedY ?? 0) !== 0) {
+    const a = Math.atan2(it.speedY ?? 0, it.speedX ?? 1);
+    ctx.rotate(a);
+    ctx.scale(1 + stretch, 1 - stretch * 0.7);
+    ctx.rotate(-a);
+  }
   if (it.t === 'roach') drawRoach(ctx, it, s, time);
   else if (it.t === 'locust') drawLocust(ctx, it, s, time);
   else if (it.t === 'scarab') drawScarab(ctx, it, s, time);
