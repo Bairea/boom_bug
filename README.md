@@ -83,7 +83,7 @@ test/       分阶段回归测试（node:test，无头，只 import 编译产物
 必需字段在 `ExplosiveData/BugData/PropData` 收紧；跨 kind 读取的运行时状态放 `EntityDataBase` 可选层；
 模拟事件是 `SimEvent` 17 种联合、命令流是 `Ignite/Throw` 判别——多态字段打错名直接编译失败。
 
-## 视觉与手感（R89-R253）
+## 视觉与手感（R89-R293）
 
 表现层大翻新，模拟层一字未动（确定性不受影响）：
 
