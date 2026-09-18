@@ -39,6 +39,7 @@ export interface ItemView {
   frozen?: boolean;
   blocked?: boolean; // 幽灵专用：该类摆放已达上限
   fuse?: number; // 点燃的爆炸物剩余引信秒数（表现"越烧越短"）
+  aiState?: string; // 虫子 AI 状态（panic 等表现标记）
 }
 
 export interface RopeView {
@@ -138,6 +139,7 @@ export function viewFromSim(sim: Simulation): SceneView {
         b.kind === 'explosive' && b.data.lit && Number.isFinite(b.data.fuse) && b.data.fuse > 0
           ? Math.max(0, b.data.fuse)
           : undefined,
+      aiState: b.kind === 'bug' ? b.data.state : undefined,
     });
   }
   const slime: SlimeDrop[] = sim.world.slime.map((p) => ({ ...p }));
@@ -722,6 +724,18 @@ function drawRoach(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time:
     ctx.moveTo(-r * 1.1, 0);
     ctx.lineTo(r * 0.9, 0);
     ctx.stroke();
+    // 恐慌速度线：狂奔时身后三道闪线（AI panic 表现标记）
+    if (it.aiState === 'panic' && !it.knocked) {
+      const flick = Math.sin(time * 26) > 0 ? 0.6 : 0.25;
+      ctx.strokeStyle = `rgba(255,209,102,${flick})`;
+      ctx.lineWidth = 0.4 * s;
+      ctx.beginPath();
+      for (const oy of [-0.45, 0, 0.45]) {
+        ctx.moveTo(-r * 1.5, oy * r);
+        ctx.lineTo(-r * 2.3, oy * r * 1.15);
+      }
+      ctx.stroke();
+    }
   });
 }
 
