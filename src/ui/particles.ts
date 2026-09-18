@@ -44,7 +44,31 @@ interface DebrisParticle extends ParticleBase {
   vrot: number;
   hue: number; // 0=纸屑暖白 1=玻璃青
 }
-type Particle = SparkParticle | SmokeParticle | FlashParticle | RingParticle | EmberParticle | DebrisParticle;
+interface DustParticle extends ParticleBase {
+  type: 'dust';
+  vx: number;
+  vy: number;
+  r: number;
+}
+interface ConfettiParticle extends ParticleBase {
+  type: 'confetti';
+  vx: number;
+  vy: number;
+  r: number;
+  rot: number;
+  vrot: number;
+  color: string;
+  sway: number;
+}
+type Particle =
+  | SparkParticle
+  | SmokeParticle
+  | FlashParticle
+  | RingParticle
+  | EmberParticle
+  | DebrisParticle
+  | DustParticle
+  | ConfettiParticle;
 
 // ---- 辉光精灵：有 DOM 时预渲染径向渐变小图（避免每帧建渐变/shadowBlur）----
 const glowCache = new Map<string, CanvasGradient | HTMLCanvasElement>();
@@ -199,6 +223,44 @@ export class Particles {
     }
   }
 
+  // 地面扬尘：贴地横铺的尘浪（大爆炸贴地时调用，floorY 为地面世界坐标）
+  dust(x: number, floorY: number): void {
+    for (let i = 0; i < 8; i++) {
+      const dir = i < 4 ? -1 : 1;
+      this.add({
+        type: 'dust',
+        x: x + dir * Math.random() * 4,
+        y: floorY - Math.random() * 2,
+        vx: dir * (30 + Math.random() * 70),
+        vy: -8 - Math.random() * 22,
+        r: 2 + Math.random() * 4,
+        life: 0.5 + Math.random() * 0.4,
+        age: 0,
+      });
+    }
+  }
+
+  // 新纪录彩带：从顶部落下的旋转纸屑（报告弹出时调用）
+  confetti(W: number): void {
+    const colors = ['#ffd166', '#ff7840', '#7ec8ff', '#9fe6a0', '#f472a0'];
+    for (let i = 0; i < 44; i++) {
+      this.add({
+        type: 'confetti',
+        x: Math.random() * W,
+        y: -8 - Math.random() * 60,
+        vx: (Math.random() - 0.5) * 26,
+        vy: 60 + Math.random() * 90,
+        r: 1.2 + Math.random() * 1.6,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 14,
+        color: colors[i % colors.length],
+        sway: Math.random() * 9,
+        life: 2.2 + Math.random() * 1.2,
+        age: 0,
+      });
+    }
+  }
+
   update(dt: number): void {
     this.shake = Math.max(0, this.shake - dt * 26);
     for (const p of this.list) {
@@ -220,6 +282,17 @@ export class Particles {
       } else if (p.type === 'debris') {
         p.vy += 620 * dt;
         p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rot += p.vrot * dt;
+      } else if (p.type === 'dust') {
+        p.vy += 60 * dt;
+        p.vx *= 1 - 1.6 * dt; // 地面摩擦
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.r += 9 * dt;
+      } else if (p.type === 'confetti') {
+        p.vy = Math.min(p.vy, 150);
+        p.x += (p.vx + Math.sin(p.age * 5 + p.sway) * 34) * dt;
         p.y += p.vy * dt;
         p.rot += p.vrot * dt;
       }
@@ -285,6 +358,19 @@ export class Particles {
         ctx.rotate(p.rot);
         ctx.fillStyle = p.hue < 0.55 ? '#e8c15a' : p.hue < 0.8 ? '#c0392b' : 'rgba(170,215,245,0.9)';
         ctx.fillRect(-p.r * s, -p.r * 0.45 * s, p.r * 2 * s, p.r * 0.9 * s);
+      } else if (p.type === 'dust') {
+        ctx.globalAlpha = k * 0.16;
+        ctx.fillStyle = '#8a8378';
+        ctx.beginPath();
+        ctx.ellipse(p.x * s, p.y * s, p.r * s, p.r * 0.5 * s, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.type === 'confetti') {
+        ctx.globalAlpha = Math.min(1, k * 2.2);
+        ctx.translate(p.x * s, p.y * s);
+        ctx.rotate(p.rot);
+        ctx.scale(1, 0.4 + 0.6 * Math.abs(Math.sin(p.age * 7 + p.sway))); // 翻面闪动
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.r * s, -p.r * 0.55 * s, p.r * 2 * s, p.r * 1.1 * s);
       } else if (p.type === 'smoke') {
         ctx.globalAlpha = k * (0.16 + p.warm * 0.1);
         ctx.fillStyle = p.warm > 0.4 ? '#6b5b4e' : '#666';

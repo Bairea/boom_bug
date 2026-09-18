@@ -279,6 +279,7 @@ function finishRun(): void {
   state.report.isNewRecord = isNew;
   if (isNew) {
     sfx.fanfare();
+    state.particles.confetti(VIEW_W); // 全屏彩带雨（表现层）
     toast('🏆 新纪录！');
   }
   // 今日已挑战 → 按钮挂 ✓
@@ -767,6 +768,8 @@ function handleEvents(events: RecordedEvent[]): void {
       state.trauma = Math.min(1, state.trauma + 0.22 + Math.min(0.55, e.power / 200));
       state.flash = Math.min(0.5, state.flash + Math.min(0.4, e.power / 260));
       if (e.power >= 40) state.hitStop = Math.max(state.hitStop, 0.05 + Math.min(0.05, (e.power - 40) / 900));
+      // 贴地爆炸 → 地面扬尘浪
+      if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
       // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
       if (e.depth >= 2 && !state.slowmoUsed) {
         state.slowmo = Math.max(state.slowmo, 0.7);

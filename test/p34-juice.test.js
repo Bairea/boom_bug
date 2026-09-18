@@ -108,3 +108,19 @@ test('R90: 弹跳中的实体经 drawScene 绘制带 scale 变换且不抛错', 
   drawScene(ctx, 960, 576, view, { itemFx: fx });
   assert.ok(ctx.__calls.includes('scale'), '应有挤压缩放');
 });
+
+test('R96: 地面扬尘与新纪录彩带粒子', () => {
+  const p = new Particles();
+  p.dust(150, 178);
+  p.confetti(300);
+  const kinds = p.list.map((q) => q.type);
+  assert.ok(kinds.includes('dust'), '应有扬尘');
+  assert.ok(kinds.includes('confetti'), '应有彩带');
+  assert.ok(kinds.filter((t) => t === 'confetti').length >= 30, '彩带应足够密集');
+  const conf = p.list.find((q) => q.type === 'confetti');
+  assert.ok(['#ffd166', '#ff7840', '#7ec8ff', '#9fe6a0', '#f472a0'].includes(conf.color));
+  const ctx = fakeCtx();
+  p.draw(ctx, 3.2);
+  p.update(1 / 60);
+  assert.ok(true);
+});
