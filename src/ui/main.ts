@@ -378,6 +378,11 @@ function finishRun(): void {
     explosions: state.report.counts.explosions,
   });
   showReport(state.report);
+  // 目标达成：画布外框短暂泛绿光（正反馈）
+  if (state.report.goal?.done) {
+    canvas.classList.add('goal-done');
+    setTimeout(() => canvas.classList.remove('goal-done'), 1600);
+  }
   els.ignite.disabled = false;
   els.end.hidden = true;
 }

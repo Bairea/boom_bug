@@ -220,6 +220,14 @@
     from { opacity: 0.35; }
     to { opacity: 1; }
   }
+  /* 目标达成：外框泛绿 */
+  canvas.goal-done {
+    border-color: rgba(159, 230, 160, 0.55);
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.6),
+      0 0 70px rgba(120, 230, 140, 0.18),
+      inset 0 0 0 1px rgba(159, 230, 160, 0.06);
+  }
 
   /* ---- 主工具栏 ---- */
   #toolbar {
