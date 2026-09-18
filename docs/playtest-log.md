@@ -193,3 +193,4 @@
 | R258b | 06:45 ♿ 静音按钮初始 aria-pressed=false 补全。 | main.ts（152 全绿） | R258b commit |
 | R259b | 07:00 ♿ 时间线芯片键盘可访问（role=button+tabindex+Enter/Space 触发+title 提示）。 | main.ts（152 全绿） | R259b commit |
 | R260b | 07:10 📖 手册补时间线芯片跳转说明。 | index.html（152 全绿） | R260b commit |
+| R260b | 07:10 📖 手册补时间线芯片跳转说明。 | index.html（152 全绿） | R260b commit |
