@@ -95,6 +95,8 @@ export interface DrawOptions {
   replayWatermark?: boolean;
   replayProgress?: number;
   itemFx?: ItemFx;
+  hoverId?: number | null; // 运行中悬停的可交互爆炸物（ignite=点火 / detonate=遥控引爆）
+  hoverKind?: 'ignite' | 'detonate';
 }
 
 function typeNameOf(b: { kind: string; data: { etype?: string; bugType?: string; propType?: string } }): string {
@@ -364,6 +366,23 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.arc(it.x * s, it.y * s, ((it.radius ?? 6) + 5) * s, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+
+  // 运行中悬停反馈：可点燃=蓝圈呼吸，可遥控引爆=橙圈呼吸
+  if (opts.hoverId != null) {
+    const target = view.items.find((it) => it.id === opts.hoverId);
+    if (target) {
+      const breathe = 0.65 + 0.35 * Math.sin(time * 6);
+      ctx.save();
+      ctx.strokeStyle = opts.hoverKind === 'detonate' ? `rgba(255,150,80,${breathe})` : `rgba(126,200,255,${breathe})`;
+      ctx.lineWidth = 1.6;
+      ctx.setLineDash([3, 2.4]);
+      ctx.beginPath();
+      ctx.arc(target.x * s, target.y * s, ((target.radius ?? 6) + 4.5) * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
   }
 
   // 瞄准线（编辑模式未点燃的定向爆炸物）

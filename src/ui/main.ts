@@ -442,6 +442,30 @@ canvas.addEventListener('pointerdown', (ev) => {
   runDrag = { wx: x, wy: y, vx: 0, vy: 0 };
 });
 
+// 运行中悬停：可点燃/可引爆物高亮 + 光标提示（交互可读性）
+interface RunHover {
+  id: number;
+  kind: 'ignite' | 'detonate';
+}
+let runHover: RunHover | null = null;
+
+canvas.addEventListener('pointermove', (ev) => {
+  if (state.mode !== 'running' || !state.sim || runDrag) {
+    runHover = null;
+    canvas.style.cursor = 'crosshair';
+    return;
+  }
+  const { x, y } = canvasWorld(ev);
+  const ig = state.sim.pickIgnitable(x, y);
+  if (ig !== null) {
+    runHover = { id: ig, kind: 'ignite' };
+  } else {
+    const de = state.sim.pickDetonatable(x, y);
+    runHover = de !== null ? { id: de, kind: 'detonate' } : null;
+  }
+  canvas.style.cursor = runHover ? 'pointer' : 'crosshair';
+});
+
 window.addEventListener('pointermove', (ev) => {
   if (!runDrag) return;
   const { x, y } = canvasWorld(ev);
@@ -872,6 +896,11 @@ function render(): void {
       opts.showAim = true;
       // 弹道预览：runDrag 用的是 wx/wy（世界坐标起投点），换名成绘制要的 x/y
       if (runDrag) opts.throwPreview = { x: runDrag.wx, y: runDrag.wy, vx: runDrag.vx, vy: runDrag.vy };
+      // 运行中悬停高亮
+      if (runHover) {
+        opts.hoverId = runHover.id;
+        opts.hoverKind = runHover.kind;
+      }
     }
   } else if (state.mode === 'replay') {
     view = viewAtCursor();
