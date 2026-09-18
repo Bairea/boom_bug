@@ -883,6 +883,10 @@ function stepOnce(): void {
       if ((b.data.burn ?? 0) > 0 && (b.data.etype === 'skyrocket' || b.data.etype === 'bottle')) {
         state.particles.rocketTrail(b.x, b.y);
       }
+      // 点燃的炮仗偶发掉落火星
+      if (b.data.lit && b.data.etype === 'firecracker' && state.sim.tick % 9 === 0) {
+        state.particles.spark(b.x, b.y - 1, 1);
+      }
     }
   }
   // 落水水花：物体从水盆外进入水盆且在下坠（纯表现层状态检测）

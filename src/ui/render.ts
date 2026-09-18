@@ -368,7 +368,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   ctx.restore();
 
   // 蜗牛黏液（画在物体脚下）
-  for (const p of view.slime ?? []) drawSlime(ctx, p, s);
+  for (const p of view.slime ?? []) drawSlime(ctx, p, s, time);
 
   // 爆炸焦痕（战损记忆，纯表现层）：外圈淡晕 + 深色核心
   for (const sc of opts.scorches ?? []) {
@@ -1623,7 +1623,7 @@ function drawFly(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: n
   });
 }
 
-function drawSlime(ctx: CanvasRenderingContext2D, p: SlimeDrop, s: number): void {
+function drawSlime(ctx: CanvasRenderingContext2D, p: SlimeDrop, s: number, time: number): void {
   const fade = Math.max(0, 1 - p.age / p.ttl);
   ctx.fillStyle = `rgba(150, 220, 140, ${0.3 * fade})`;
   ctx.beginPath();
@@ -1633,8 +1633,9 @@ function drawSlime(ctx: CanvasRenderingContext2D, p: SlimeDrop, s: number): void
   ctx.beginPath();
   ctx.ellipse((p.x + p.r * 0.3) * s, (p.y - 1) * s, p.r * 0.55 * s, p.r * 0.26 * s, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 黏液高光点
-  ctx.fillStyle = `rgba(235, 255, 225, ${0.35 * fade})`;
+  // 黏液高光点（光泽随时间流转）
+  const sheen = 0.35 * (0.6 + 0.4 * Math.sin(time * 3 + p.x * 0.7));
+  ctx.fillStyle = `rgba(235, 255, 225, ${sheen * fade})`;
   ctx.beginPath();
   ctx.ellipse((p.x - p.r * 0.35) * s, (p.y - 0.6) * s, p.r * 0.16 * s, p.r * 0.08 * s, -0.3, 0, Math.PI * 2);
   ctx.fill();
