@@ -438,8 +438,10 @@ els.daily.addEventListener('click', () => {
   els.ignite.disabled = false;
   document.title = `擦炮虫虫实验室 · 📅 每日实验 ${key}`;
   const doneToday = records.load(`daily-${key}`);
+  const now = new Date();
+  const hoursLeft = 24 - now.getHours();
   editor.onStatus(
-    `📅 每日实验 #${key} · ${THEME_LABELS[daily.theme]} —— 全世界今天同一份布局（想改也行）。点燃开跑，跑完和今天上一局比！${doneToday ? '（今天已挑战过，试试打破自己的纪录）' : ''}`,
+    `📅 每日实验 #${key} · ${THEME_LABELS[daily.theme]} —— 全世界今天同一份布局（想改也行）。点燃开跑，跑完和今天上一局比！约 ${hoursLeft} 小时后换新实验。${doneToday ? '（今天已挑战过，试试打破自己的纪录）' : ''}`,
   );
 });
 // 今日已挑战过 → 按钮上挂个 ✓（未完成挂呼吸点）；留存钩子：让"今天玩过了吗"可见
