@@ -169,3 +169,5 @@
 | R237 | 06:50 ♿ select 下拉选项显式配色（Windows 深色模式兼容）。 | index.html（152 全绿） | R237 commit |
 | R239 | 05:40 🧹 场景切换清零表现层残留（trauma/flash/hitStop/slowmo/pan/zoomPunch）。 | main.ts（152 全绿） | R239 commit |
 | R240 | 05:45 ⏱ 回放倍速三档循环（0.5×→1×→0.25×），慢放精看连锁细节。 | main.ts（152 全绿） | R240 commit |
+| R241 | 06:00 📖 手册补 F=全屏快捷键。 | index.html（152 全绿） | R241 commit |
+| R242 | 06:10 🔬 DPR 动态跟随——resize 时重设内部分辨率与变换（浏览器缩放/跨屏锐度保持）。 | main.ts（152 全绿） | R242 commit |
