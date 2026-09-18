@@ -185,6 +185,18 @@ try {
   // 无 localStorage：不弹
 }
 
+// ---- 全屏切换 ----
+function toggleFullscreen(): void {
+  const el = document.getElementById('stage-wrap');
+  if (!el) return;
+  if (document.fullscreenElement) {
+    document.exitFullscreen?.();
+  } else {
+    el.requestFullscreen?.();
+  }
+}
+document.getElementById('btn-full')?.addEventListener('click', toggleFullscreen);
+
 // ---- 工具箱 ----
 for (const btn of els.toolButtons) {
   btn.addEventListener('click', () => {
@@ -1253,6 +1265,8 @@ window.addEventListener('keydown', (ev) => {
     if (state.mode !== 'edit') backToEdit();
   } else if (ev.key === 'm' || ev.key === 'M') {
     els.mute?.click(); // 静音开关
+  } else if (ev.key === 'f' || ev.key === 'F') {
+    toggleFullscreen();
   } else if (ev.key === 'Escape') {
     if (helpEl && !helpEl.hidden) closeHelp();
     else if (state.mode === 'running') finishRun();
