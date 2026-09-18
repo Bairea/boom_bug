@@ -47,6 +47,7 @@ export interface RopeView {
   ay: number;
   bx: number;
   by: number;
+  slack?: number; // 松弛度 0(绷直)..1(全松)，由端点速度估计
 }
 
 export interface SceneView {
@@ -146,10 +147,14 @@ export function viewFromSim(sim: Simulation): SceneView {
   const slime: SlimeDrop[] = sim.world.slime.map((p) => ({ ...p }));
   const ropes: RopeView[] = sim.world.ropes
     .filter((r) => !r.broken)
-    .map((r) => {
+    .map((r): RopeView | null => {
       const a = sim.world.byId(r.aId);
       const b = sim.world.byId(r.bId);
-      return a && b && a.alive && b.alive ? { ax: a.x, ay: a.y, bx: b.x, by: b.y } : null;
+      if (!a || !b || !a.alive || !b.alive) return null;
+      // 松弛度估计：端点平均速度越高，绳子越接近绷直（拖拽/吊运观感）
+      const speed = (Math.hypot(a.vx, a.vy) + Math.hypot(b.vx, b.vy)) / 2;
+      const slack = Math.max(0, Math.min(1, 1 - speed / 260));
+      return { ax: a.x, ay: a.y, bx: b.x, by: b.y, slack };
     })
     .filter((r): r is RopeView => r != null);
   return { items, ropes, slime };
@@ -1600,7 +1605,10 @@ function drawRope(ctx: CanvasRenderingContext2D, r: RopeView, s: number): void {
   const dx = r.bx - r.ax;
   const dy = r.by - r.ay;
   const d = Math.hypot(dx, dy);
-  const sag = Math.min(14, Math.max(0, 24 - d * 0.12));
+  const slack = r.slack ?? 1;
+  // 绷直程度：松弛度低时垂弧消失（拖拽/吊运中的绳子是直的）
+  const sagBase = Math.min(14, Math.max(0, 24 - d * 0.12));
+  const sag = sagBase * slack;
   ctx.strokeStyle = '#c9a86a';
   ctx.lineWidth = 0.55 * s;
   ctx.beginPath();
