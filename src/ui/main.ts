@@ -705,7 +705,7 @@ function showReport(rep: Report): void {
       const nx = idx >= 0 ? SCENARIOS[idx + 1] : undefined;
       if (nx) {
         nextScenario = { id: nx.id, label: nx.label };
-        html += `<div class="goal" id="btn-next-scenario" style="color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07);cursor:pointer">➡️ 挑战下一关：「${nx.label}」</div>`;
+        html += `<button id="btn-next-scenario" class="goal" style="width:100%;color:#9fd0ff;border-color:rgba(126,200,255,0.3);background:rgba(126,200,255,0.07);cursor:pointer">➡️ 挑战下一关：「${nx.label}」</button>`;
       } else {
         html += '<div class="goal done">九个案例全部达成 —— 去自由实验发明你自己的灾难吧！🎉</div>';
       }
