@@ -1039,6 +1039,7 @@ function render(): void {
     itemFx: state.itemFx,
     panX: state.panX,
     panY: state.panY,
+    grainStatic: reducedMotion,
   };
 
   if (state.mode === 'edit') {

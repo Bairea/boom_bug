@@ -104,6 +104,42 @@ export interface DrawOptions {
   ropePreview?: RopeView | null; // 绳子工具：第一选点到鼠标的连接预览
   hoverDestructive?: boolean; // 悬停目标是删除工具（红圈可供性）
   centerHint?: string | null; // 空场景中央引导语
+  grainStatic?: boolean; // 减少动态：颗粒不闪动
+}
+
+// 胶片颗粒瓦片：实验录像质感（懒构建一次）
+let grainTile: HTMLCanvasElement | null = null;
+
+function drawGrain(ctx: CanvasRenderingContext2D, W: number, H: number, time: number, staticMode: boolean): void {
+  if (typeof document === 'undefined') return;
+  if (!grainTile) {
+    const size = 96;
+    const cv = document.createElement('canvas');
+    cv.width = size;
+    cv.height = size;
+    const c = cv.getContext('2d');
+    if (!c) return;
+    const img = c.createImageData(size, size);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.random() * 255;
+      img.data[i] = v;
+      img.data[i + 1] = v;
+      img.data[i + 2] = v;
+      img.data[i + 3] = 26;
+    }
+    c.putImageData(img, 0, 0);
+    grainTile = cv;
+  }
+  const pat = ctx.createPattern(grainTile, 'repeat');
+  if (!pat) return;
+  const ox = staticMode ? 0 : Math.floor(time * 13) % 96;
+  const oy = staticMode ? 0 : Math.floor(time * 7) % 96;
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.translate(-ox, -oy);
+  ctx.fillStyle = pat;
+  ctx.fillRect(0, 0, W + 96, H + 96);
+  ctx.restore();
 }
 
 function typeNameOf(b: { kind: string; data: { etype?: string; bugType?: string; propType?: string } }): string {
@@ -555,6 +591,9 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.fillRect(0, 0, W, H);
     ctx.restore();
   }
+
+  // 胶片颗粒：实验录像质感（最上层，极淡）
+  drawGrain(ctx, W, H, time, !!opts.grainStatic);
 
   // HUD
   if (opts.recDot) {
