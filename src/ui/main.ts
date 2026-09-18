@@ -98,6 +98,7 @@ interface GameState {
   slowmoCenter: { x: number; y: number } | null; // 慢镜头爆心（镜头缓推目标）
   panX: number; // 镜头平移（表现层）
   panY: number;
+  warmVignette: number; // 减少动态模式的暖色边缘提示强度（表现层）
   scorches: Scorch[]; // 爆炸焦痕（纯表现层）
   floatTexts: FloatText[]; // 连锁浮动大字（纯表现层）
 }
@@ -125,6 +126,7 @@ const state: GameState = {
   slowmoCenter: null,
   panX: 0,
   panY: 0,
+  warmVignette: 0,
   scorches: [],
   floatTexts: [],
 };
@@ -353,6 +355,7 @@ function startRun(useRecordedCommands = false): void {
   state.trauma = 0;
   state.hitStop = 0;
   state.flash = 0;
+  state.warmVignette = 0;
   state.itemFx.reset();
   state.slowmoCenter = null;
   state.panX = 0;
@@ -914,6 +917,7 @@ function tick(): void {
   // 表现层反馈衰减：trauma 线性衰减（震屏量 = trauma²）、白闪快衰（连锁时防过曝）、顿帧走真实时间
   state.trauma = Math.max(0, state.trauma - dt * 1.7);
   state.flash = Math.max(0, state.flash - dt * 3.4);
+  state.warmVignette = Math.max(0, state.warmVignette - dt * 1.4);
   if (state.hitStop > 0) state.hitStop = Math.max(0, state.hitStop - dt);
   // 环境微尘：台灯光束里的漂浮微粒（纯装饰）
   if (!reducedMotion && Math.random() < 0.1) state.particles.mote(VIEW_W, VIEW_H);
@@ -1043,9 +1047,14 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     // 镜头推近一点，随时间回弹（减少动态时跳过这类镜头运动）
     if (!reducedMotion) state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
     // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
-    const motionK = reducedMotion ? 0.35 : 1;
-    state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
-    state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300) * motionK);
+      const motionK = reducedMotion ? 0.35 : 1;
+      state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
+      if (reducedMotion) {
+        // 减少动态：不用全屏白闪，改用短暂暖色 vignette 提示
+        state.warmVignette = 1;
+      } else {
+        state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300));
+      }
     // 方向性推镜：镜头被冲击波往爆点反方向推一下（回中弹簧自动收回）
     const kick = Math.min(2.5, e.power / 80) * motionK;
     state.panX = Math.max(-4, Math.min(4, state.panX - ((e.x - VIEW_W / 2) / (VIEW_W / 2)) * kick));
@@ -1212,6 +1221,16 @@ function render(): void {
   if (view) {
     state.itemFx.observe(view.items, state.lastDt); // 着陆/撞击检测（表现层）
     drawScene(ctx, W, H, view, opts);
+  }
+  // 减少动态模式的爆炸提示：短暂暖色边缘（替代全屏白闪）
+  if (state.warmVignette > 0.01) {
+    ctx.save();
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.7);
+    vg.addColorStop(0, 'rgba(255,150,80,0)');
+    vg.addColorStop(1, `rgba(255,150,80,${0.22 * state.warmVignette})`);
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
   }
   // 运行中画布外框环境光变暖（CSS 类驱动）
   canvas.classList.toggle('running', state.mode === 'running');
