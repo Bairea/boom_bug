@@ -1754,6 +1754,10 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.beginPath();
       ctx.arc(lx * s, ly * s, 1.1 * s, 0, Math.PI * 2);
       ctx.fill();
+      ctx.font = `${Math.max(8, 2.8 * s)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('会熄灭', lx * s, ly * s - 5 * s);
+      ctx.textAlign = 'left';
     } else if (inOil) {
       ctx.strokeStyle = 'rgba(255,150,60,0.95)';
       ctx.lineWidth = 0.7 * s;
@@ -1762,6 +1766,10 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.arc(lx * s, ly * s, 2.6 * s, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.font = `${Math.max(8, 2.8 * s)}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText('会爆燃', lx * s, ly * s - 5 * s);
+      ctx.textAlign = 'left';
     } else {
       ctx.strokeStyle = 'rgba(255,217,160,0.9)';
       ctx.lineWidth = 0.5 * s;
