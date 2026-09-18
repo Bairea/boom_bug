@@ -24,13 +24,25 @@ function $<T extends HTMLElement>(id: string): T {
 
 const canvas = $<HTMLCanvasElement>('stage');
 // 高 DPI 锐化：内部按 devicePixelRatio 放大，逻辑坐标仍是 960×576（绘制代码无感知）
-const DPR = Math.min(2, Math.max(1, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1));
+let DPR = Math.min(2, Math.max(1, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1));
 canvas.width = canvas.width * DPR;
 canvas.height = canvas.height * DPR;
 const ctx = canvas.getContext('2d', { alpha: false })!; // 背景全幅不透明：关 alpha 走更快合成路径
 ctx.scale(DPR, DPR);
-const W = canvas.width / DPR; // 逻辑宽度（绘制坐标统一用逻辑值）
-const H = canvas.height / DPR;
+let W = canvas.width / DPR; // 逻辑宽度（绘制坐标统一用逻辑值）
+let H = canvas.height / DPR;
+// 浏览器缩放/跨屏拖动导致 DPR 变化时，重设内部分辨率（下一帧全量重绘）
+window.addEventListener('resize', () => {
+  const nd = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+  if (nd === DPR) return;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  canvas.width = Math.round((canvas.width / DPR) * nd);
+  canvas.height = Math.round((canvas.height / DPR) * nd);
+  DPR = nd;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  W = canvas.width / DPR;
+  H = canvas.height / DPR;
+});
 
 const els = {
   status: $<HTMLElement>('status'),
