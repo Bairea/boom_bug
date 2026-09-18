@@ -93,3 +93,6 @@
 | R140 | 02:20 | 🎊 报告 goal 行 360ms 错峰登场；**18 局随机交互 soak**（9 场景×原布局/随机布置+悬停扫过）全部入报告、零 JS 错误。 | index.html + soak 记录（152 全绿） | R140 commit |
 | R141 | 02:25 ⛄ 冰面高速滑行脚下溅冰晶（frost 拖尾，|vx|>190 且在冰面区域内；kind 收窄修复）。 | particles.ts + main.ts（152 全绿） | R141 commit |
 | R142 | 02:30 🔇 静音按钮 aria-pressed 开关态（无障碍）。 | main.ts（152 全绿） | R142 commit |
+| R143 | 02:30 🐛 移动端巡检发现：报告弹出后状态胶囊仍显示"实验进行中" → finishRun 同步更新为"实验结束——报告已生成+关键数字"。移动端报告卡/气球场景渲染巡检 ✓。 | main.ts（152 全绿，实机验证） | R143 commit |
+| R144 | 02:35 📱 刘海屏安全区适配——body padding 注入 env(safe-area-inset-*)。 | index.html（152 全绿） | R144 commit |
+| R145 | 02:40 📖 手册"操作"区补绳子连接预览/删除红圈说明。 | index.html（152 全绿） | R145 commit |
