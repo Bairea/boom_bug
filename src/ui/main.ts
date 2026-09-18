@@ -300,6 +300,7 @@ function finishRun(): void {
   state.mode = 'report';
   editor.locked = false;
   if (!state.sim) return;
+  editor.onStatus(`实验结束 —— 报告已生成（爆炸${state.sim.stats.explosions} · 连锁×${state.sim.stats.chainMax}）`);
   state.report = buildReport(state.sim, getScenario(state.scenarioId));
   // 本机最佳：分享来的自定义实验记入 custom 键；每日实验按日期入账（对照上次=今天上一局）
   const key = state.runExperiment?.custom ? 'custom' : state.dailyKey ? `daily-${state.dailyKey}` : state.scenarioId;
