@@ -180,3 +180,4 @@
 | R253 | 06:45 ⌨️ H 键开关实验手册（键盘替代入口）+手册快捷键行同步。 | main.ts + index.html（152 全绿） | R253 commit |
 | R258 | 06:40 ♿ 场景加载后焦点回画布（快捷键动线一致）。 | main.ts（152 全绿） | R258 commit |
 | R259 | 06:50 🔵🟠 状态胶囊模式指示点（编辑蓝/运行橙，CSS 过渡）。 | index.html + main.ts（152 全绿） | R259 commit |
+| R261 | 07:00 ♿ reduced-motion 爆炸提示改为暖色边缘 vignette（替代白闪，光敏友好仍有反馈；warmVignette 状态+衰减+渲染分支）。 | main.ts（152 全绿） | R261 commit |
