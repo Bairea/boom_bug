@@ -1052,6 +1052,8 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     state.itemFx.pop(e.id, 0.45); // 起跳蹬地：蓄力压缩弹回
   } else if (e.type === 'armorCrack') {
     state.itemFx.pop(e.id, 0.7); // 裂甲：重击感
+  } else if (e.type === 'propCrack') {
+    state.particles.spark(e.x, e.y, 3); // 玻璃砖裂纹出现时的细碎火花
   } else if (e.type === 'douse') {
     state.particles.puff(e.x, e.y);
     state.particles.splash(e.x, e.y); // 水花
