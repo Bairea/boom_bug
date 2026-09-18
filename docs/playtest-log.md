@@ -182,3 +182,5 @@
 | R259 | 06:50 🔵🟠 状态胶囊模式指示点（编辑蓝/运行橙，CSS 过渡）。 | index.html + main.ts（152 全绿） | R259 commit |
 | R261 | 07:00 ♿ reduced-motion 爆炸提示改为暖色边缘 vignette（替代白闪，光敏友好仍有反馈；warmVignette 状态+衰减+渲染分支）。 | main.ts（152 全绿） | R261 commit |
 | R234 | 06:20 ✅ 周期性全场景 soak（10 场景 report+replay）零 JS 错误。 | 巡检记录（152 全绿） | — |
+| R266-R267 | 06:40-06:50 🎨 油盆标注显式橙色 fillStyle；普通落点圈呼吸脉动。 | render.ts（152 全绿） | R266/R267 commits |
+| R268 | 07:00 ❄️ propCrack 改用冷色碎光（玻璃材质语感；frost 复用）。 | main.ts（152 全绿） | R268 commit |

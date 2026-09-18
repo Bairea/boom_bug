@@ -1114,7 +1114,8 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
   } else if (e.type === 'armorCrack') {
     state.itemFx.pop(e.id, 0.7); // 裂甲：重击感
   } else if (e.type === 'propCrack') {
-    state.particles.spark(e.x, e.y, 3); // 玻璃砖裂纹出现时的细碎火花
+    state.particles.frost(e.x, e.y); // 玻璃裂纹的冷色碎光
+    state.particles.spark(e.x, e.y, 2);
   } else if (e.type === 'douse') {
     state.particles.puff(e.x, e.y);
     state.particles.splash(e.x, e.y); // 水花
