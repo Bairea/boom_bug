@@ -1080,6 +1080,11 @@ function render(): void {
   }
   // 运行中画布外框环境光变暖（CSS 类驱动）
   canvas.classList.toggle('running', state.mode === 'running');
+  // 运行中隐藏不适用的工具栏按钮（防误触打断实验，移动端也省空间）
+  const midRun = state.mode === 'running';
+  els.rerun.hidden = midRun;
+  els.daily.hidden = midRun;
+  els.clear.hidden = midRun;
   // 编辑模式：点选类工具悬停到可作用目标时光标变 pointer（可供性）
   if (state.mode === 'edit') {
     canvas.style.cursor = editor.hoverIdx != null ? 'pointer' : 'crosshair';
