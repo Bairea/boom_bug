@@ -107,3 +107,11 @@
 | R157 | 03:40 🐛 **修复 R155 引入的 DPR 逻辑尺寸回归**——main.ts 的 W/H 读到放大后的 canvas 尺寸导致场景整体错放 1.5×；W/H 回归逻辑值(canvas.width/DPR)。实机回归 ✓。另补 README 视觉章节至 R157。 | main.ts + README.md（152 全绿，实机验证） | R157 commit |
 | R160 | 04:00 📊 运行模式渲染性能复测：全场景 0.54ms/帧（60fps 预算 1/30），无优化需求。 | 巡检记录（152 全绿） | — |
 | R162 | 04:10 ♿ 画布补 role="img"+aria-label（屏幕阅读器可感知沙盒区域）。 | index.html（152 全绿） | R162 commit |
+| R161 | 04:10 🧹 清理僵尸字段 lastExplosionSeen（trauma 体系替代后无引用）。 | main.ts（152 全绿） | R161 commit |
+| R163 | 04:15 ⌨️ 手册快捷键键帽样式（kbd 排版）。 | index.html（152 全绿） | R163 commit |
+| R164 | 04:20 📸 展示截图三张存 .shots（编辑/连锁爆震/报告；录制 API 环境超时改用截图）。 | .shots（gitignored，无代码变更） | — |
+| R165 | 04:25 ✅ 摆放上限红圈示警实机验证（10 爆炸物触顶→幽灵红圈+状态提示）。 | 巡检（152 全绿） | — |
+| R166 | 04:30 🏷️ 标签页标题随场景/每日实验更新。 | main.ts（152 全绿） | R166 commit |
+| R167 | 04:40 ♿ 帮助层焦点管理+Esc 关闭（dialog 行为闭环）。 | main.ts（152 全绿） | R167 commit |
+| R168 | 04:50 ⌨️ M 键切换静音+手册同步。 | main.ts + index.html（152 全绿） | R168 commit |
+| R170 | 04:55 🎨 favicon/图标升级（渐变纸筒+台灯辉光）+标签页标题运行状态（🔥/📋）。 | icon.svg + main.ts（152 全绿） | R170 commit |
