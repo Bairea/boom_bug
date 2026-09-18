@@ -599,7 +599,10 @@ function drawRoach(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time:
   const r = 2.6 * s;
   // 活着时朝向固定（顶视角靠腿动表现移动），被击倒后随物理角度翻滚
   ctx.rotate(it.knocked ? (it.angle ?? 0) : 0);
-  const wig = (it.speed ?? 0) > 12 ? Math.sin(time * 20) * 0.35 : 0;
+  // 奔跑时腿部大幅摆动；静立时触角轻摆（生命感）
+  const running = (it.speed ?? 0) > 12;
+  const idleSway = running ? 0 : Math.sin(time * 3.1 + (it.id ?? 0) * 1.7) * 0.16;
+  const wig = running ? Math.sin(time * 20) * 0.35 : idleSway;
   knockedTint(ctx, it, s, () => {
     // 腿
     ctx.strokeStyle = '#5d3a17';
@@ -1306,7 +1309,7 @@ function drawDebris(ctx: CanvasRenderingContext2D, it: ItemView, s: number): voi
   ctx.fill();
 }
 
-function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
+function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const r = 3 * s;
   const face = it.knocked ? 1 : Math.sign(it.speedX ?? 1);
   knockedTint(ctx, it, s, () => {
@@ -1342,17 +1345,18 @@ function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time
     ctx.beginPath();
     ctx.arc(face * r * 0.25, -r * 0.25, r * 0.92, Math.PI * 1.15, Math.PI * 1.7);
     ctx.stroke();
-    // 眼触角
+    // 眼触角（闲时轻摇）
     if (!it.knocked) {
+      const stalk = Math.sin(time * 2.2 + (it.id ?? 0) * 1.3) * 0.1 * r;
       ctx.strokeStyle = '#b7c98a';
       ctx.lineWidth = 0.3 * s;
       ctx.beginPath();
       ctx.moveTo(-face * r * 1.2, r * 0.2);
-      ctx.lineTo(-face * r * 1.7, -r * 0.5);
+      ctx.lineTo(-face * r * 1.7, -r * 0.5 + stalk);
       ctx.stroke();
       ctx.fillStyle = '#b7c98a';
       ctx.beginPath();
-      ctx.arc(-face * r * 1.7, -r * 0.55, 0.22 * s, 0, Math.PI * 2);
+      ctx.arc(-face * r * 1.7, -r * 0.55 + stalk, 0.22 * s, 0, Math.PI * 2);
       ctx.fill();
     }
   });
@@ -1362,6 +1366,10 @@ function drawFly(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: n
   const r = 2 * s;
   const dirX = (it.speedX ?? 0) >= 0 ? 1 : -1;
   knockedTint(ctx, it, s, () => {
+    // 悬停浮动（生命感）：被击倒后不浮动（随物理翻滚）
+    if (!it.knocked) {
+      ctx.translate(0, Math.sin(time * 6.3 + (it.id ?? 0) * 2.1) * 0.7 * s);
+    }
     // 翅膀（高频扇动 + 运动模糊残影）
     const flap = Math.sin(time * 60) * 0.8;
     for (const side of [-1, 1]) {
