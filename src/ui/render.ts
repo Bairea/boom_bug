@@ -631,10 +631,10 @@ function drawItem(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: 
   else if (it.t === 'sponge') drawSponge(ctx, it, s);
   else if (it.t === 'water') drawWater(ctx, it, s, time);
   else if (it.t === 'oil') drawOil(ctx, it, s, time);
-  else if (it.t === 'sand') drawSand(ctx, it, s);
+  else if (it.t === 'sand') drawSand(ctx, it, s, time);
   else if (it.t === 'giftbox') drawGiftbox(ctx, it, s);
   else if (it.t === 'wood') drawWood(ctx, it, s, time);
-  else if (it.t === 'ice') drawIce(ctx, it, s);
+  else if (it.t === 'ice') drawIce(ctx, it, s, time);
   else if (it.t === 'metal') drawMetal(ctx, it, s);
   else if (it.t === 'balloon') drawBalloon(ctx, it, s, time);
   else if (it.t === 'debris') drawDebris(ctx, it, s);
@@ -1268,7 +1268,7 @@ function drawWood(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: 
   }
 }
 
-function drawIce(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
+function drawIce(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const w = 12 * s;
   const g = ctx.createRadialGradient(-w * 0.25, -w * 0.1, 0, 0, 1 * s, w);
   g.addColorStop(0, 'rgba(215, 242, 252, 0.6)');
@@ -1288,12 +1288,14 @@ function drawIce(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   ctx.moveTo(w * 0.1, w * 0.12);
   ctx.lineTo(w * 0.5, w * 0.02);
   ctx.stroke();
-  // 高光星点
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
-  for (const [px, py] of [
-    [-0.4, -0.12],
-    [0.32, -0.05],
+  // 高光星点（呼吸闪烁，相位由坐标派生）
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  for (const [px, py, ph] of [
+    [-0.4, -0.12, 0],
+    [0.32, -0.05, 2.3],
   ] as const) {
+    const tw = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(time * 2.1 + ph + it.x * 0.31));
+    ctx.globalAlpha = tw;
     ctx.beginPath();
     ctx.moveTo(px * w - 0.12 * w, py * w);
     ctx.lineTo(px * w + 0.12 * w, py * w);
@@ -1301,6 +1303,7 @@ function drawIce(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
     ctx.lineTo(px * w, py * w + 0.05 * w);
     ctx.stroke();
   }
+  ctx.globalAlpha = 1;
 }
 
 function drawMetal(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
@@ -1337,12 +1340,21 @@ function drawMetal(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void
   }
 }
 
-function drawSand(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
+function drawSand(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const w = 13 * s;
   ctx.fillStyle = '#e2c98f';
   ctx.beginPath();
   ctx.ellipse(0, 1.5 * s, w, w * 0.42, 0, 0, Math.PI * 2);
   ctx.fill();
+  // 风纹：一道暗带缓慢游移（风吹沙动）
+  {
+    const t = ((time * 0.1 + it.x * 0.19) % 1 + 1) % 1;
+    ctx.strokeStyle = `rgba(160, 130, 70, ${0.3 * Math.sin(t * Math.PI)})`;
+    ctx.lineWidth = 0.6 * s;
+    ctx.beginPath();
+    ctx.ellipse(0, 1.5 * s, w * 0.55, w * 0.2, t * 0.16 - 0.08, 0, Math.PI * 2);
+    ctx.stroke();
+  }
   ctx.fillStyle = 'rgba(160,130,70,0.6)';
   for (const [px, py] of [
     [-0.5, -0.1],
