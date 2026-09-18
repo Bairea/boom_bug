@@ -174,15 +174,60 @@ function specRadius(t: string): number {
 }
 
 // ---- 主绘制 ----
+
+// 背景缓存：静态桌面（渐变+灯辉+暗角+网格）只在有 DOM 的环境预渲染一次
+let bgCache: { key: string; cv: HTMLCanvasElement } | null = null;
+
+function drawBackdrop(ctx: CanvasRenderingContext2D, W: number, H: number, s: number): void {
+  const key = `${W}x${H}`;
+  if (typeof document !== 'undefined') {
+    if (bgCache?.key === key) {
+      ctx.drawImage(bgCache.cv, 0, 0);
+      return;
+    }
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = H;
+    const c = cv.getContext('2d');
+    if (c) {
+      paintBackdrop(c, W, H, s);
+      bgCache = { key, cv };
+      ctx.drawImage(cv, 0, 0);
+      return;
+    }
+  }
+  paintBackdrop(ctx, W, H, s);
+}
+
+function paintBackdrop(ctx: CanvasRenderingContext2D, W: number, H: number, s: number): void {
+  // 实验桌：上冷下暖的微渐变，中央一盏台灯的柔光，四周暗角收拢视线
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#272c37');
+  bg.addColorStop(0.55, '#1d212a');
+  bg.addColorStop(1, '#14171d');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  const lamp = ctx.createRadialGradient(W * 0.5, H * 0.18, 0, W * 0.5, H * 0.18, Math.max(W, H) * 0.75);
+  lamp.addColorStop(0, 'rgba(255,241,214,0.075)');
+  lamp.addColorStop(0.5, 'rgba(255,241,214,0.02)');
+  lamp.addColorStop(1, 'rgba(255,241,214,0)');
+  ctx.fillStyle = lamp;
+  ctx.fillRect(0, 0, W, H);
+  drawGrid(ctx, W, H, s);
+  const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.38, W / 2, H / 2, Math.max(W, H) * 0.72);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+}
+
 export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, view: SceneView, opts: DrawOptions = {}): void {
   const s = W / VIEW_W; // 世界→屏幕缩放
   const time = opts.time ?? 0;
   ctx.clearRect(0, 0, W, H);
 
   // 背景：实验桌
-  ctx.fillStyle = '#20242c';
-  ctx.fillRect(0, 0, W, H);
-  drawGrid(ctx, W, H, s);
+  drawBackdrop(ctx, W, H, s);
 
   // 盒子
   const ox = (W - VIEW_W * s) / 2;
@@ -198,17 +243,58 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     ctx.translate(-cx, -cy);
   }
 
+  // 盒子内部：玻璃罩质感（后壁微光 + 地面沉降 + 对角反光）
+  const bw = VIEW_W * s;
+  const bh = VIEW_H * s;
   ctx.fillStyle = 'rgba(140,180,220,0.07)';
-  ctx.fillRect(0, 0, VIEW_W * s, VIEW_H * s);
-  ctx.fillStyle = 'rgba(255,255,255,0.03)';
-  ctx.fillRect(0, (VIEW_H - 3) * s, VIEW_W * s, 3 * s); // 底部玻璃厚度感
+  ctx.fillRect(0, 0, bw, bh);
+  const wall = ctx.createLinearGradient(0, 0, 0, bh);
+  wall.addColorStop(0, 'rgba(190,220,255,0.05)');
+  wall.addColorStop(0.6, 'rgba(190,220,255,0.012)');
+  wall.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = wall;
+  ctx.fillRect(0, 0, bw, bh);
+  // 地面：底部沉降 + 一条微亮的地平线
+  const floor = ctx.createLinearGradient(0, (VIEW_H - 10) * s, 0, VIEW_H * s);
+  floor.addColorStop(0, 'rgba(0,0,0,0)');
+  floor.addColorStop(1, 'rgba(0,0,0,0.3)');
+  ctx.fillStyle = floor;
+  ctx.fillRect(0, (VIEW_H - 10) * s, bw, 10 * s);
+  ctx.fillStyle = 'rgba(210,235,255,0.09)';
+  ctx.fillRect(0, (VIEW_H - 1.6) * s, bw, 1.6 * s);
+  // 玻璃对角反光（静态、极淡）
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, bw, bh);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(255,255,255,0.028)';
+  ctx.beginPath();
+  ctx.moveTo(bw * 0.62, 0);
+  ctx.lineTo(bw * 0.78, 0);
+  ctx.lineTo(bw * 0.4, bh);
+  ctx.lineTo(bw * 0.28, bh);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.016)';
+  ctx.beginPath();
+  ctx.moveTo(bw * 0.84, 0);
+  ctx.lineTo(bw * 0.9, 0);
+  ctx.lineTo(bw * 0.56, bh);
+  ctx.lineTo(bw * 0.5, bh);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
 
   // 蜗牛黏液（画在物体脚下）
   for (const p of view.slime ?? []) drawSlime(ctx, p, s);
 
-  // 爆炸焦痕（战损记忆，纯表现层）
+  // 爆炸焦痕（战损记忆，纯表现层）：外圈淡晕 + 深色核心
   for (const sc of opts.scorches ?? []) {
     const fade = Math.max(0, 1 - sc.age / sc.ttl);
+    ctx.fillStyle = `rgba(10, 8, 6, ${0.32 * fade})`;
+    ctx.beginPath();
+    ctx.ellipse(sc.x * s, sc.y * s, sc.r * 1.25 * s, sc.r * 0.45 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.fillStyle = `rgba(12, 10, 8, ${0.5 * fade})`;
     ctx.beginPath();
     ctx.ellipse(sc.x * s, sc.y * s, sc.r * s, sc.r * 0.36 * s, 0, 0, Math.PI * 2);
@@ -274,7 +360,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   // 投掷预览（运行中拖拽扔炮仗）
   if (opts.throwPreview) drawThrowPreview(ctx, opts.throwPreview, s);
 
-  // 慢镜头视觉提示：边缘泛蓝光晕
+  // 慢镜头视觉提示：四周泛蓝光晕（径向）+ 上下渐变，中心保持通透
   if (opts.slowmoActive) {
     const g = ctx.createLinearGradient(0, 0, 0, VIEW_H * s);
     g.addColorStop(0, 'rgba(126,200,255,0.16)');
@@ -283,23 +369,49 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
     g.addColorStop(1, 'rgba(126,200,255,0.16)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, VIEW_W * s, VIEW_H * s);
+    const pulse = 0.5 + 0.5 * Math.sin(time * 5);
+    const rg = ctx.createRadialGradient(VIEW_W * s / 2, VIEW_H * s / 2, VIEW_H * s * 0.3, VIEW_W * s / 2, VIEW_H * s / 2, VIEW_W * s * 0.62);
+    rg.addColorStop(0, 'rgba(126,200,255,0)');
+    rg.addColorStop(1, `rgba(90,160,235,${0.1 + 0.06 * pulse})`);
+    ctx.fillStyle = rg;
+    ctx.fillRect(0, 0, VIEW_W * s, VIEW_H * s);
   }
 
-  // 盒子边框
-  ctx.strokeStyle = 'rgba(190,220,255,0.75)';
+  // 盒子边框：上亮下暗的金属渐变 + 内圈暗线（玻璃厚度感）
+  const frame = ctx.createLinearGradient(0, 0, 0, VIEW_H * s);
+  frame.addColorStop(0, 'rgba(215,238,255,0.92)');
+  frame.addColorStop(0.5, 'rgba(160,195,230,0.66)');
+  frame.addColorStop(1, 'rgba(120,150,190,0.8)');
+  ctx.strokeStyle = frame;
   ctx.lineWidth = Math.max(2, 1.2 * s);
   ctx.strokeRect(0, 0, VIEW_W * s, VIEW_H * s);
-  // 四角螺丝
-  ctx.fillStyle = 'rgba(190,220,255,0.5)';
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = Math.max(1, 0.5 * s);
+  ctx.strokeRect(1.6 * s, 1.6 * s, VIEW_W * s - 3.2 * s, VIEW_H * s - 3.2 * s);
+  // 四角螺丝：金属圆点 + 高光 + 一字槽
   for (const [sx, sy] of [
     [1.5, 1.5],
     [VIEW_W - 1.5, 1.5],
     [1.5, VIEW_H - 1.5],
     [VIEW_W - 1.5, VIEW_H - 1.5],
   ]) {
+    const px = sx * s;
+    const py = sy * s;
+    const pr = 1.15 * s;
+    const mg = ctx.createRadialGradient(px - pr * 0.35, py - pr * 0.35, pr * 0.1, px, py, pr);
+    mg.addColorStop(0, '#e8eef5');
+    mg.addColorStop(0.5, '#9aa8b8');
+    mg.addColorStop(1, '#5d6a7a');
+    ctx.fillStyle = mg;
     ctx.beginPath();
-    ctx.arc(sx * s, sy * s, 0.9 * s, 0, Math.PI * 2);
+    ctx.arc(px, py, pr, 0, Math.PI * 2);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(20,26,34,0.7)';
+    ctx.lineWidth = Math.max(0.6, 0.22 * s);
+    ctx.beginPath();
+    ctx.moveTo(px - pr * 0.55, py);
+    ctx.lineTo(px + pr * 0.55, py);
+    ctx.stroke();
   }
 
   // 粒子
@@ -331,7 +443,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
 }
 
 function drawGrid(ctx: CanvasRenderingContext2D, W: number, H: number, s: number): void {
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
   ctx.lineWidth = 1;
   const step = 6 * s;
   ctx.beginPath();
@@ -351,7 +463,12 @@ function drawShadow(ctx: CanvasRenderingContext2D, it: ItemView, s: number): voi
   const floorY = VIEW_H * s;
   const h = Math.max(0, floorY - it.y * s);
   const w = it.kind === 'bug' ? 2.6 : 2.2;
-  ctx.fillStyle = `rgba(0,0,0,${Math.max(0.04, 0.2 - h / (140 * s))})`;
+  // 双层软阴影：外圈大而淡（半影），内圈小而深（本影）
+  ctx.fillStyle = `rgba(0,0,0,${Math.max(0.03, 0.1 - h / (300 * s))})`;
+  ctx.beginPath();
+  ctx.ellipse(it.x * s, floorY - 1.2 * s, w * s * (1.35 + h / (200 * s)), 1 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = `rgba(0,0,0,${Math.max(0.05, 0.22 - h / (140 * s))})`;
   ctx.beginPath();
   ctx.ellipse(it.x * s, floorY - 1.5 * s, w * s * (1 + h / (260 * s)), 0.7 * s, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -542,19 +659,30 @@ function drawScarab(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _tim
 
 function drawFuse(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
   if (!it.lit) return;
-  // 引信火花
+  // 引信火花：抖动弧线 + 加法辉光亮点
   const fx = -3.2 * s;
   const jx = (Math.random() - 0.5) * 1.4 * s;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
   ctx.strokeStyle = '#ffd166';
   ctx.lineWidth = 1.2 * s;
   ctx.beginPath();
   ctx.moveTo(fx, -2.4 * s);
   ctx.lineTo(fx + jx, -3.6 * s);
   ctx.stroke();
+  const g = ctx.createRadialGradient(fx + jx, -3.8 * s, 0, fx + jx, -3.8 * s, 2.6 * s);
+  g.addColorStop(0, 'rgba(255,240,200,0.9)');
+  g.addColorStop(0.4, 'rgba(255,180,80,0.45)');
+  g.addColorStop(1, 'rgba(255,140,50,0)');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(fx + jx, -3.8 * s, 2.6 * s, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = '#fff3c4';
   ctx.beginPath();
   ctx.arc(fx + jx, -3.8 * s, (0.7 + Math.random() * 0.5) * s, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 }
 
 function drawFirecracker(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
@@ -574,6 +702,17 @@ function drawFirecracker(ctx: CanvasRenderingContext2D, it: ItemView, s: number,
 }
 
 function drawThrusterFlame(ctx: CanvasRenderingContext2D, s: number, len: number): void {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  // 外圈柔光
+  const halo = ctx.createRadialGradient(0, len * s * 0.4, 0, 0, len * s * 0.4, len * s * 0.9);
+  halo.addColorStop(0, 'rgba(255,150,60,0.3)');
+  halo.addColorStop(1, 'rgba(255,90,40,0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(0, len * s * 0.4, len * s * 0.9, 0, Math.PI * 2);
+  ctx.fill();
+  // 主焰舌
   const g = ctx.createLinearGradient(0, 0, 0, len * s);
   g.addColorStop(0, '#fff3c4');
   g.addColorStop(0.5, '#ffb347');
@@ -583,6 +722,7 @@ function drawThrusterFlame(ctx: CanvasRenderingContext2D, s: number, len: number
   ctx.moveTo(-0.9 * s, 0);
   ctx.quadraticCurveTo(0, len * s * (0.9 + Math.random() * 0.25), 0.9 * s, 0);
   ctx.fill();
+  ctx.restore();
 }
 
 function drawSkyrocket(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
@@ -954,6 +1094,11 @@ function drawSlime(ctx: CanvasRenderingContext2D, p: SlimeDrop, s: number): void
   ctx.fillStyle = `rgba(190, 240, 170, ${0.22 * fade})`;
   ctx.beginPath();
   ctx.ellipse((p.x + p.r * 0.3) * s, (p.y - 1) * s, p.r * 0.55 * s, p.r * 0.26 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 黏液高光点
+  ctx.fillStyle = `rgba(235, 255, 225, ${0.35 * fade})`;
+  ctx.beginPath();
+  ctx.ellipse((p.x - p.r * 0.35) * s, (p.y - 0.6) * s, p.r * 0.16 * s, p.r * 0.08 * s, -0.3, 0, Math.PI * 2);
   ctx.fill();
 }
 

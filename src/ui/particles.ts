@@ -1,4 +1,5 @@
 // 粒子与震屏：纯表现层，允许用 Math.random（不参与模拟确定性）。
+// R89：加法混合辉光（lighter）+ 预渲染辉光精灵（有 DOM 时）+ 余烬/碎片新粒子。
 
 interface ParticleBase {
   x: number;
@@ -16,6 +17,7 @@ interface SmokeParticle extends ParticleBase {
   vx: number;
   vy: number;
   r: number;
+  warm: number; // 0=冷灰 1=火场暖灰
 }
 interface FlashParticle extends ParticleBase {
   type: 'flash';
@@ -26,25 +28,86 @@ interface RingParticle extends ParticleBase {
   r: number;
   vr: number;
 }
-type Particle = SparkParticle | SmokeParticle | FlashParticle | RingParticle;
+interface EmberParticle extends ParticleBase {
+  type: 'ember';
+  vx: number;
+  vy: number;
+  r: number;
+  seed: number;
+}
+interface DebrisParticle extends ParticleBase {
+  type: 'debris';
+  vx: number;
+  vy: number;
+  r: number;
+  rot: number;
+  vrot: number;
+  hue: number; // 0=纸屑暖白 1=玻璃青
+}
+type Particle = SparkParticle | SmokeParticle | FlashParticle | RingParticle | EmberParticle | DebrisParticle;
+
+// ---- 辉光精灵：有 DOM 时预渲染径向渐变小图（避免每帧建渐变/shadowBlur）----
+const glowCache = new Map<string, CanvasGradient | HTMLCanvasElement>();
+
+function glowSprite(ctx: CanvasRenderingContext2D, color: string, r: number): CanvasGradient | HTMLCanvasElement {
+  const key = color;
+  const hit = glowCache.get(key);
+  if (hit) return hit;
+  let made: CanvasGradient | HTMLCanvasElement;
+  if (typeof document !== 'undefined') {
+    const size = 64;
+    const cv = document.createElement('canvas');
+    cv.width = size;
+    cv.height = size;
+    const c = cv.getContext('2d');
+    if (c) {
+      const g = c.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+      g.addColorStop(0, color);
+      g.addColorStop(0.35, color.replace(')', ',0.35)').replace('rgb', 'rgba'));
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, size, size);
+      made = cv;
+    } else {
+      made = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    }
+  } else {
+    // Node 测试环境：直接给渐变（假 ctx 会处理）
+    made = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+  }
+  glowCache.set(key, made);
+  return made;
+}
+
+function drawGlow(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, color: string, alpha: number): void {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.translate(x, y);
+  ctx.fillStyle = glowSprite(ctx, color, r) as unknown as CanvasPattern;
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
 
 export class Particles {
   list: Particle[] = [];
   shake = 0;
 
   add(p: Particle): void {
-    if (this.list.length > 500) this.list.splice(0, this.list.length - 500);
+    if (this.list.length > 600) this.list.splice(0, this.list.length - 600);
     this.list.push(p);
   }
 
   explosion(x: number, y: number, power: number): void {
     const r = 6 + power * 0.18;
-    this.add({ type: 'flash', x, y, r: r * 0.8, life: 0.12, age: 0 });
+    this.add({ type: 'flash', x, y, r: r * 0.8, life: 0.14, age: 0 });
     this.add({ type: 'ring', x, y, r: r * 0.4, vr: r * 7, life: 0.45, age: 0 });
-    const n = Math.min(26, (10 + power * 0.25) | 0);
+    const n = Math.min(30, (10 + power * 0.28) | 0);
     for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
-      const sp = 60 + Math.random() * 220;
+      const sp = 60 + Math.random() * 240;
       this.add({
         type: 'spark',
         x,
@@ -55,7 +118,40 @@ export class Particles {
         age: 0,
       });
     }
-    for (let i = 0; i < 6; i++) {
+    // 余烬：慢速上飘、闪烁
+    for (let i = 0; i < 5; i++) {
+      this.add({
+        type: 'ember',
+        x: x + (Math.random() - 0.5) * r,
+        y: y + (Math.random() - 0.5) * r * 0.6,
+        vx: (Math.random() - 0.5) * 26,
+        vy: -24 - Math.random() * 40,
+        r: 0.8 + Math.random() * 1.2,
+        life: 0.7 + Math.random() * 0.7,
+        age: 0,
+        seed: Math.random() * 10,
+      });
+    }
+    // 碎片：炮仗纸屑/碎壳
+    const nd = Math.min(10, 4 + (power * 0.06) | 0);
+    for (let i = 0; i < nd; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 90 + Math.random() * 200;
+      this.add({
+        type: 'debris',
+        x,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 120,
+        r: 0.9 + Math.random() * 1.4,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 18,
+        life: 0.5 + Math.random() * 0.5,
+        age: 0,
+        hue: Math.random(),
+      });
+    }
+    for (let i = 0; i < 7; i++) {
       this.add({
         type: 'smoke',
         x: x + (Math.random() - 0.5) * r,
@@ -65,6 +161,7 @@ export class Particles {
         r: 3 + Math.random() * 5,
         life: 0.9 + Math.random() * 0.6,
         age: 0,
+        warm: 0.7,
       });
     }
     this.shake = Math.min(14, this.shake + 3 + power * 0.09);
@@ -97,6 +194,7 @@ export class Particles {
         r: 2 + Math.random() * 3,
         life: 0.5 + Math.random() * 0.3,
         age: 0,
+        warm: 0,
       });
     }
   }
@@ -115,6 +213,15 @@ export class Particles {
         p.r += 6 * dt;
       } else if (p.type === 'ring') {
         p.r += p.vr * dt;
+      } else if (p.type === 'ember') {
+        p.vy -= 26 * dt; // 热浮力
+        p.x += p.vx * dt + Math.sin(p.age * 9 + p.seed) * 14 * dt;
+        p.y += p.vy * dt;
+      } else if (p.type === 'debris') {
+        p.vy += 620 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rot += p.vrot * dt;
       }
     }
     this.list = this.list.filter((p) => p.age < p.life);
@@ -125,33 +232,62 @@ export class Particles {
       const k = 1 - p.age / p.life;
       ctx.save();
       if (p.type === 'flash') {
-        ctx.globalAlpha = k * 0.9;
+        // 三层加法闪光：白核 → 橙圈 → 大范围辉光
+        ctx.globalCompositeOperation = 'lighter';
         const g = ctx.createRadialGradient(p.x * s, p.y * s, 0, p.x * s, p.y * s, p.r * s);
-        g.addColorStop(0, '#fff8e0');
-        g.addColorStop(0.4, '#ffb347');
-        g.addColorStop(1, 'rgba(255,120,40,0)');
+        g.addColorStop(0, `rgba(255,252,238,${0.95 * k})`);
+        g.addColorStop(0.3, `rgba(255,190,90,${0.75 * k})`);
+        g.addColorStop(0.7, `rgba(255,110,40,${0.32 * k})`);
+        g.addColorStop(1, 'rgba(255,80,30,0)');
         ctx.fillStyle = g;
         ctx.beginPath();
         ctx.arc(p.x * s, p.y * s, p.r * s, 0, Math.PI * 2);
         ctx.fill();
+        ctx.fillStyle = `rgba(255,255,244,${0.9 * k})`;
+        ctx.beginPath();
+        ctx.arc(p.x * s, p.y * s, p.r * 0.34 * s * k, 0, Math.PI * 2);
+        ctx.fill();
       } else if (p.type === 'ring') {
-        ctx.globalAlpha = k * 0.7;
-        ctx.strokeStyle = '#ffd9a0';
-        ctx.lineWidth = 2 * s * k;
+        // 双描边冲击环：外柔内锐
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = `rgba(255,200,130,${0.22 * k})`;
+        ctx.lineWidth = 4.5 * s * k;
         ctx.beginPath();
         ctx.arc(p.x * s, p.y * s, p.r * s, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.strokeStyle = `rgba(255,235,190,${0.75 * k})`;
+        ctx.lineWidth = 1.2 * s * k;
+        ctx.stroke();
       } else if (p.type === 'spark') {
+        // 火花：渐冷色拖尾 + 头部辉光
+        const heat = k * k;
+        const col = heat > 0.6 ? '#fff3c4' : heat > 0.3 ? '#ffb347' : '#ff7840';
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = col;
         ctx.globalAlpha = k;
-        ctx.strokeStyle = Math.random() < 0.5 ? '#ffb347' : '#ff7840';
         ctx.lineWidth = 1.4 * s;
         ctx.beginPath();
         ctx.moveTo(p.x * s, p.y * s);
         ctx.lineTo((p.x - p.vx * 0.03) * s, (p.y - p.vy * 0.03) * s);
         ctx.stroke();
+        drawGlow(ctx, p.x * s, p.y * s, 2.6 * s, 'rgb(255,180,80)', k * 0.85);
+      } else if (p.type === 'ember') {
+        const flicker = 0.55 + 0.45 * Math.sin(p.age * 22 + p.seed * 7);
+        drawGlow(ctx, p.x * s, p.y * s, 1.9 * s * p.r, 'rgb(255,140,60)', k * 0.75 * flicker);
+        ctx.globalAlpha = k * flicker;
+        ctx.fillStyle = '#ffd9a0';
+        ctx.beginPath();
+        ctx.arc(p.x * s, p.y * s, 0.5 * p.r * s, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.type === 'debris') {
+        ctx.globalAlpha = Math.min(1, k * 1.6);
+        ctx.translate(p.x * s, p.y * s);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = p.hue < 0.55 ? '#e8c15a' : p.hue < 0.8 ? '#c0392b' : 'rgba(170,215,245,0.9)';
+        ctx.fillRect(-p.r * s, -p.r * 0.45 * s, p.r * 2 * s, p.r * 0.9 * s);
       } else if (p.type === 'smoke') {
-        ctx.globalAlpha = k * 0.25;
-        ctx.fillStyle = '#666';
+        ctx.globalAlpha = k * (0.16 + p.warm * 0.1);
+        ctx.fillStyle = p.warm > 0.4 ? '#6b5b4e' : '#666';
         ctx.beginPath();
         ctx.arc(p.x * s, p.y * s, p.r * s, 0, Math.PI * 2);
         ctx.fill();
