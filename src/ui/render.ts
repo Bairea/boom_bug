@@ -1692,31 +1692,31 @@ function drawAim(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
 function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: number): void {
   const l = Math.hypot(t.vx, t.vy);
   if (l < 10) return;
-  // 弹道预测：粗积分重力（与模拟同 g=560）
+  // 弹道预测：粗积分重力（与模拟同 g=560）；步长 1/60 保证高速时点距仍密
   let px = t.x;
   let py = t.y;
   const vx = t.vx;
   let vy = t.vy;
-  const stepDt = 1 / 20;
+  const stepDt = 1 / 60;
   let lx = -1;
   let ly = -1;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 24; i++) {
     vy += 560 * stepDt;
     px += vx * stepDt;
     py += vy * stepDt;
     if (px < 2 || px > 298 || py < 2 || py > 178) break;
     lx = px;
     ly = py;
-    ctx.globalAlpha = 0.8 - i * 0.09;
+    ctx.globalAlpha = 0.8 - i * 0.03;
     ctx.fillStyle = 'rgba(255,217,160,0.9)';
     ctx.beginPath();
-    ctx.arc(px * s, py * s, 0.9 * s, 0, Math.PI * 2);
+    ctx.arc(px * s, py * s, 0.7 * s, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = (0.8 - i * 0.09) * 0.35;
+    ctx.globalAlpha = (0.8 - i * 0.03) * 0.35;
     ctx.beginPath();
-    ctx.arc(px * s, py * s, 1.8 * s, 0, Math.PI * 2);
+    ctx.arc(px * s, py * s, 1.5 * s, 0, Math.PI * 2);
     ctx.fill();
   }
   // 落点标记：预测终点的小圆环
