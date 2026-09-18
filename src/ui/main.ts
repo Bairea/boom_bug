@@ -29,8 +29,8 @@ canvas.width = canvas.width * DPR;
 canvas.height = canvas.height * DPR;
 const ctx = canvas.getContext('2d', { alpha: false })!; // 背景全幅不透明：关 alpha 走更快合成路径
 ctx.scale(DPR, DPR);
-const W = canvas.width;
-const H = canvas.height;
+const W = canvas.width / DPR; // 逻辑宽度（绘制坐标统一用逻辑值）
+const H = canvas.height / DPR;
 
 const els = {
   status: $<HTMLElement>('status'),
