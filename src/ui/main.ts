@@ -355,6 +355,12 @@ function finishRun(): void {
 function backToEdit(): void {
   state.mode = 'edit';
   editor.locked = false;
+  state.trauma = 0; // 回编辑即恢复平静（清残留震屏/白闪/慢镜/推镜）
+  state.flash = 0;
+  state.hitStop = 0;
+  state.slowmo = 0;
+  state.panX = 0;
+  state.panY = 0;
   state.sim = null;
   state.report = null;
   hideReport();
