@@ -738,14 +738,16 @@ function knockedTint(ctx: CanvasRenderingContext2D, it: ItemView, s: number, dra
   ctx.rotate(Math.PI); // 翻壳朝天
   draw();
   ctx.restore();
-  // 故障火花
-  ctx.strokeStyle = '#ffd166';
-  ctx.lineWidth = 1 * s;
-  const j = Math.random() * 2;
-  ctx.beginPath();
-  ctx.moveTo(-2 * s, -j * s);
-  ctx.lineTo(-1 * s, -1 * s - j * s);
-  ctx.stroke();
+  // 故障火花（低频闪动，光敏友好：约 1/5 帧才出现一次）
+  if (Math.random() < 0.2) {
+    ctx.strokeStyle = '#ffd166';
+    ctx.lineWidth = 1 * s;
+    const j = Math.random() * 2;
+    ctx.beginPath();
+    ctx.moveTo(-2 * s, -j * s);
+    ctx.lineTo(-1 * s, -1 * s - j * s);
+    ctx.stroke();
+  }
 }
 
 function drawRoach(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
