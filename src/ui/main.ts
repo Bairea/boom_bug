@@ -868,6 +868,10 @@ function stepOnce(): void {
 // 落水检测的每实体记忆（表现层）
 const inWater = new Map<number, boolean>();
 
+// HUD 连锁脉冲（表现层）
+let hudChainShown = 0;
+let hudChainPopUntil = 0;
+
 function frame(_now: number): void {
   tick();
   requestAnimationFrame(frame);
@@ -1039,8 +1043,14 @@ function render(): void {
     ctx.strokeStyle = 'rgba(126,200,255,0.18)';
     ctx.lineWidth = 1;
     ctx.stroke();
+    // 连锁数增长 → 数字脉冲放大（juice）
+    if (st.chainMax > hudChainShown) {
+      hudChainShown = st.chainMax;
+      hudChainPopUntil = ts + 0.28;
+    }
+    const pop = Math.max(0, hudChainPopUntil - ts) / 0.28;
     ctx.fillStyle = '#ffd166';
-    ctx.font = 'bold 15px ui-monospace, monospace';
+    ctx.font = `bold ${15 + 5 * pop}px ui-monospace, monospace`;
     const throwInfo = throwCap ? `  投掷${st.throws ?? 0}/${throwCap}` : '';
     ctx.fillText(`💥${st.explosions}  连锁×${st.chainMax}  击倒${st.knockouts}${throwInfo}`, 24, 34);
     if (goal) {
