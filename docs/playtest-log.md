@@ -137,3 +137,5 @@
 | R207 | 04:30 💚 目标达成画布外框泛绿光（1.6s 正反馈，实机时序验证）。 | main.ts + index.html（152 全绿） | R207 commit |
 | R209 | 05:35 ✨ 殉爆引燃瞬间火花反馈（chainIgnite 事件视觉化，深连锁叠加微 trauma）。 | main.ts（152 全绿） | R209 commit |
 | R210 | 05:40 ✨ propCrack 玻璃砖裂纹事件的细碎火花反馈（事件流视觉化补全）。 | main.ts（152 全绿） | R210 commit |
+| R211 | 03:30 📝 playtest-log 补 R209/R210。 | docs | R211 commit |
+| R212 | 03:40 🐛 **修复着陆检测从未触发的字段错配**——fx.observe 读 vy 但 ItemView 字段是 speedY（TS 结构类型允许可选缺失所以编译不报）；修正为 speedY/speedX，并新增横向撞击检测（撞墙/撞板挤压弹跳）。 | fx.ts + test（152 全绿） | R212 commit |
