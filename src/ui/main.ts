@@ -740,6 +740,7 @@ function showReport(rep: Report): void {
   }
   els.reportBody.innerHTML = html;
   els.report.hidden = false;
+  document.getElementById('report-close')?.focus({ preventScroll: true }); // dialog 焦点管理
   // 时间线芯片点击 → 跳到该时刻回放（从爆炸前 0.5s 开始看）
   const jumpFromChip = (chip: HTMLElement): void => {
     const tick = Number(chip.dataset.tick ?? 0);
