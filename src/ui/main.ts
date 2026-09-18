@@ -395,6 +395,7 @@ function backToEdit(): void {
   state.report = null;
   hideReport();
   els.ignite.disabled = false;
+  canvas.focus({ preventScroll: true }); // 键盘用户：焦点回画布，空格/Esc 立即可用
   editor.onStatus('回到编辑：调整布置后再次点燃');
 }
 
