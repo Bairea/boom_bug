@@ -237,6 +237,7 @@ function loadScenario(id: string): void {
   state.mode = 'edit';
   editor.locked = false;
   hideReport();
+  state.particles = new Particles(); // 场景切换：上一局的烟尘不带入
   document.title = `擦炮虫虫实验室 · ${sc.label}`;
   editor.onStatus(restored ? '已恢复上次的自由实验布置 —— ' + sc.desc : sc.desc);
   try {
