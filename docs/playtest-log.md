@@ -196,3 +196,4 @@
 | R260b | 07:10 📖 手册补时间线芯片跳转说明。 | index.html（152 全绿） | R260b commit |
 | R261b | 07:10 📝 README 视觉章节范围更新至 R253。 | README.md（152 全绿） | R261b commit |
 | R262b | 07:15 🔁 ？按钮改为手册开关（toggle 语义）。 | main.ts（152 全绿） | R262b commit |
+| R274 | 07:15 📖 手册补模式指示点说明。 | index.html（152 全绿） | R274 commit |
