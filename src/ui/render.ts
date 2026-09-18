@@ -102,6 +102,7 @@ export interface DrawOptions {
   hoverKind?: 'ignite' | 'detonate';
   ropePreview?: RopeView | null; // 绳子工具：第一选点到鼠标的连接预览
   hoverDestructive?: boolean; // 悬停目标是删除工具（红圈可供性）
+  centerHint?: string | null; // 空场景中央引导语
 }
 
 function typeNameOf(b: { kind: string; data: { etype?: string; bugType?: string; propType?: string } }): string {
@@ -511,6 +512,21 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
 
   // 粒子
   opts.particles?.draw(ctx, s);
+
+  // 空场景中央引导语（呼吸透明度）
+  if (opts.centerHint) {
+    ctx.save();
+    ctx.globalAlpha = 0.25 + 0.1 * Math.sin(time * 2.2);
+    ctx.fillStyle = '#c9d6e8';
+    ctx.font = `${Math.max(11, 5.5 * s)}px system-ui, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(opts.centerHint, VIEW_W * s / 2, VIEW_H * s / 2);
+    ctx.font = `${Math.max(9, 3.6 * s)}px system-ui, sans-serif`;
+    ctx.globalAlpha *= 0.75;
+    ctx.fillText('点燃之后，物理会替你完成剩下的故事', VIEW_W * s / 2, VIEW_H * s / 2 + 7 * s);
+    ctx.textAlign = 'left';
+    ctx.restore();
+  }
 
   ctx.restore();
 

@@ -1021,6 +1021,8 @@ function render(): void {
       if (p) opts.ropePreview = { ax: p.x, ay: p.y, bx: editor.hoverPos.x, by: editor.hoverPos.y };
     }
     opts.hoverDestructive = editor.tool === 'eraser';
+    // 空场景中央引导
+    if (editor.specs.length === 0) opts.centerHint = '从左侧工具箱选择物品 · 点击盒子摆放';
   } else if (state.mode === 'running' || (state.mode === 'report' && state.sim)) {
     view = viewFromSim(state.sim!);
     opts.recDot = state.mode === 'running';
