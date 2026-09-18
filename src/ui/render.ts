@@ -1687,6 +1687,10 @@ function drawAim(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   ctx.moveTo(ex, ey);
   ctx.lineTo(ex - Math.cos(a + 0.4) * 2.4 * s, ey - Math.sin(a + 0.4) * 2.4 * s);
   ctx.stroke();
+  // 角度读数：方便复刻同一打法
+  ctx.fillStyle = 'rgba(126,200,255,0.75)';
+  ctx.font = `${Math.max(8, 2.8 * s)}px ui-monospace, monospace`;
+  ctx.fillText(`${Math.round((a * 180) / Math.PI)}°`, ex + 2.5 * s, ey - 2 * s);
 }
 
 // 运行中拖拽投掷点燃炮仗的预览：起投点画一根点着的炮仗 + 重力弹道预测点（加法辉光渐隐）
