@@ -198,11 +198,19 @@ document.getElementById('fix-scarab')?.addEventListener('change', (e) => {
 });
 
 // ---- 场景 ----
-for (const sc of SCENARIOS) {
-  const opt = document.createElement('option');
-  opt.value = sc.id;
-  opt.textContent = sc.label;
-  els.scenario.appendChild(opt);
+{
+  const sandbox = document.createElement('optgroup');
+  sandbox.label = '🧪 沙盒';
+  const cases = document.createElement('optgroup');
+  cases.label = '📁 教学案例';
+  for (const sc of SCENARIOS) {
+    const opt = document.createElement('option');
+    opt.value = sc.id;
+    opt.textContent = sc.label;
+    (sc.id === 'free' ? sandbox : cases).appendChild(opt);
+  }
+  els.scenario.appendChild(sandbox);
+  els.scenario.appendChild(cases);
 }
 els.scenario.addEventListener('change', () => {
   loadScenario(els.scenario.value);
