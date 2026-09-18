@@ -676,10 +676,19 @@ function showReport(rep: Report): void {
     }
   }
   if (rep.timeline.length) {
+    const chipStyle = (depth: number): string => {
+      if (depth >= 4) return 'color:#ff8a70;border-color:rgba(255,120,64,0.6);background:rgba(255,120,64,0.12)';
+      if (depth >= 3) return 'color:#ffb37a;border-color:rgba(255,150,80,0.45);background:rgba(255,140,70,0.08)';
+      if (depth >= 2) return 'color:#ffd166;border-color:rgba(255,209,102,0.4);background:rgba(255,209,102,0.07)';
+      return '';
+    };
     html +=
       '<div class="timeline">' +
       rep.timeline
-        .map((t) => `<span>${t.t.toFixed(2)}s · ${causeName(t.cause)}${t.depth ? ` · 连锁${t.depth}` : ''}</span>`)
+        .map(
+          (t) =>
+            `<span${t.depth ? ` style="${chipStyle(t.depth)}"` : ''}>${t.t.toFixed(2)}s · ${causeName(t.cause)}${t.depth ? ` · 连锁${t.depth}` : ''}</span>`,
+        )
         .join('') +
       '</div>';
   }
