@@ -74,17 +74,17 @@ test('R90: ItemFx 着陆检测——下坠骤停触发弹跳，弹回收敛到 1
   const fx = new ItemFx();
   const id = 7;
   // 预热：静止
-  fx.observe([{ id, vy: 0, y: 100 }], 1 / 60);
+  fx.observe([{ id, speedY: 0, y: 100 }], 1 / 60);
   // 下坠
-  fx.observe([{ id, vy: 300, y: 104 }], 1 / 60);
+  fx.observe([{ id, speedY: 300, y: 104 }], 1 / 60);
   // 着陆：vy 骤降
-  fx.observe([{ id, vy: 20, y: 105 }], 1 / 60);
+  fx.observe([{ id, speedY: 20, y: 105 }], 1 / 60);
   const hit = fx.scaleOf(id);
   assert.ok(hit, '着陆应触发弹跳');
   assert.ok(hit.sy < 1, `着陆瞬间应压缩: sy=${hit.sy}`);
   assert.ok(Math.abs(hit.sx * hit.sy - 1) < 0.15, `应近似保体积: ${hit.sx * hit.sy}`);
   // 弹跳结束（0.45s 后）收敛
-  for (let i = 0; i < 30; i++) fx.observe([{ id, vy: 0, y: 105 }], 1 / 60);
+  for (let i = 0; i < 30; i++) fx.observe([{ id, speedY: 0, y: 105 }], 1 / 60);
   assert.equal(fx.scaleOf(id), null, '弹跳应自动结束回静止');
 });
 

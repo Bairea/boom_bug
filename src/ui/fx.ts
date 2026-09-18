@@ -3,6 +3,7 @@
 
 interface Tracked {
   vy: number;
+  vx: number;
   y: number;
 }
 
@@ -18,20 +19,25 @@ export class ItemFx {
   private pops = new Map<number, number>(); // id → 弹跳已进行秒数
   private bumps = new Map<number, number>(); // id → 冲击强度 0..1（击倒/重着陆）
 
-  observe(items: { id?: number; vy?: number; y?: number }[], dt: number): void {
+  observe(items: { id?: number; speedX?: number; speedY?: number; y?: number }[], dt: number): void {
     for (const p of this.pops) this.pops.set(p[0], p[1] + dt);
     for (const id of this.pops.keys()) if (this.pops.get(id)! > POP_TTL) { this.pops.delete(id); this.bumps.delete(id); }
     for (const it of items) {
-      if (it.id == null || it.vy == null || it.y == null) continue;
+      if (it.id == null || it.speedY == null || it.y == null) continue;
       const last = this.prev.get(it.id);
       if (last) {
         // 着陆判定：上一帧明显下坠，这一帧垂直速度骤降（或反弹反向）
-        const impact = last.vy - it.vy;
+        const impact = last.vy - it.speedY;
         if (last.vy > 130 && impact > Math.max(90, last.vy * 0.7)) {
           this.pop(it.id, Math.min(1, impact / 420));
         }
+        // 横向撞击判定：撞墙/撞板时水平速度骤降
+        const hImpact = Math.abs(last.vx) - Math.abs(it.speedX ?? 0);
+        if (Math.abs(last.vx) > 190 && hImpact > Math.max(120, Math.abs(last.vx) * 0.6)) {
+          this.pop(it.id, Math.min(1, hImpact / 420));
+        }
       }
-      this.prev.set(it.id, { vy: it.vy, y: it.y });
+      this.prev.set(it.id, { vy: it.speedY, vx: it.speedX ?? 0, y: it.y });
     }
     // 清理消失实体的跟踪（上限防泄漏）
     if (this.prev.size > 400) this.prev.clear();
