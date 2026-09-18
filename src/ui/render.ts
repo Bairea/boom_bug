@@ -70,6 +70,7 @@ export interface ThrowPreview {
   vx: number;
   vy: number;
   power?: number; // 拖拽力度 0..1（速度/750）
+  waterZones?: { x: number; y: number; radius: number }[]; // 水盆区域（落点熄灭预警）
 }
 
 export interface FloatText {
@@ -1735,14 +1736,27 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
     ctx.arc(px * s, py * s, 1.5 * s, 0, Math.PI * 2);
     ctx.fill();
   }
-  // 落点标记：预测终点的小圆环
+  // 落点标记：预测终点小圆环（终点落入水盆 → 蓝色"会熄灭"警示）
   if (lx > 0) {
-    ctx.globalAlpha = 0.55;
-    ctx.strokeStyle = 'rgba(255,217,160,0.9)';
-    ctx.lineWidth = 0.5 * s;
-    ctx.beginPath();
-    ctx.arc(lx * s, ly * s, 2.2 * s, 0, Math.PI * 2);
-    ctx.stroke();
+    const inWater = (t.waterZones ?? []).some((z) => Math.hypot(lx - z.x, ly - z.y) < z.radius);
+    ctx.globalAlpha = 0.7;
+    if (inWater) {
+      ctx.strokeStyle = 'rgba(126,200,255,0.95)';
+      ctx.fillStyle = 'rgba(126,200,255,0.9)';
+      ctx.lineWidth = 0.7 * s;
+      ctx.beginPath();
+      ctx.arc(lx * s, ly * s, 2.6 * s, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(lx * s, ly * s, 1.1 * s, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = 'rgba(255,217,160,0.9)';
+      ctx.lineWidth = 0.5 * s;
+      ctx.beginPath();
+      ctx.arc(lx * s, ly * s, 2.2 * s, 0, Math.PI * 2);
+      ctx.stroke();
+    }
   }
   ctx.restore();
   // 起投点：一根点着的炮仗（带引信火花感）+ 力度弧

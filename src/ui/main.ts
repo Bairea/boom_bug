@@ -1134,12 +1134,18 @@ function render(): void {
       // 弹道预览：runDrag 用的是 wx/wy（世界坐标起投点），换名成绘制要的 x/y
       if (runDrag) {
         const spd = Math.hypot(runDrag.vx, runDrag.vy);
+        const waterZones = state.sim
+          ? state.sim.world.bodies
+              .filter((b) => b.alive && b.kind === 'prop' && b.data.waterZone)
+              .map((b) => ({ x: b.x, y: b.y, radius: b.radius }))
+          : [];
         opts.throwPreview = {
           x: runDrag.wx,
           y: runDrag.wy,
           vx: runDrag.vx,
           vy: runDrag.vy,
           power: Math.min(1, spd / 750), // 拖拽力度（与 pointermove 限幅一致）
+          waterZones,
         };
       }
       // 运行中悬停高亮
