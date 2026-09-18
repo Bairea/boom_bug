@@ -527,7 +527,7 @@ function showReport(rep: Report): void {
     ['装甲裂纹', c.cracks],
     ['实验时长', rep.duration.toFixed(1) + 's'],
   ];
-  let html = rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  let html = rows.map(([k, v], i) => `<div class="stat" style="animation-delay:${i * 45}ms"><span>${k}</span><b>${v}</b></div>`).join('');
   // 零爆炸 = 新玩家最可能的迷路点：报告的第一使命是教会下一步，嘲讽只配当第二句
   if (c.explosions === 0) {
     const teachStyle = 'color:#ffd9a0;border-color:rgba(255,200,120,0.3);background:rgba(255,200,120,0.07)';
@@ -587,6 +587,23 @@ function showReport(rep: Report): void {
   }
   els.reportBody.innerHTML = html;
   els.report.hidden = false;
+  // 整数统计滚动计数（600ms ease-out，纯装饰不影响数值本身）
+  if (!reducedMotion) {
+    const dur = 600;
+    const t0 = performance.now();
+    const counters: { el: HTMLElement; target: number }[] = [];
+    els.reportBody.querySelectorAll<HTMLBRElement>('.stat b').forEach((b) => {
+      const n = Number.parseInt(b.textContent ?? '', 10);
+      if (Number.isFinite(n) && n > 0 && /^\d+$/.test((b.textContent ?? '').trim())) counters.push({ el: b, target: n });
+    });
+    const step = (now: number): void => {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      for (const c of counters) c.el.textContent = String(Math.round(c.target * e));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
   // 报告卡内加一个分享入口（生成刚才这场事故的分享码）
   const shareInReport = document.getElementById('btn-overlay-share');
   if (shareInReport && !shareInReport.dataset.wired) {
