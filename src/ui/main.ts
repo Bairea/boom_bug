@@ -189,7 +189,10 @@ function closeHelp(): void {
   if (helpEl) helpEl.hidden = true;
 }
 
-document.getElementById('btn-help')?.addEventListener('click', openHelp);
+document.getElementById('btn-help')?.addEventListener('click', () => {
+  if (helpEl && !helpEl.hidden) closeHelp();
+  else openHelp();
+});
 helpClose?.addEventListener('click', closeHelp);
 // 首次到访自动弹出（localStorage 记忆）
 try {
