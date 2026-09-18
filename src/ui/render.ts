@@ -1766,6 +1766,7 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.arc(lx * s, ly * s, 2.6 * s, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,170,90,0.95)';
       ctx.font = `${Math.max(8, 2.8 * s)}px system-ui, sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText('会爆燃', lx * s, ly * s - 5 * s);
