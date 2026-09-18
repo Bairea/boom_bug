@@ -1200,8 +1200,8 @@ function render(): void {
     canvas.style.cursor = editor.hoverIdx != null ? 'pointer' : 'crosshair';
   }
 
-  // 实况统计 HUD：玻璃拟态圆角芯片
-  if ((state.mode === 'running' || state.mode === 'report') && state.sim) {
+  // 实况统计 HUD：玻璃拟态圆角芯片（仅运行中显示；报告卡承担最终数据展示）
+  if (state.mode === 'running' && state.sim) {
     const st = state.sim.stats;
     const goalFn = getScenario(state.scenarioId).goal;
     const goal = goalFn && state.sim ? goalFn(state.sim) : null; // goal 是函数，需求值
