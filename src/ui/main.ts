@@ -339,6 +339,7 @@ function startRun(useRecordedCommands = false): void {
   state.mode = 'running';
   editor.locked = true;
   hideReport();
+  if (!reducedMotion) state.flash = Math.max(state.flash, 0.07); // 点燃瞬间的微闪启动感
   els.skip.hidden = true;
   els.speed.hidden = true;
   editor.onStatus('实验进行中：点未点燃物=点火；点已点燃的=💥遥控引爆；空白处拖拽=扔炮仗！');
