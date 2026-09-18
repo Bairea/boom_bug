@@ -157,3 +157,5 @@
 | R228 | 🎯 弹道落点入水蓝色警示圈（会熄灭预警，case6 教学可读性）。 | render.ts + main.ts（152 全绿） | R228 commit |
 | R230 | 05:40 🎯 弹道落点油盆预警（橙色虚线圈=爆燃放大，与水蓝圈对仗）。 | render.ts + main.ts（152 全绿） | R230 commit |
 | R232 | 06:10 📄 meta description 补全（页面元信息完整）。 | index.html（152 全绿） | R232 commit |
+| R223b | 05:40 🎬 **时间线芯片可点击跳转**——点击报告卡中任一爆炸时刻直接从该时刻前 0.5s 开始回放（回放 cursor 与事件指针同步重定位），复盘从"线性看"变"点哪看哪"。 | main.ts + index.html（152 全绿） | R223b commit |
+| R224b | 05:45 ✅ 芯片跳转实机验证：6 chips、点击后 mode=replay、cursor/eventIdx 与预期一致。 | 巡检（152 全绿） | — |
