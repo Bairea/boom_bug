@@ -71,7 +71,6 @@ interface GameState {
   recorder: Recorder | null;
   particles: Particles;
   lastEventTick: number;
-  lastExplosionSeen: number;
   report: Report | null;
   runExperiment: Experiment | null; // {seed,width,height,entities,commands} 本次运行的输入
   dailyKey: string | null; // 每日实验模式：战绩/对照按 daily-日期 入账
@@ -99,7 +98,6 @@ const state: GameState = {
   recorder: null,
   particles: new Particles(),
   lastEventTick: 0,
-  lastExplosionSeen: -1,
   report: null,
   runExperiment: null,
   dailyKey: null,
