@@ -37,7 +37,7 @@ export class Editor {
   locked = false; // 运行中锁定编辑（避免点击污染下一局的布置）
   fixScarab = true;
   onStatus: (msg: string) => void = () => {};
-  onPlace: (x: number, y: number) => void = () => {}; // 摆放落点反馈（表现层）
+  onPlace: (x: number, y: number, index: number) => void = () => {}; // 摆放落点反馈（表现层）
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -206,7 +206,7 @@ export class Editor {
     if (!d) return;
     // 统一走 addSpec：kind / fixed（清道夫固定）等属性只有这一个来源
     this.addSpec(d.t, d.x, d.y, { angle: d.angle });
-    this.onPlace(d.x, d.y);
+    this.onPlace(d.x, d.y, this.specs.length - 1);
     this.onStatus(`已放置 ${labelOf(d.t)}${['skyrocket', 'bottle'].includes(d.t) ? ' —— 拖拽可瞄准' : ''}`);
   }
 

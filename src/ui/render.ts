@@ -165,6 +165,7 @@ export function viewFromSpecs(
     kind: kindOfName(s.t),
     x: s.x,
     y: s.y,
+    id: i, // 编辑态用索引当 id：摆放弹跳等表现层动效可寻址
     radius: specRadius(s.t),
     angle: s.angle ?? (s.t === 'skyrocket' ? -Math.PI / 2 : 0),
     aim: s.angle,
