@@ -80,6 +80,9 @@ interface GameState {
   flash: number; // 全屏白闪强度（表现层）
   itemFx: ItemFx; // 实体挤压/弹跳动效（表现层）
   lastDt: number; // 上一帧真实秒数（着陆检测用）
+  slowmoCenter: { x: number; y: number } | null; // 慢镜头爆心（镜头缓推目标）
+  panX: number; // 镜头平移（表现层）
+  panY: number;
   scorches: Scorch[]; // 爆炸焦痕（纯表现层）
   floatTexts: FloatText[]; // 连锁浮动大字（纯表现层）
 }
@@ -105,6 +108,9 @@ const state: GameState = {
   flash: 0,
   itemFx: new ItemFx(),
   lastDt: 1 / 60,
+  slowmoCenter: null,
+  panX: 0,
+  panY: 0,
   scorches: [],
   floatTexts: [],
 };
@@ -264,6 +270,9 @@ function startRun(useRecordedCommands = false): void {
   state.hitStop = 0;
   state.flash = 0;
   state.itemFx.reset();
+  state.slowmoCenter = null;
+  state.panX = 0;
+  state.panY = 0;
   state.scorches = [];
   state.floatTexts = [];
   state.mode = 'running';
@@ -759,6 +768,20 @@ function tick(): void {
   state.flash = Math.max(0, state.flash - dt * 2.4);
   if (state.hitStop > 0) state.hitStop = Math.max(0, state.hitStop - dt);
 
+  // 慢镜头镜头缓推：向爆心平移（限幅），结束回中
+  {
+    const k = Math.min(1, dt * 3.2);
+    if (state.slowmo > 0 && state.slowmoCenter) {
+      const tx = Math.max(-6, Math.min(6, (state.slowmoCenter.x - VIEW_W / 2) * 0.2));
+      const ty = Math.max(-4, Math.min(4, (state.slowmoCenter.y - VIEW_H / 2) * 0.2));
+      state.panX += (tx - state.panX) * k;
+      state.panY += (ty - state.panY) * k;
+    } else {
+      state.panX += (0 - state.panX) * Math.min(1, dt * 5);
+      state.panY += (0 - state.panY) * Math.min(1, dt * 5);
+    }
+  }
+
   // 连锁慢镜头：真实时间变慢，模拟 tick 内容不变（不破坏确定性）
   if (state.slowmo > 0) {
     state.slowmo = Math.max(0, state.slowmo - dt);
@@ -827,6 +850,7 @@ function handleEvents(events: RecordedEvent[]): void {
       if (e.depth >= 2 && !state.slowmoUsed) {
         state.slowmo = Math.max(state.slowmo, 0.7);
         state.slowmoUsed = true;
+        state.slowmoCenter = { x: e.x, y: e.y };
         state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感
       }
       // 连锁浮动大字
@@ -904,6 +928,8 @@ function render(): void {
     floatTexts: state.floatTexts,
     slowmoActive: state.slowmo > 0,
     itemFx: state.itemFx,
+    panX: state.panX,
+    panY: state.panY,
   };
 
   if (state.mode === 'edit') {

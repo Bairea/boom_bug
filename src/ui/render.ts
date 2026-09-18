@@ -83,6 +83,8 @@ export interface DrawOptions {
   shakeY?: number;
   shakeRoll?: number;
   flash?: number; // 全屏白闪强度 0..1（大爆炸反馈）
+  panX?: number; // 镜头平移（慢镜头向爆心缓推，世界单位）
+  panY?: number;
   time?: number;
   zoom?: number;
   scorches?: Scorch[];
@@ -253,6 +255,8 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   const cy = (VIEW_H * s) / 2;
   ctx.save();
   ctx.translate(ox + (opts.shakeX ?? 0), oy + (opts.shakeY ?? 0));
+  // 镜头平移（慢镜头向爆心缓推）
+  ctx.translate(-(opts.panX ?? 0) * s, -(opts.panY ?? 0) * s);
   // 震屏滚转（trauma 模型的 roll 分量）：绕盒子中心小幅旋转
   const roll = opts.shakeRoll ?? 0;
   if (roll !== 0) {
