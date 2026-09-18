@@ -970,6 +970,12 @@ function render(): void {
     view = viewFromSpecs(editor.specs, editor.ropeList, editor.ropePicking ?? -1, editor.hoverIdx ?? -1);
     opts.showAim = true;
     opts.ghost = editor.ghost;
+    // 绳子工具连接预览：第一选点 → 鼠标
+    if (editor.tool === 'rope' && editor.ropePicking != null && editor.hoverPos) {
+      const p = editor.specs[editor.ropePicking];
+      if (p) opts.ropePreview = { ax: p.x, ay: p.y, bx: editor.hoverPos.x, by: editor.hoverPos.y };
+    }
+    opts.hoverDestructive = editor.tool === 'eraser';
   } else if (state.mode === 'running' || (state.mode === 'report' && state.sim)) {
     view = viewFromSim(state.sim!);
     opts.recDot = state.mode === 'running';

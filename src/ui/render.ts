@@ -99,6 +99,8 @@ export interface DrawOptions {
   itemFx?: ItemFx;
   hoverId?: number | null; // 运行中悬停的可交互爆炸物（ignite=点火 / detonate=遥控引爆）
   hoverKind?: 'ignite' | 'detonate';
+  ropePreview?: RopeView | null; // 绳子工具：第一选点到鼠标的连接预览
+  hoverDestructive?: boolean; // 悬停目标是删除工具（红圈可供性）
 }
 
 function typeNameOf(b: { kind: string; data: { etype?: string; bugType?: string; propType?: string } }): string {
@@ -360,16 +362,41 @@ export function drawScene(ctx: CanvasRenderingContext2D, W: number, H: number, v
   for (const it of view.items) drawItem(ctx, it, s, time, opts.itemFx);
 
   // 绳子第一选点高亮（虚线圆环）：玩家点完第一个端点能看到选中了谁
-  // 悬停高亮（更淡）：配件/删除/绳子工具下提示"点下去会作用到谁"
+  // 悬停高亮（更淡）：配件/删除/绳子工具下提示"点下去会作用到谁"；删除工具红色示警
   for (const it of view.items) {
     if (!it.picked && !it.hover) continue;
-    ctx.strokeStyle = it.picked ? 'rgba(126,200,255,0.9)' : 'rgba(126,200,255,0.4)';
+    const destructive = !it.picked && it.hover && opts.hoverDestructive;
+    ctx.strokeStyle = it.picked
+      ? 'rgba(126,200,255,0.9)'
+      : destructive
+        ? 'rgba(255,99,71,0.75)'
+        : 'rgba(126,200,255,0.4)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
     ctx.arc(it.x * s, it.y * s, ((it.radius ?? 6) + 5) * s, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+  // 绳子连接预览：第一选点 → 鼠标（虚线垂弧）
+  if (opts.ropePreview) {
+    const rp = opts.ropePreview;
+    const mx = (rp.ax + rp.bx) / 2;
+    const my = (rp.ay + rp.by) / 2 + Math.min(14, Math.max(0, 24 - Math.hypot(rp.bx - rp.ax, rp.by - rp.ay) * 0.12));
+    ctx.save();
+    ctx.strokeStyle = 'rgba(126,200,255,0.55)';
+    ctx.lineWidth = 0.7 * s;
+    ctx.setLineDash([2.4 * s, 2 * s]);
+    ctx.beginPath();
+    ctx.moveTo(rp.ax * s, rp.ay * s);
+    ctx.quadraticCurveTo(mx * s, my * s, rp.bx * s, rp.by * s);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(126,200,255,0.8)';
+    ctx.beginPath();
+    ctx.arc(rp.bx * s, rp.by * s, 1.2 * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   // 运行中悬停反馈：可点燃=蓝圈呼吸，可遥控引爆=橙圈呼吸
