@@ -500,6 +500,12 @@ canvas.addEventListener('pointerdown', (ev) => {
     editor.onStatus('💥 遥控引爆！');
     return;
   }
+  // 投掷机会用完：不再启动拖拽（防无效交互）
+  const cap = getScenario(state.scenarioId).maxThrows;
+  if (cap && (state.sim.stats.throws ?? 0) >= cap) {
+    editor.onStatus(`投掷机会用完了（${cap} 次）—— 想想怎么一发命中`);
+    return;
+  }
   runDrag = { wx: x, wy: y, vx: 0, vy: 0 };
 });
 
