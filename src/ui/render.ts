@@ -38,6 +38,7 @@ export interface ItemView {
   onFire?: boolean;
   frozen?: boolean;
   blocked?: boolean; // 幽灵专用：该类摆放已达上限
+  fuse?: number; // 点燃的爆炸物剩余引信秒数（表现"越烧越短"）
 }
 
 export interface RopeView {
@@ -127,6 +128,10 @@ export function viewFromSim(sim: Simulation): SceneView {
       speedX: b.vx,
       speedY: b.vy,
       onFire: !!b.data.burning,
+      fuse:
+        b.kind === 'explosive' && b.data.lit && Number.isFinite(b.data.fuse) && b.data.fuse > 0
+          ? Math.max(0, b.data.fuse)
+          : undefined,
     });
   }
   const slime: SlimeDrop[] = sim.world.slime.map((p) => ({ ...p }));
@@ -768,30 +773,45 @@ function drawScarab(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _tim
   });
 }
 
-function drawFuse(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
+function drawFuse(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number, withStem = false): void {
   if (!it.lit) return;
-  // 引信火花：抖动弧线 + 加法辉光亮点
-  const fx = -3.2 * s;
+  // withStem（firecracker）：画出引信杆，火花沿曲线按剩余比例回缩（越烧越短）
+  // 其余爆炸物：火花固定在原位（与旧版一致）
+  let px = -3.2 * s;
+  let py = -2.4 * s;
+  if (withStem) {
+    const frac = it.fuse != null ? Math.max(0.12, Math.min(1, it.fuse / 1.5)) : 1;
+    const t = frac;
+    px = (1 - t) * (1 - t) * -1.7 * s + 2 * (1 - t) * t * -2.6 * s + t * t * -3.2 * s;
+    py = (1 - t) * (1 - t) * 0 + 2 * (1 - t) * t * -1 * s + t * t * -2.4 * s;
+    ctx.strokeStyle = '#8a6d3b';
+    ctx.lineWidth = 0.4 * s;
+    ctx.beginPath();
+    ctx.moveTo(-1.7 * s, 0);
+    ctx.quadraticCurveTo(-2.6 * s, -1 * s, px, py);
+    ctx.stroke();
+  }
+  // 火花：抖动弧线 + 加法辉光亮点
   const jx = (Math.random() - 0.5) * 1.4 * s;
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
   ctx.strokeStyle = '#ffd166';
   ctx.lineWidth = 1.2 * s;
   ctx.beginPath();
-  ctx.moveTo(fx, -2.4 * s);
-  ctx.lineTo(fx + jx, -3.6 * s);
+  ctx.moveTo(px, py);
+  ctx.lineTo(px + jx, py - 1.2 * s);
   ctx.stroke();
-  const g = ctx.createRadialGradient(fx + jx, -3.8 * s, 0, fx + jx, -3.8 * s, 2.6 * s);
+  const g = ctx.createRadialGradient(px + jx, py - 1.4 * s, 0, px + jx, py - 1.4 * s, 2.6 * s);
   g.addColorStop(0, 'rgba(255,240,200,0.9)');
   g.addColorStop(0.4, 'rgba(255,180,80,0.45)');
   g.addColorStop(1, 'rgba(255,140,50,0)');
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.arc(fx + jx, -3.8 * s, 2.6 * s, 0, Math.PI * 2);
+  ctx.arc(px + jx, py - 1.4 * s, 2.6 * s, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = '#fff3c4';
   ctx.beginPath();
-  ctx.arc(fx + jx, -3.8 * s, (0.7 + Math.random() * 0.5) * s, 0, Math.PI * 2);
+  ctx.arc(px + jx, py - 1.4 * s, (0.7 + Math.random() * 0.5) * s, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
@@ -819,14 +839,8 @@ function drawFirecracker(ctx: CanvasRenderingContext2D, it: ItemView, s: number,
   ctx.moveTo(-1.5 * s, -0.95 * s);
   ctx.lineTo(1.5 * s, -0.95 * s);
   ctx.stroke();
-  // 引信线
-  ctx.strokeStyle = '#8a6d3b';
-  ctx.lineWidth = 0.4 * s;
-  ctx.beginPath();
-  ctx.moveTo(-1.7 * s, 0);
-  ctx.quadraticCurveTo(-2.6 * s, -1 * s, -3.2 * s, -2.4 * s);
-  ctx.stroke();
-  drawFuse(ctx, it, s, time);
+  // 引信杆+火花（lit 时随剩余引信回缩）
+  drawFuse(ctx, it, s, time, true);
 }
 
 function drawThrusterFlame(ctx: CanvasRenderingContext2D, s: number, len: number): void {
