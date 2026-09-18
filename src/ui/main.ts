@@ -806,9 +806,11 @@ function handleEvents(events: RecordedEvent[]): void {
       state.itemFx.pop(e.id, 0.5);
     } else if (e.type === 'balloonPop') {
       state.particles.spark(e.x, e.y, 5);
+      state.particles.rubberPop(e.x, e.y); // 橡胶碎片
       sfx.pop();
     } else if (e.type === 'ropeBreak') {
       state.particles.spark(e.x, e.y, 4);
+      state.particles.ropeBits(e.x, e.y); // 断绳飞散
       sfx.ropeBreak();
       state.trauma = Math.min(1, state.trauma + 0.05);
     } else if (e.type === 'ignite') {

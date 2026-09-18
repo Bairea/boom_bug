@@ -66,6 +66,15 @@ interface DropParticle extends ParticleBase {
   vy: number;
   r: number;
 }
+interface BitParticle extends ParticleBase {
+  type: 'bit';
+  vx: number;
+  vy: number;
+  len: number;
+  rot: number;
+  vrot: number;
+  color: string;
+}
 type Particle =
   | SparkParticle
   | SmokeParticle
@@ -75,7 +84,8 @@ type Particle =
   | DebrisParticle
   | DustParticle
   | ConfettiParticle
-  | DropParticle;
+  | DropParticle
+  | BitParticle;
 
 // ---- 辉光精灵：有 DOM 时预渲染径向渐变小图（避免每帧建渐变/shadowBlur）----
 const glowCache = new Map<string, CanvasGradient | HTMLCanvasElement>();
@@ -286,6 +296,48 @@ export class Particles {
     }
   }
 
+  // 气球爆：红色橡胶碎片四散
+  rubberPop(x: number, y: number): void {
+    for (let i = 0; i < 7; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 70 + Math.random() * 150;
+      this.add({
+        type: 'bit',
+        x,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 60,
+        len: 1.2 + Math.random() * 1.4,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 20,
+        color: i % 3 === 0 ? '#ff9a8a' : '#d85046',
+        life: 0.5 + Math.random() * 0.3,
+        age: 0,
+      });
+    }
+  }
+
+  // 绳子断裂：两截绳段翻着飞出去
+  ropeBits(x: number, y: number): void {
+    for (let i = 0; i < 4; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = 50 + Math.random() * 110;
+      this.add({
+        type: 'bit',
+        x,
+        y,
+        vx: Math.cos(a) * sp,
+        vy: Math.sin(a) * sp - 40,
+        len: 1.6 + Math.random() * 2,
+        rot: Math.random() * Math.PI * 2,
+        vrot: (Math.random() - 0.5) * 16,
+        color: '#c9a86a',
+        life: 0.6 + Math.random() * 0.3,
+        age: 0,
+      });
+    }
+  }
+
   update(dt: number): void {
     this.shake = Math.max(0, this.shake - dt * 26);
     for (const p of this.list) {
@@ -324,6 +376,11 @@ export class Particles {
         p.vy += 760 * dt;
         p.x += p.vx * dt;
         p.y += p.vy * dt;
+      } else if (p.type === 'bit') {
+        p.vy += 620 * dt;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.rot += p.vrot * dt;
       }
     }
     this.list = this.list.filter((p) => p.age < p.life);
@@ -406,6 +463,17 @@ export class Particles {
         ctx.beginPath();
         ctx.ellipse(p.x * s, p.y * s, p.r * 0.55 * s, p.r * s, 0, 0, Math.PI * 2);
         ctx.fill();
+      } else if (p.type === 'bit') {
+        ctx.globalAlpha = Math.min(1, k * 1.5);
+        ctx.translate(p.x * s, p.y * s);
+        ctx.rotate(p.rot);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 0.6 * s;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-p.len * s, 0);
+        ctx.quadraticCurveTo(0, p.len * 0.35 * s, p.len * s, 0);
+        ctx.stroke();
       } else if (p.type === 'smoke') {
         // 径向渐变烟团：中心浓、边缘散（比实心圆柔和）
         ctx.globalAlpha = k * (0.3 + p.warm * 0.14);
