@@ -580,11 +580,21 @@ function drawRoach(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time:
         ctx.stroke();
       }
     }
-    // 身体
-    ctx.fillStyle = it.knocked ? '#8c7a5f' : '#8a5a2b';
+    // 身体：棕壳渐变 + 翅鞘高光
+    const bodyG = ctx.createLinearGradient(0, -r * 0.8, 0, r * 0.8);
+    bodyG.addColorStop(0, it.knocked ? '#9c8a6e' : '#a06a34');
+    bodyG.addColorStop(0.55, it.knocked ? '#8c7a5f' : '#8a5a2b');
+    bodyG.addColorStop(1, it.knocked ? '#6e604a' : '#6b441f');
+    ctx.fillStyle = bodyG;
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.35, r * 0.8, 0, 0, Math.PI * 2);
     ctx.fill();
+    // 翅鞘高光（左上弧）
+    ctx.strokeStyle = 'rgba(255,230,180,0.35)';
+    ctx.lineWidth = 0.35 * s;
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.1, -r * 0.12, r * 0.95, r * 0.5, 0, Math.PI * 1.1, Math.PI * 1.75);
+    ctx.stroke();
     // 头
     ctx.fillStyle = it.knocked ? '#6e604a' : '#5d3a17';
     ctx.beginPath();
@@ -649,15 +659,19 @@ function drawLocust(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _tim
 function drawScarab(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time: number): void {
   const r = 5 * s;
   knockedTint(ctx, it, s, () => {
-    // 壳
-    ctx.fillStyle = '#39424f';
+    // 壳：金属装甲渐变
+    const g = ctx.createLinearGradient(-r * 0.8, -r * 0.8, r * 0.8, r * 0.8);
+    g.addColorStop(0, it.knocked ? '#4d5764' : '#4d5a6b');
+    g.addColorStop(0.5, it.knocked ? '#39424f' : '#39424f');
+    g.addColorStop(1, it.knocked ? '#2b323c' : '#2c333d');
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.15, r * 0.85, 0, 0, Math.PI * 2);
     ctx.fill();
     // 装甲高光
-    ctx.fillStyle = '#4d5a6b';
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
     ctx.beginPath();
-    ctx.ellipse(-r * 0.2, -r * 0.25, r * 0.75, r * 0.45, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(-r * 0.25, -r * 0.3, r * 0.72, r * 0.4, -0.35, 0, Math.PI * 2);
     ctx.fill();
     // 中缝 + 铆钉
     ctx.strokeStyle = '#232a33';
@@ -666,13 +680,16 @@ function drawScarab(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _tim
     ctx.moveTo(-r * 1.05, 0);
     ctx.lineTo(r * 1.05, 0);
     ctx.stroke();
-    ctx.fillStyle = '#232a33';
     for (const [rx, ry] of [
       [-0.6, -0.4],
       [0.6, -0.4],
       [-0.6, 0.4],
       [0.6, 0.4],
     ]) {
+      const rg = ctx.createRadialGradient(rx * r - 0.1 * s, ry * r - 0.1 * s, 0, rx * r, ry * r, 0.42 * s);
+      rg.addColorStop(0, '#8b98a6');
+      rg.addColorStop(1, '#232a33');
+      ctx.fillStyle = rg;
       ctx.beginPath();
       ctx.arc(rx * r, ry * r, 0.32 * s, 0, Math.PI * 2);
       ctx.fill();
@@ -685,6 +702,13 @@ function drawScarab(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _tim
       ctx.moveTo(-r * 0.9, -r * 0.3);
       ctx.lineTo(-r * 0.4, 0);
       ctx.lineTo(-r * 0.7, r * 0.4);
+      ctx.moveTo(-r * 0.4, 0);
+      ctx.lineTo(r * 0.2, r * 0.15);
+      ctx.stroke();
+      // 裂纹微光
+      ctx.strokeStyle = 'rgba(255,179,71,0.4)';
+      ctx.lineWidth = 0.9 * s;
+      ctx.beginPath();
       ctx.moveTo(-r * 0.4, 0);
       ctx.lineTo(r * 0.2, r * 0.15);
       ctx.stroke();
@@ -722,11 +746,28 @@ function drawFuse(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time:
 
 function drawFirecracker(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   ctx.rotate(it.angle ?? 0);
-  ctx.fillStyle = '#c0392b';
+  // 纸筒：圆柱渐变（上亮下暗）+ 金箍带
+  const g = ctx.createLinearGradient(0, -1.1 * s, 0, 1.1 * s);
+  g.addColorStop(0, '#d95445');
+  g.addColorStop(0.5, '#c0392b');
+  g.addColorStop(1, '#96271c');
+  ctx.fillStyle = g;
   roundRect(ctx, -1.7 * s, -1.1 * s, 3.4 * s, 2.2 * s, 0.5 * s);
   ctx.fill();
-  ctx.fillStyle = '#e8c15a';
+  // 金色标签带（微渐变）
+  const band = ctx.createLinearGradient(0, -1.1 * s, 0, 1.1 * s);
+  band.addColorStop(0, '#f2d077');
+  band.addColorStop(1, '#d3a944');
+  ctx.fillStyle = band;
   ctx.fillRect(-0.5 * s, -1.1 * s, 1 * s, 2.2 * s);
+  // 卷纸边缘高光
+  ctx.strokeStyle = 'rgba(255,235,200,0.4)';
+  ctx.lineWidth = 0.25 * s;
+  ctx.beginPath();
+  ctx.moveTo(-1.5 * s, -0.95 * s);
+  ctx.lineTo(1.5 * s, -0.95 * s);
+  ctx.stroke();
+  // 引信线
   ctx.strokeStyle = '#8a6d3b';
   ctx.lineWidth = 0.4 * s;
   ctx.beginPath();
@@ -765,15 +806,37 @@ function drawSkyrocket(ctx: CanvasRenderingContext2D, it: ItemView, s: number, t
   const a = it.lit ? (it.angle ?? -Math.PI / 2) : -Math.PI / 2;
   ctx.rotate(a + Math.PI / 2);
   if (it.burning) drawThrusterFlame(ctx, s, 6);
-  ctx.fillStyle = '#8d99a6';
+  // 箭体：金属渐变
+  const g = ctx.createLinearGradient(-1 * s, 0, 1 * s, 0);
+  g.addColorStop(0, '#aab6c2');
+  g.addColorStop(0.5, '#8d99a6');
+  g.addColorStop(1, '#6f7a86');
+  ctx.fillStyle = g;
   roundRect(ctx, -1 * s, -3.2 * s, 2 * s, 5 * s, 0.8 * s);
   ctx.fill();
+  // 红鼻锥（高光）
   ctx.fillStyle = '#d64541';
   ctx.beginPath();
   ctx.moveTo(0, -4.6 * s);
   ctx.lineTo(-1 * s, -2.9 * s);
   ctx.lineTo(1 * s, -2.9 * s);
   ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.moveTo(0, -4.5 * s);
+  ctx.lineTo(-0.45 * s, -3.5 * s);
+  ctx.lineTo(-0.05 * s, -3.4 * s);
+  ctx.fill();
+  // 尾翼
+  ctx.fillStyle = '#b8433a';
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * 0.9 * s, 1.4 * s);
+    ctx.lineTo(side * 1.7 * s, 2.8 * s);
+    ctx.lineTo(side * 0.9 * s, 2.4 * s);
+    ctx.closePath();
+    ctx.fill();
+  }
   // 尾杆
   ctx.strokeStyle = '#a5713d';
   ctx.lineWidth = 0.5 * s;
@@ -838,10 +901,20 @@ function drawTip(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
 
 function drawBrick(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 9 * s;
-  ctx.fillStyle = '#a5713d';
+  // 砖面：上亮下暗 + 倒角
+  const g = ctx.createLinearGradient(0, -w * 0.66, 0, w * 0.66);
+  g.addColorStop(0, '#b57e49');
+  g.addColorStop(0.5, '#a5713d');
+  g.addColorStop(1, '#8a5a2e');
+  ctx.fillStyle = g;
   roundRect(ctx, -w, -w * 0.66, w * 2, w * 1.32, 1 * s);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  // 顶面受光
+  ctx.fillStyle = 'rgba(255,235,200,0.18)';
+  roundRect(ctx, -w + 0.5 * s, -w * 0.66 + 0.4 * s, w * 2 - 1 * s, w * 0.32, 0.7 * s);
+  ctx.fill();
+  // 砖缝
+  ctx.strokeStyle = 'rgba(0,0,0,0.28)';
   ctx.lineWidth = 0.4 * s;
   ctx.beginPath();
   ctx.moveTo(-w, 0);
@@ -851,6 +924,20 @@ function drawBrick(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void
   ctx.moveTo(w * 0.33, 0);
   ctx.lineTo(w * 0.33, w * 0.66);
   ctx.stroke();
+  // 颗粒斑点
+  ctx.fillStyle = 'rgba(60,35,15,0.22)';
+  for (const [px, py] of [
+    [-0.62, -0.3],
+    [0.48, -0.28],
+    [-0.15, -0.36],
+    [0.7, 0.34],
+    [-0.52, 0.4],
+    [0.12, 0.44],
+  ]) {
+    ctx.beginPath();
+    ctx.arc(px * w, py * w, 0.09 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawGlass(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
@@ -885,14 +972,34 @@ function drawGlass(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void
 function drawWater(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const w = (it.radius ?? 16) * s;
   const wob = Math.sin(time * 2.2) * 1.2 * s;
-  ctx.fillStyle = 'rgba(70, 140, 200, 0.35)';
+  // 盆底深水
+  const g = ctx.createRadialGradient(-w * 0.2, 0, 0, 0, 2 * s, w);
+  g.addColorStop(0, 'rgba(90, 165, 220, 0.42)');
+  g.addColorStop(1, 'rgba(50, 110, 175, 0.3)');
+  ctx.fillStyle = g;
   ctx.beginPath();
   ctx.ellipse(0, 2 * s, w, w * 0.42, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = 'rgba(120, 190, 235, 0.4)';
+  // 涟漪高光（慢速晃动）
+  ctx.fillStyle = 'rgba(140, 205, 245, 0.4)';
   ctx.beginPath();
   ctx.ellipse(-w * 0.15, (2.6 + wob * 0.04) * s, w * 0.62, w * 0.24, 0, 0, Math.PI * 2);
   ctx.fill();
+  // 水面闪点（随时间游动）
+  ctx.fillStyle = 'rgba(220, 245, 255, 0.65)';
+  for (const [px, py, ph] of [
+    [-0.35, -0.05, 0],
+    [0.3, 0.12, 2.1],
+    [0.02, 0.02, 4.2],
+  ] as const) {
+    const tw = 0.5 + 0.5 * Math.sin(time * 3 + ph);
+    ctx.globalAlpha = 0.25 + 0.55 * tw;
+    ctx.beginPath();
+    ctx.ellipse(px * w, (2 + py * w * 0.4) * s, (0.1 + tw * 0.06) * w, (0.035 + tw * 0.02) * w, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // 盆沿
   ctx.strokeStyle = 'rgba(190, 230, 255, 0.7)';
   ctx.lineWidth = 0.45 * s;
   ctx.beginPath();
@@ -901,15 +1008,44 @@ function drawWater(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time:
 }
 function drawGiftbox(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 8 * s;
-  ctx.fillStyle = it.cracked ? '#d8788a' : '#d4526e';
+  // 盒身：竖直渐变（顶亮）
+  const g = ctx.createLinearGradient(0, -w * 0.8, 0, w * 0.8);
+  if (it.cracked) {
+    g.addColorStop(0, '#e08698');
+    g.addColorStop(1, '#c56a7d');
+  } else {
+    g.addColorStop(0, '#e2688a');
+    g.addColorStop(1, '#c24560');
+  }
+  ctx.fillStyle = g;
   roundRect(ctx, -w, -w * 0.8, w * 2, w * 1.6, 1.2 * s);
   ctx.fill();
-  ctx.fillStyle = '#f5d06a';
+  // 盒盖分割线
+  ctx.strokeStyle = 'rgba(60,20,30,0.35)';
+  ctx.lineWidth = 0.4 * s;
+  ctx.beginPath();
+  ctx.moveTo(-w, -w * 0.34);
+  ctx.lineTo(w, -w * 0.34);
+  ctx.stroke();
+  // 缎带（带渐变高光）
+  const rb = ctx.createLinearGradient(0, -w * 0.8, 0, w * 0.8);
+  rb.addColorStop(0, '#fbe08a');
+  rb.addColorStop(1, '#e5bd55');
+  ctx.fillStyle = rb;
   ctx.fillRect(-w * 0.22, -w * 0.8, w * 0.44, w * 1.6);
   ctx.fillRect(-w, -w * 0.12, w * 2, w * 0.28);
+  // 蝴蝶结双环
+  ctx.strokeStyle = rb;
+  ctx.lineWidth = 0.5 * s;
   ctx.beginPath();
-  ctx.arc(-w * 0.3, -w * 0.85, w * 0.24, 0, Math.PI * 2);
-  ctx.arc(w * 0.3, -w * 0.85, w * 0.24, 0, Math.PI * 2);
+  ctx.ellipse(-w * 0.3, -w * 0.85, w * 0.26, w * 0.17, -0.4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(w * 0.3, -w * 0.85, w * 0.26, w * 0.17, 0.4, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = '#f5d06a';
+  ctx.beginPath();
+  ctx.arc(0, -w * 0.82, w * 0.11, 0, Math.PI * 2);
   ctx.fill();
   if (it.cracked) {
     ctx.strokeStyle = 'rgba(60,20,30,0.8)';
@@ -924,9 +1060,24 @@ function drawGiftbox(ctx: CanvasRenderingContext2D, it: ItemView, s: number): vo
 
 function drawWood(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const w = 10 * s;
-  ctx.fillStyle = it.onFire ? '#8a5a2b' : '#9c6b3d';
+  // 板身：木纹渐变
+  const g = ctx.createLinearGradient(0, -w * 0.35, 0, w * 0.35);
+  if (it.onFire) {
+    g.addColorStop(0, '#96622f');
+    g.addColorStop(1, '#6f4420');
+  } else {
+    g.addColorStop(0, '#a87844');
+    g.addColorStop(1, '#8c5c32');
+  }
+  ctx.fillStyle = g;
   roundRect(ctx, -w, -w * 0.35, w * 2, w * 0.7, 1.5 * s);
   ctx.fill();
+  // 板端面（年轮头）
+  ctx.fillStyle = it.onFire ? '#7a4c22' : '#95652f';
+  ctx.beginPath();
+  ctx.ellipse(-w + 1.2 * s, 0, 0.9 * s, w * 0.3, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 木纹
   ctx.strokeStyle = 'rgba(70,40,15,0.6)';
   ctx.lineWidth = 0.4 * s;
   for (const gx of [-0.5, 0, 0.5]) {
@@ -936,49 +1087,104 @@ function drawWood(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: 
     ctx.stroke();
   }
   if (it.onFire) {
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.9);
-    g.addColorStop(0, 'rgba(255,170,60,0.55)');
-    g.addColorStop(1, 'rgba(255,90,30,0)');
-    ctx.fillStyle = g;
+    // 灼烧黑边
+    ctx.strokeStyle = 'rgba(30,18,10,0.8)';
+    ctx.lineWidth = 0.9 * s;
     ctx.beginPath();
-    ctx.arc(0, 0, w * 0.9 * (0.85 + Math.sin(time * 22) * 0.15), 0, Math.PI * 2);
+    ctx.moveTo(-w + 1.5 * s, -w * 0.22);
+    ctx.lineTo(w - 1.5 * s, -w * 0.22);
+    ctx.stroke();
+    // 加法火光 + 舔动的火舌
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.95);
+    fg.addColorStop(0, 'rgba(255,170,60,0.5)');
+    fg.addColorStop(1, 'rgba(255,90,30,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.arc(0, 0, w * 0.95 * (0.85 + Math.sin(time * 22) * 0.15), 0, Math.PI * 2);
     ctx.fill();
+    // 三簇小火舌
+    ctx.fillStyle = 'rgba(255,190,80,0.65)';
+    for (const [fx, fh, fp] of [
+      [-w * 0.45, 1.5, 0],
+      [0, 1.9, 2],
+      [w * 0.45, 1.4, 4],
+    ] as const) {
+      const flick = 0.75 + 0.25 * Math.sin(time * 17 + fp);
+      ctx.beginPath();
+      ctx.moveTo(fx - 1.4 * s, -w * 0.3);
+      ctx.quadraticCurveTo(fx, -w * 0.3 - fh * s * 2.4 * flick, fx + 1.4 * s, -w * 0.3);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
   }
 }
 
 function drawIce(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 12 * s;
-  ctx.fillStyle = 'rgba(190, 230, 250, 0.5)';
+  const g = ctx.createRadialGradient(-w * 0.25, -w * 0.1, 0, 0, 1 * s, w);
+  g.addColorStop(0, 'rgba(215, 242, 252, 0.6)');
+  g.addColorStop(1, 'rgba(165, 215, 240, 0.42)');
+  ctx.fillStyle = g;
   ctx.beginPath();
   ctx.ellipse(0, 1 * s, w, w * 0.4, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(230, 250, 255, 0.85)';
+  ctx.strokeStyle = 'rgba(235, 250, 255, 0.9)';
   ctx.lineWidth = 0.5 * s;
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  // 冰面棱面反光
+  ctx.strokeStyle = 'rgba(255,255,255,0.65)';
   ctx.beginPath();
   ctx.moveTo(-w * 0.55, -w * 0.05);
   ctx.lineTo(-w * 0.15, -w * 0.16);
   ctx.moveTo(w * 0.1, w * 0.12);
   ctx.lineTo(w * 0.5, w * 0.02);
   ctx.stroke();
+  // 高光星点
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  for (const [px, py] of [
+    [-0.4, -0.12],
+    [0.32, -0.05],
+  ] as const) {
+    ctx.beginPath();
+    ctx.moveTo(px * w - 0.12 * w, py * w);
+    ctx.lineTo(px * w + 0.12 * w, py * w);
+    ctx.moveTo(px * w, py * w - 0.05 * w);
+    ctx.lineTo(px * w, py * w + 0.05 * w);
+    ctx.stroke();
+  }
 }
 
 function drawMetal(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void {
   const w = 9 * s;
   const g = ctx.createLinearGradient(0, -w * 0.5, 0, w * 0.5);
-  g.addColorStop(0, '#b8c2cc');
-  g.addColorStop(1, '#7d8894');
+  g.addColorStop(0, '#c6cfd9');
+  g.addColorStop(0.45, '#98a3ae');
+  g.addColorStop(0.55, '#828d99');
+  g.addColorStop(1, '#6f7a86');
   ctx.fillStyle = g;
   roundRect(ctx, -w, -w * 0.5, w * 2, w, 1.5 * s);
   ctx.fill();
-  ctx.fillStyle = '#59626c';
+  // 顶部拉丝高光
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 0.3 * s;
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.8, -w * 0.34);
+  ctx.lineTo(w * 0.8, -w * 0.34);
+  ctx.stroke();
+  // 铆钉（金属小渐变）
   for (const [px, py] of [
     [-0.75, -0.28],
     [0.75, -0.28],
     [-0.75, 0.28],
     [0.75, 0.28],
   ]) {
+    const rg = ctx.createRadialGradient(px * w - 0.1 * s, py * w - 0.1 * s, 0, px * w, py * w, 0.42 * s);
+    rg.addColorStop(0, '#e6ecf2');
+    rg.addColorStop(1, '#59626c');
+    ctx.fillStyle = rg;
     ctx.beginPath();
     ctx.arc(px * w, py * w, 0.32 * s, 0, Math.PI * 2);
     ctx.fill();
@@ -1006,24 +1212,35 @@ function drawSand(ctx: CanvasRenderingContext2D, it: ItemView, s: number): void 
 
 function drawOil(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const w = (it.radius ?? 14) * s;
-  ctx.fillStyle = 'rgba(60, 45, 75, 0.55)';
+  const g = ctx.createRadialGradient(-w * 0.2, 0, 0, 0, 2 * s, w);
+  g.addColorStop(0, 'rgba(78, 60, 95, 0.6)');
+  g.addColorStop(1, 'rgba(44, 32, 56, 0.5)');
+  ctx.fillStyle = g;
   ctx.beginPath();
   ctx.ellipse(0, 2 * s, w, w * 0.4, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 虹彩高光
+  // 虹彩高光（两道异色弧随时间漂移）
+  const ir = Math.sin(time * 1.4) * 0.05;
   ctx.strokeStyle = 'rgba(180, 140, 220, 0.5)';
   ctx.lineWidth = 0.4 * s;
   ctx.beginPath();
-  ctx.ellipse(-w * 0.2, 1.6 * s, w * 0.4, w * 0.14, -0.2, 0, Math.PI * 2);
+  ctx.ellipse(-w * (0.2 + ir), 1.6 * s, w * 0.4, w * 0.14, -0.2, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120, 200, 190, 0.4)';
+  ctx.beginPath();
+  ctx.ellipse(w * (0.18 - ir), 2.5 * s, w * 0.3, w * 0.1, 0.15, 0, Math.PI * 2);
   ctx.stroke();
   if (it.onFire) {
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, w);
-    g.addColorStop(0, 'rgba(255,150,40,0.6)');
-    g.addColorStop(1, 'rgba(255,60,20,0)');
-    ctx.fillStyle = g;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const fg = ctx.createRadialGradient(0, 0, 0, 0, 0, w);
+    fg.addColorStop(0, 'rgba(255,150,40,0.6)');
+    fg.addColorStop(1, 'rgba(255,60,20,0)');
+    ctx.fillStyle = fg;
     ctx.beginPath();
     ctx.ellipse(0, 0, w * (0.9 + Math.sin(time * 18) * 0.1), w * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 }
 
@@ -1066,8 +1283,16 @@ function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time
     ctx.beginPath();
     ctx.ellipse(-face * r * 0.3, r * 0.45, r * 1.25, r * 0.42, 0, 0, Math.PI * 2);
     ctx.fill();
-    // 壳（螺旋）
-    ctx.fillStyle = it.knocked ? '#8d7f66' : '#c9a15f';
+    // 足底反光
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.beginPath();
+    ctx.ellipse(-face * r * 0.3, r * 0.58, r * 0.95, r * 0.14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 壳（径向渐变 + 螺旋）
+    const sg = ctx.createRadialGradient(face * r * 0.25 - r * 0.3, -r * 0.25 - r * 0.3, 0, face * r * 0.25, -r * 0.25, r);
+    sg.addColorStop(0, it.knocked ? '#a89a7d' : '#dcba78');
+    sg.addColorStop(1, it.knocked ? '#8d7f66' : '#c9a15f');
+    ctx.fillStyle = sg;
     ctx.beginPath();
     ctx.arc(face * r * 0.25, -r * 0.25, r * 0.95, 0, Math.PI * 2);
     ctx.fill();
@@ -1078,6 +1303,12 @@ function drawSnail(ctx: CanvasRenderingContext2D, it: ItemView, s: number, _time
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(face * r * 0.25, -r * 0.25, r * 0.28, 1, 5);
+    ctx.stroke();
+    // 壳缘高光
+    ctx.strokeStyle = 'rgba(255,240,200,0.4)';
+    ctx.lineWidth = 0.3 * s;
+    ctx.beginPath();
+    ctx.arc(face * r * 0.25, -r * 0.25, r * 0.92, Math.PI * 1.15, Math.PI * 1.7);
     ctx.stroke();
     // 眼触角
     if (!it.knocked) {
@@ -1099,23 +1330,36 @@ function drawFly(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: n
   const r = 2 * s;
   const dirX = (it.speedX ?? 0) >= 0 ? 1 : -1;
   knockedTint(ctx, it, s, () => {
-    // 翅膀（高频扇动）
+    // 翅膀（高频扇动 + 运动模糊残影）
     const flap = Math.sin(time * 60) * 0.8;
-    ctx.fillStyle = 'rgba(200,220,255,0.5)';
     for (const side of [-1, 1]) {
+      // 残影（半透明扇面）
+      ctx.fillStyle = 'rgba(200,220,255,0.16)';
+      ctx.beginPath();
+      ctx.ellipse(-dirX * r * 0.3, side * r * 0.5, r * 1.05, r * (0.55 + Math.abs(flap) * 0.35), flap * side * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      // 实翅
+      ctx.fillStyle = 'rgba(210,230,255,0.5)';
       ctx.beginPath();
       ctx.ellipse(-dirX * r * 0.3, side * r * 0.5, r * 0.9, r * (0.35 + Math.abs(flap) * 0.3), flap * side * 0.5, 0, Math.PI * 2);
       ctx.fill();
     }
-    // 身体
-    ctx.fillStyle = it.knocked ? '#7d8896' : '#4a4f58';
+    // 身体：深色金属渐变
+    const g = ctx.createLinearGradient(0, -r * 0.75, 0, r * 0.75);
+    g.addColorStop(0, it.knocked ? '#8b96a3' : '#5d636e');
+    g.addColorStop(1, it.knocked ? '#7d8896' : '#3c4048');
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.ellipse(0, 0, r * 1.05, r * 0.75, 0, 0, Math.PI * 2);
     ctx.fill();
-    // 复眼
+    // 复眼（双点 + 高光）
     ctx.fillStyle = '#c0392b';
     ctx.beginPath();
     ctx.arc(dirX * r * 0.8, -r * 0.2, r * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.beginPath();
+    ctx.arc(dirX * r * 0.9, -r * 0.28, r * 0.1, 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -1204,32 +1448,42 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
   ctx.fill();
 }
 
-// 气球：球体+系结，随时间轻微摇曳（绳的连接感交给绳子渲染）
+// 气球：球体+系结，随时间轻微摇曳（绳的连接感交给绳子渲染）。
+// 注意：drawItem 已 translate 到本体原点 —— 这里必须用原点坐标画（R91 修复双重位移 bug）。
 function drawBalloon(ctx: CanvasRenderingContext2D, it: ItemView, s: number, time: number): void {
   const sway = Math.sin(time * 2.6 + it.x * 0.7) * 0.8 * s;
+  // 系绳（原点下方一小段；运行中被绳子吊起时由绳子渲染承担连接）
   ctx.strokeStyle = 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 0.5 * s;
   ctx.beginPath();
-  ctx.moveTo(it.x * s, (it.y + 8) * s);
-  ctx.quadraticCurveTo(it.x * s + sway, (it.y + 14) * s, it.x * s + sway * 0.6, (it.y + 20) * s);
+  ctx.moveTo(0, 8 * s);
+  ctx.quadraticCurveTo(sway, 14 * s, sway * 0.6, 20 * s);
   ctx.stroke();
-  const g = ctx.createRadialGradient((it.x - 2) * s, (it.y - 3) * s, s, it.x * s, it.y * s, 8 * s);
-  g.addColorStop(0, '#ff9a8a');
+  // 球体：径向渐变 + 高光 + 球结
+  const g = ctx.createRadialGradient(-2 * s, -3 * s, s, 0, 0, 8 * s);
+  g.addColorStop(0, '#ffb0a0');
+  g.addColorStop(0.55, '#ff8a78');
   g.addColorStop(1, '#d85046');
   ctx.fillStyle = g;
   ctx.beginPath();
-  ctx.ellipse(it.x * s, it.y * s, 6.2 * s, 7.2 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 6.2 * s, 7.2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 高光 + 球结
+  // 底部反光
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.beginPath();
+  ctx.ellipse(1.5 * s, 3.6 * s, 2.6 * s, 1.2 * s, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+  // 高光
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.beginPath();
-  ctx.ellipse((it.x - 2.2) * s, (it.y - 2.8) * s, 1.4 * s, 2 * s, -0.5, 0, Math.PI * 2);
+  ctx.ellipse(-2.2 * s, -2.8 * s, 1.4 * s, 2 * s, -0.5, 0, Math.PI * 2);
   ctx.fill();
+  // 球结
   ctx.fillStyle = '#b8433a';
   ctx.beginPath();
-  ctx.moveTo((it.x - 1.3) * s, (it.y + 6.8) * s);
-  ctx.lineTo((it.x + 1.3) * s, (it.y + 6.8) * s);
-  ctx.lineTo(it.x * s, (it.y + 8.6) * s);
+  ctx.moveTo(-1.3 * s, 6.8 * s);
+  ctx.lineTo(1.3 * s, 6.8 * s);
+  ctx.lineTo(0, 8.6 * s);
   ctx.closePath();
   ctx.fill();
 }
