@@ -196,6 +196,14 @@ function toggleFullscreen(): void {
   }
 }
 document.getElementById('btn-full')?.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  const b = document.getElementById('btn-full');
+  if (b) {
+    const on = !!document.fullscreenElement;
+    b.textContent = on ? '🗗' : '⛶';
+    b.setAttribute('aria-pressed', String(on));
+  }
+});
 
 // ---- 工具箱 ----
 for (const btn of els.toolButtons) {
