@@ -290,6 +290,7 @@ function loadScenario(id: string): void {
   state.zoomPunch = 1;
   state.particles = new Particles(); // 场景切换：上一局的烟尘不带入
   document.title = `擦炮虫虫实验室 · ${sc.label}`;
+  canvas.focus({ preventScroll: true }); // 焦点回画布：空格等快捷键立即可用
   editor.onStatus(restored ? '已恢复上次的自由实验布置 —— ' + sc.desc : sc.desc);
   try {
     localStorage.setItem('bbl-last-scenario', id);
