@@ -192,6 +192,8 @@ function toggleFullscreen(): void {
   try {
     if (document.fullscreenElement) {
       document.exitFullscreen?.();
+    } else if (!document.fullscreenEnabled) {
+      toast('当前环境不支持全屏'); // 环境直接禁用（如受控 iframe）
     } else {
       const p = el.requestFullscreen?.();
       if (p && typeof (p as Promise<void>).catch === 'function') {
