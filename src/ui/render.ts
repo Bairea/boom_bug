@@ -1776,7 +1776,7 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.lineWidth = 0.5 * s;
       ctx.beginPath();
       // 轻微呼吸脉动
-      ctx.arc(lx * s, ly * s, 2.2 * s * (1 + 0.1 * Math.sin(performance.now() / 1000 * 5)), 0, Math.PI * 2);
+      ctx.arc(lx * s, ly * s, 2.2 * s * (1 + 0.1 * Math.sin((performance.now() / 1000) * 5)), 0, Math.PI * 2);
       ctx.stroke();
     }
     // 投掷角度读数（与瞄准线读数对仗，方便复刻同一投掷）；文字位置钳制在画布内

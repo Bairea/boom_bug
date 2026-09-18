@@ -1063,14 +1063,14 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     // 镜头推近一点，随时间回弹（减少动态时跳过这类镜头运动）
     if (!reducedMotion) state.zoomPunch = Math.min(1.08, state.zoomPunch + e.power / 2600);
     // 反馈分级（game-feel）：威力决定 trauma/白闪；大威力才给顿帧，小爆不拦节奏
-      const motionK = reducedMotion ? 0.35 : 1;
-      state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
-      if (reducedMotion) {
-        // 减少动态：不用全屏白闪，改用短暂暖色 vignette 提示
-        state.warmVignette = 1;
-      } else {
-        state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300));
-      }
+    const motionK = reducedMotion ? 0.35 : 1;
+    state.trauma = Math.min(1, state.trauma + (0.22 + Math.min(0.55, e.power / 200)) * motionK);
+    if (reducedMotion) {
+      // 减少动态：不用全屏白闪，改用短暂暖色 vignette 提示
+      state.warmVignette = 1;
+    } else {
+      state.flash = Math.min(0.38, state.flash + Math.min(0.32, e.power / 300));
+    }
     // 方向性推镜：镜头被冲击波往爆点反方向推一下（回中弹簧自动收回）
     const kick = Math.min(2.5, e.power / 80) * motionK;
     state.panX = Math.max(-4, Math.min(4, state.panX - ((e.x - VIEW_W / 2) / (VIEW_W / 2)) * kick));
@@ -1080,14 +1080,14 @@ function applyEventPresentation(e: RecordedEvent, live: boolean): void {
     }
     // 贴地爆炸 → 地面扬尘浪
     if (e.y > 130 && e.power >= 30) state.particles.dust(e.x, 178);
-      // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
-      if (e.depth >= 2 && !state.slowmoUsed) {
-        state.slowmo = Math.max(state.slowmo, 0.7);
-        state.slowmoUsed = true;
-        state.slowmoCenter = { x: e.x, y: e.y };
-        state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感（双环）
-        state.particles.add({ type: 'ring', x: e.x, y: e.y, r: 1.5, vr: 34, life: 0.8, age: 0, blue: true });
-      }
+    // 连锁 ≥2 → 慢镜头：一局只给第一次大连锁聚光灯，后续保持实时节奏
+    if (e.depth >= 2 && !state.slowmoUsed) {
+      state.slowmo = Math.max(state.slowmo, 0.7);
+      state.slowmoUsed = true;
+      state.slowmoCenter = { x: e.x, y: e.y };
+      state.particles.timeRing(e.x, e.y); // 时间涟漪：聚光灯开启的仪式感（双环）
+      state.particles.add({ type: 'ring', x: e.x, y: e.y, r: 1.5, vr: 34, life: 0.8, age: 0, blue: true });
+    }
     // 连锁浮动大字
     if (e.depth >= 2) {
       state.floatTexts.push({ x: e.x, y: e.y - 4, text: `连锁×${e.depth}`, age: 0, ttl: 1.1 });
