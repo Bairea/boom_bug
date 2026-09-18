@@ -224,6 +224,11 @@
     color: #241109;
     font-weight: 700;
     box-shadow: 0 2px 18px rgba(255, 120, 64, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    animation: ignite-breathe 2.8s ease-in-out infinite;
+  }
+  @keyframes ignite-breathe {
+    0%, 100% { box-shadow: 0 2px 18px rgba(255, 120, 64, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
+    50% { box-shadow: 0 2px 26px rgba(255, 130, 70, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.35); }
   }
   #toolbar button.primary:hover:not(:disabled) {
     transform: translateY(-1px);
