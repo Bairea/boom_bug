@@ -220,6 +220,7 @@ function loadScenario(id: string): void {
   state.mode = 'edit';
   editor.locked = false;
   hideReport();
+  document.title = `擦炮虫虫实验室 · ${sc.label}`;
   editor.onStatus(restored ? '已恢复上次的自由实验布置 —— ' + sc.desc : sc.desc);
   try {
     localStorage.setItem('bbl-last-scenario', id);
@@ -373,6 +374,7 @@ els.daily.addEventListener('click', () => {
   editor.locked = false;
   hideReport();
   els.ignite.disabled = false;
+  document.title = `擦炮虫虫实验室 · 📅 每日实验 ${key}`;
   const doneToday = records.load(`daily-${key}`);
   editor.onStatus(
     `📅 每日实验 #${key} · ${THEME_LABELS[daily.theme]} —— 全世界今天同一份布局（想改也行）。点燃开跑，跑完和今天上一局比！${doneToday ? '（今天已挑战过，试试打破自己的纪录）' : ''}`,
