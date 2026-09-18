@@ -181,3 +181,4 @@
 | R258 | 06:40 ♿ 场景加载后焦点回画布（快捷键动线一致）。 | main.ts（152 全绿） | R258 commit |
 | R259 | 06:50 🔵🟠 状态胶囊模式指示点（编辑蓝/运行橙，CSS 过渡）。 | index.html + main.ts（152 全绿） | R259 commit |
 | R261 | 07:00 ♿ reduced-motion 爆炸提示改为暖色边缘 vignette（替代白闪，光敏友好仍有反馈；warmVignette 状态+衰减+渲染分支）。 | main.ts（152 全绿） | R261 commit |
+| R234 | 06:20 ✅ 周期性全场景 soak（10 场景 report+replay）零 JS 错误。 | 巡检记录（152 全绿） | — |
