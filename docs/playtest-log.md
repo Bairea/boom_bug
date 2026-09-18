@@ -104,3 +104,4 @@
 | R154 | 03:35 🎯 投掷弹道预览落点标记（预测终点小圆环）。 | render.ts（152 全绿） | R154 commit |
 | R155 | 03:45 🔬 **高DPI锐化**——画布内部按 devicePixelRatio(≤2)放大（逻辑坐标不变），背景缓存按 ctx 变换反推密度原生渲染；实测内部 960×576→1440×864，高分屏线条/文字锐利。无头 getTransform 守护。 | main.ts + render.ts（152 全绿，实机验证 internal=1440×864） | R155 commit |
 | R156 | 03:50 🐜 选中圈/绳子连接预览的蚂蚁线动效（lineDashOffset 随时间流动的经典选中语言）。 | render.ts（152 全绿） | R156 commit |
+| R157 | 03:40 🐛 **修复 R155 引入的 DPR 逻辑尺寸回归**——main.ts 的 W/H 读到放大后的 canvas 尺寸导致场景整体错放 1.5×；W/H 回归逻辑值(canvas.width/DPR)。实机回归 ✓。另补 README 视觉章节至 R157。 | main.ts + README.md（152 全绿，实机验证） | R157 commit |
