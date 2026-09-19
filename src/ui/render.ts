@@ -1744,12 +1744,13 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
     const inWater = (t.waterZones ?? []).some((z) => Math.hypot(lx - z.x, ly - z.y) < z.radius);
     const inOil = (t.oilZones ?? []).some((z) => Math.hypot(lx - z.x, ly - z.y) < z.radius);
     ctx.globalAlpha = 0.7;
+    const pulse = 1 + 0.1 * Math.sin((performance.now() / 1000) * 5);
     if (inWater) {
       ctx.strokeStyle = 'rgba(126,200,255,0.95)';
       ctx.fillStyle = 'rgba(126,200,255,0.9)';
       ctx.lineWidth = 0.7 * s;
       ctx.beginPath();
-      ctx.arc(lx * s, ly * s, 2.6 * s, 0, Math.PI * 2);
+      ctx.arc(lx * s, ly * s, 2.6 * s * pulse, 0, Math.PI * 2);
       ctx.stroke();
       ctx.beginPath();
       ctx.arc(lx * s, ly * s, 1.1 * s, 0, Math.PI * 2);
@@ -1763,7 +1764,7 @@ function drawThrowPreview(ctx: CanvasRenderingContext2D, t: ThrowPreview, s: num
       ctx.lineWidth = 0.7 * s;
       ctx.setLineDash([1.6 * s, 1.2 * s]);
       ctx.beginPath();
-      ctx.arc(lx * s, ly * s, 2.6 * s, 0, Math.PI * 2);
+      ctx.arc(lx * s, ly * s, 2.6 * s * pulse, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
       ctx.fillStyle = 'rgba(255,170,90,0.95)';
