@@ -203,3 +203,31 @@
 | R279-R287 | 07:00-07:45 📐 投掷角度读数、落点圈呼吸脉动、力度弧噪声过滤、角度读数位置钳制、首组间距修正、帮助按钮 title、多轮周期抽查（均零 JS 错误）。 | render.ts + index.html + docs（152 全绿） | 对应 commits |
 | R290 | 07:40 📖 手册提示行补关闭方式说明（H/Esc）。 | index.html（152 全绿） | R290 commit |
 | R292-R293 | 07:55 ✅ 重特效场景抽查（case4/8/9）+ 周期 soak（case1/6/8）零 JS 错误；README 交互条目补全。 | 巡检 + README（152 全绿） | — |
+| R263b | 07:10 📝 README 视觉章节范围更新至 R253。 | README.md（152 全绿） | R261b commit |
+| R262b | 07:15 🔁 ？按钮改为手册开关（toggle 语义）。 | main.ts（152 全绿） | R262b commit |
+| R263b | 07:20 📝 playtest-log 补 R261b/R262b。 | docs | R263b commit |
+| R264b | 07:25 ✅ 周期抽查 soak（case1/5/6/8/9）零 JS 错误。 | 巡检记录（152 全绿） | — |
+| R265 | 07:30 📖 手册补拖拽投掷反馈说明（力度弧/弹道/角度/落点预警）+ playtest-log 补 R234。 | index.html + docs（152 全绿） | R265 commit |
+| R266 | 07:35 🎨 油盆标注文字显式橙色 fillStyle（避免继承陈旧状态）。 | render.ts（152 全绿） | R266 commit |
+| R267 | 07:40 🎨 普通落点圈呼吸脉动（细微信号生命感）。 | render.ts（152 全绿） | R267 commit |
+| R268 | 07:45 ❄️ propCrack 改用冷色碎光（玻璃材质语感；frost 复用）。 | main.ts（152 全绿） | R268 commit |
+| R269 | 07:00 🌊 时间涟漪双环（内环慢速驻留+外环快速扩散，聚光灯仪式感分层）。 | main.ts（152 全绿） | R269 commit |
+| R270 | 07:05 📝 playtest-log 补 R269。 | docs | R270 commit |
+| R271 | 07:15 ✅ pre-finale 全量 soak（10 场景 report+replay）零 JS 错误。 | 巡检记录（152 全绿） | — |
+| R272 | 07:20 📐 投掷角度读数位置钳制在画布内（贴边不裁切）。 | render.ts（152 全绿） | R272 commit |
+| R273 | 06:50 ✅ case4 蜗牛保龄动态巡检 + R259 模式指示点实机验证（运行中橙色圆点）。 | 巡检 | — |
+| R274 | 07:15 📖 手册补模式指示点说明。 | index.html（152 全绿） | R274 commit |
+| R275 | 07:25 📝 playtest-log 补 R274。 | docs（152 全绿） | R275 commit |
+| R276 | 07:30 ✅ 周期抽查 soak（case3/4/5/7/free）零 JS 错误。 | 巡检记录（152 全绿） | — |
+| R277 | 07:18 🎨 prettier 全量格式维护（近期编辑文件漂移清理）。 | 3 files（152 全绿） | R277 commit |
+| R278 | 07:25 ✅ 轻量抽查 soak（case2/6/9）零 JS 错误。 | 巡检记录（152 全绿） | — |
+| R279-R287 | 07:00-07:45 📐 投掷角度读数、落点圈呼吸脉动、力度弧噪声过滤、角度读数位置钳制、首组间距修正、帮助按钮 title、多轮周期抽查（均零 JS 错误）。 | render.ts + index.html + docs（152 全绿） | 对应 commits |
+| R288 | 07:30 📝 playtest-log 补 R279-R287 汇总条目。 | docs | R288 commit |
+| R289 | 07:35 📱 移动端工具箱隐藏滚动条（横滑更沉浸，手势保留）。 | index.html（152 全绿） | R289 commit |
+| R290 | 07:40 📖 手册提示行补关闭方式说明（H/Esc）。 | index.html（152 全绿） | R290 commit |
+| R291 | 07:50 ✅ 最终回归抽查（case1/9）零 JS 错误。 | 巡检记录（152 全绿） | — |
+| R292-R293 | 07:55 ✅ 重特效场景抽查（case4/8/9）+ 周期 soak（case1/6/8）零 JS 错误；README 交互条目补全。 | 巡检 + README（152 全绿） | — |
+| R294 | 07:58 📝 README 视觉章节范围更新至 R293 + playtest-log 补 R292/R293。 | README.md + docs（152 全绿） | R294 commit |
+| R295 | 08:05 🌊 水/油预警圈同步呼吸脉动（与普通落点圈动效一致）。 | render.ts（152 全绿） | R295 commit |
+| R296-R299 | 08:10-08:25 ✅ 终巡检前回归抽查（case1/9、case4/8/9、case1/6/8）多轮零 JS 错误。 | 巡检记录（152 全绿） | — |
+| **终巡检** | **08:30** ✅ **收尾终巡检**：npm test **152/152 全绿**（tsc+eslint+node:test）；**10 场景快进 soak 全部 report=true + replay=true，零 JS 错误**；渲染 0.4–0.5ms/帧（60fps 预算的 1/30+）；确定性核心零改动（同种子同操作=同灾难 ✓）；docs/visual-upgrades-20260919.md 晨间清单与本日志 R89-R263 已同步。视觉与动画大翻新（场景氛围/辉光粒子/手感 juice/物件美术/界面 chrome/无障碍/回放完整化/交互可读性）自 R89 起交付完成。 | 全仓（152 全绿） | 本条目 |
