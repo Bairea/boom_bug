@@ -12,7 +12,6 @@ import {
   Sprite,
   Texture,
   Graphics,
-  Text,
   Filter,
   GlProgram,
   UniformGroup,
@@ -217,8 +216,7 @@ const smokeC = new Container();     // 普通混合：烟/纸屑/扬尘
 const fxAddC = new Container();     // 加法混合：闪光/冲击环/余烬
 const sparkG = new Graphics();      // 火花线拖尾（每帧重画，加法混合）
 sparkG.blendMode = 'add';
-const floatLayer = new Container(); // 连锁浮字
-worldC.addChild(scorchC, ropeG, bodyC, smokeC, fxAddC, sparkG, floatLayer);
+worldC.addChild(scorchC, ropeG, bodyC, smokeC, fxAddC, sparkG);
 
 // 全屏白闪（爆炸打击感，原版 state.flash 语义：gain power/300 cap 0.38，衰减 3.4/s）
 const flashOverlay = new Sprite(Texture.WHITE);
@@ -226,7 +224,9 @@ flashOverlay.width = 960; flashOverlay.height = 576;
 flashOverlay.alpha = 0;
 app.stage.addChild(flashOverlay);
 
-// 亮度阈值 pass：只有亮部（闪光/火花/引信辉光）能进 bloom，暗背景/物体归零 —— 否则整帧灰雾
+// 亮度阈值 pass：只有亮部（闪光/火花/引信辉光）能进 bloom，暗背景/物体归零 —— 否则整帧灰雾。
+// 注意 rgb 和 alpha 必须同时乘 k：只归零 rgb 会留下「黑 rgb + alpha=1」的图，
+// 以 0.55 不透明度正常合成时就变成一层浅黑罩子（R303b 用户实测踩中）。
 const thresholdFilter = new Filter({
   glProgram: GlProgram.from({
     vertex: defaultFilterVert,
@@ -239,16 +239,16 @@ const thresholdFilter = new Filter({
         vec4 c = texture(uTexture, vTextureCoord);
         float l = max(max(c.r, c.g), c.b);
         float k = clamp((l - uThreshold) / max(1.0 - uThreshold, 0.001), 0.0, 1.0);
-        finalColor = vec4(c.rgb * k, c.a);
+        finalColor = vec4(c.rgb * k, c.a * k);
       }`,
   }),
   resources: { thU: new UniformGroup({ uThreshold: { value: 0.5, type: 'f32' } }) },
 });
 
-// 真 bloom：整帧渲染进半分辨率 RT → 阈值提取亮部 → 高斯模糊 → 加法叠回
-const bloomRT = RenderTexture.create({ width: 480, height: 288 });
+// 真 bloom：整帧渲染进半分辨率 RT（resolution=0.5，逻辑 960×576 不裁切）
+// → 阈值提取亮部 → 高斯模糊 → 加法叠回
+const bloomRT = RenderTexture.create({ width: 960, height: 576, resolution: 0.5 });
 const bloomSprite = new Sprite(bloomRT);
-bloomSprite.scale.set(2); // 覆盖 960×576
 bloomSprite.blendMode = 'add';
 bloomSprite.alpha = 0.55;
 bloomSprite.filters = [thresholdFilter, new BlurFilter({ strength: 8, quality: 2 })];
@@ -360,13 +360,10 @@ function clearFx() {
   parts.length = 0;
   for (const s of scorches) s.sp.destroy();
   scorches.length = 0;
-  for (const f of floatTexts) f.t.destroy();
-  floatTexts.length = 0;
   sparkG.clear();
   smokeC.removeChildren().forEach((s) => s.destroy());
   fxAddC.removeChildren().forEach((s) => s.destroy());
   scorchC.removeChildren().forEach((s) => s.destroy());
-  floatLayer.removeChildren().forEach((s) => s.destroy());
 }
 
 function clearBodies() {
@@ -582,23 +579,7 @@ function addScorch(x, y, power) {
   if (scorches.length > 24) { scorches[0].sp.destroy(); scorches.shift(); }
 }
 
-// ---- 连锁浮字（原版 state.floatTexts：先弹后升淡出）----
-const floatTexts = [];
-function addFloatText(x, y, str) {
-  const t = new Text({
-    text: str,
-    style: { fontFamily: 'system-ui, sans-serif', fontSize: 12, fontWeight: '700',
-      fill: 0xffe9c4, stroke: { color: 0x4a1d08, width: 3 } },
-  });
-  t.anchor.set(0.5);
-  t.position.set(x, y - 4);
-  t.rotation = -0.04;
-  floatLayer.addChild(t);
-  floatTexts.push({ t, age: 0, ttl: 1.1 });
-  if (floatTexts.length > 8) { floatTexts[0].t.destroy(); floatTexts.shift(); }
-}
-
-// ---- 爆炸事件 → 表现层（逐项移植 applyEventPresentation 的 explosion 分支）----
+// ---- 爆炸事件 → 表现层（逐项移植 applyEventPresentation 的 explosion 分支；浮字已按需求移除，爆炸纯享）----
 function fxExplosionEvent(x, y, power, depth) {
   fxBurst(x, y, power);
   addScorch(x, y, power);
@@ -614,14 +595,13 @@ function fxExplosionEvent(x, y, power, depth) {
   if (power >= 40) hitStop = Math.max(hitStop, 0.05 + Math.min(0.05, (power - 40) / 900));
   // 贴地爆炸 → 地面扬尘浪
   if (y > 130 && power >= 30) fxDust(x, 178);
-  // 连锁 ≥2 → 慢镜头（一局一次）+ 时间涟漪 + 浮字
+  // 连锁 ≥2 → 慢镜头（一局一次）+ 时间涟漪
   if (depth >= 2 && !slowmoUsed) {
     slowmoUsed = true;
     slowmo = Math.max(slowmo, 0.7);
     slowmoCenter = { x, y };
     fxTimeRing(x, y);
   }
-  if (depth >= 2) addFloatText(x, y, `连锁×${depth}`);
   triggerShock(x, y, Math.min(0.9, 0.25 + power / 140)); // 切片自有：屏幕空间畸变（原版没有）
 }
 
@@ -633,8 +613,6 @@ function handleEvents(events) {
       trauma = Math.min(1, trauma + 0.06);
     } else if (e.type === 'knockout') {
       fxSpark(e.x, e.y, 8); // 原版：击倒故障火花
-    } else if (e.type === 'multiKill') {
-      addFloatText(e.x, e.y, `一爆多杀 ×${e.count}`);
     }
   }
 }
@@ -761,16 +739,6 @@ app.ticker.add((t) => {
     s.age += dt;
     if (s.age >= s.ttl) { s.sp.destroy(); scorches.splice(i, 1); continue; }
     s.sp.alpha = 0.8 * (1 - s.age / s.ttl);
-  }
-  // 浮字：先弹后升淡出
-  for (let i = floatTexts.length - 1; i >= 0; i--) {
-    const f = floatTexts[i];
-    f.age += dt;
-    if (f.age >= f.ttl) { f.t.destroy(); floatTexts.splice(i, 1); continue; }
-    const k = f.age / f.ttl;
-    f.t.y -= 12 * dt;
-    f.t.scale.set(f.age < 0.12 ? 0.6 + f.age / 0.12 * 0.5 : 1.1 - Math.min(0.1, (f.age - 0.12) * 0.5));
-    f.t.alpha = Math.min(1, k * 2.2);
   }
   // ---- 相机：原版 trauma² 分层正弦 + 方向性推镜弹簧 + 慢镜头向爆心缓推 ----
   trauma = Math.max(0, trauma - dt * 1.7);
