@@ -83,6 +83,18 @@
       <div id="err"></div>
     </aside>
   </main>
+  <script>
+    // 加载失败自诊断：module 脚本因 404/MIME/语法失败静默挂掉时，4 秒后给出排查指引
+    setTimeout(function () {
+      if (!window.__sliceReady) {
+        document.getElementById('err').textContent =
+          '⚠️ 初始化未完成（module 加载失败）。排查：① 服务器需为最新代码（node server.js；/slice/ 已支持直达）' +
+          '② /node_modules/pixi.js/dist/pixi.min.mjs 应返回 200 且 Content-Type=text/javascript' +
+          '（老进程缺 .mjs MIME 会被拒载——重启服务器）③ 具体报错看浏览器控制台。';
+        document.getElementById('status').textContent = '初始化失败 —— 详见上方提示与控制台';
+      }
+    }, 4000);
+  </script>
   <script type="module" src="./main.js"></script>
 </body>
 </html>

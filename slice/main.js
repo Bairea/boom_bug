@@ -553,3 +553,4 @@ function layoutEditView() {
   }
 }
 reset(); // 初始 = 编辑视图（静态摆放场面）
+window.__sliceReady = true; // index.html 的自诊断探针：模块完整执行完毕的标志

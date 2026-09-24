@@ -24,9 +24,20 @@ createServer(async (req, res) => {
   try {
     let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
     if (path === '/') path = '/index.html';
-    const file = normalize(join(ROOT, path));
+    let file = normalize(join(ROOT, path));
     if (!file.startsWith(ROOT)) throw new Error('forbidden');
-    const data = await readFile(file);
+    let data;
+    try {
+      data = await readFile(file);
+    } catch (err) {
+      // 目录 URL（如 /slice/）→ 回退目录下 index.html（file 同步更新，MIME 取实际文件）
+      if (err.code === 'EISDIR' || (!extname(file) && path !== '/')) {
+        file = join(file, 'index.html');
+        data = await readFile(file);
+      } else {
+        throw err;
+      }
+    }
     res.writeHead(200, {
       'Content-Type': MIME[extname(file)] ?? 'application/octet-stream',
       'Cache-Control': 'no-cache', // 开发迭代期间杜绝陈旧模块
