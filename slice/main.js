@@ -15,6 +15,8 @@ import {
   Filter,
   GlProgram,
   UniformGroup,
+  RenderTexture,
+  BlurFilter,
   defaultFilterVert,
 } from 'pixi.js';
 import { Simulation, DT } from '/src/sim/sim.js';
@@ -58,14 +60,21 @@ const TEX = {
     radial(ctx, w, h, [[0, 'rgba(255,255,255,1)'], [0.4, 'rgba(255,255,255,.7)'], [1, 'rgba(255,255,255,0)']])),
   smoke: canvasTex(128, 128, (ctx, w, h) =>
     radial(ctx, w, h, [[0, 'rgba(200,200,205,.8)'], [0.6, 'rgba(180,180,188,.35)'], [1, 'rgba(170,170,180,0)']])),
+  debris: canvasTex(32, 32, (ctx) => {
+    // 纸屑碎片（炮仗纸筒炸开的碎纸）
+    ctx.fillStyle = '#f2e9dc';
+    ctx.fillRect(6, 10, 20, 12);
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.fillRect(6, 18, 20, 4);
+  }),
   ring: canvasTex(128, 128, (ctx, w, h) => {
     ctx.strokeStyle = 'rgba(255,255,255,.95)';
-    ctx.lineWidth = 7;
+    ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.arc(w / 2, h / 2, w / 2 - 8, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,.35)';
-    ctx.lineWidth = 14;
+    ctx.strokeStyle = 'rgba(255,255,255,.25)';
+    ctx.lineWidth = 9;
     ctx.beginPath();
     ctx.arc(w / 2, h / 2, w / 2 - 12, 0, Math.PI * 2);
     ctx.stroke();
@@ -169,6 +178,8 @@ const app = new Application();
 await app.init({
   width: 960, height: 576, backgroundColor: '#0b0e14',
   antialias: true, powerPreference: 'high-performance',
+  resolution: Math.min(2, window.devicePixelRatio || 1), // 高 DPI 锐化（同主游戏 R155）
+  autoDensity: true,
 });
 els.stage.appendChild(app.canvas);
 
@@ -184,8 +195,36 @@ worldC.addChild(bg);
 const ropeG = new Graphics();       // 绳子（最底层线材）
 const bodyC = new Container();      // 物体 sprite
 const smokeC = new Container();     // 普通混合：烟
-const fxAddC = new Container();     // 加法混合：辉光/火花/冲击环（"穷版 bloom"：预渲染高斯渐变）
+const fxAddC = new Container();     // 加法混合：辉光/火花/冲击环
 worldC.addChild(ropeG, bodyC, smokeC, fxAddC);
+
+// 亮度阈值 pass：只有亮部（闪光/火花/引信辉光）能进 bloom，暗背景/物体归零 —— 否则整帧灰雾
+const thresholdFilter = new Filter({
+  glProgram: GlProgram.from({
+    vertex: defaultFilterVert,
+    fragment: `
+      in vec2 vTextureCoord;
+      out vec4 finalColor;
+      uniform sampler2D uTexture;
+      uniform float uThreshold;
+      void main() {
+        vec4 c = texture(uTexture, vTextureCoord);
+        float l = max(max(c.r, c.g), c.b);
+        float k = clamp((l - uThreshold) / max(1.0 - uThreshold, 0.001), 0.0, 1.0);
+        finalColor = vec4(c.rgb * k, c.a);
+      }`,
+  }),
+  resources: { thU: new UniformGroup({ uThreshold: { value: 0.5, type: 'f32' } }) },
+});
+
+// 真 bloom：整帧渲染进半分辨率 RT → 阈值提取亮部 → 高斯模糊 → 加法叠回
+const bloomRT = RenderTexture.create({ width: 480, height: 288 });
+const bloomSprite = new Sprite(bloomRT);
+bloomSprite.scale.set(2); // 覆盖 960×576
+bloomSprite.blendMode = 'add';
+bloomSprite.alpha = 0.55;
+bloomSprite.filters = [thresholdFilter, new BlurFilter({ strength: 8, quality: 2 })];
+app.stage.addChild(bloomSprite);
 
 // 屏幕空间畸变冲击波（自定义 shader：径向位移 + 波前色散）
 const shockFilter = new Filter({
@@ -231,6 +270,7 @@ shockFilter.enabled = false;
 app.stage.filters = [shockFilter];
 let shockT = 1;
 function triggerShock(x, y, strength) {
+  window.__shocks = (window.__shocks ?? 0) + 1; // 验证探针：爆炸当帧可被无头脚本捕捉
   const u = shockFilter.resources.shockU;
   const px = (x - VIEW_W / 2) * S + 480;
   const py = (y - VIEW_H / 2) * S + 270;
@@ -249,11 +289,21 @@ let sim = null;
 let mode = 'edit';
 let acc = 0;
 let hitStop = 0;
+let slowmo = 0;
+let slowmoUsed = false;
 let lastEventTick = 0;
 let trauma = 0;
 let zoomPunch = 1;
 const sprites = new Map(); // bodyId -> Sprite
 const fuseGlows = new Map(); // bodyId -> Sprite（点燃辉光）
+const prevState = new Map(); // bodyId -> {x,y,angle}（上一 tick 状态，渲染插值用）
+
+function lerpAngle(a, b, t) {
+  let d = (b - a) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return a + d * t;
+}
 
 function startRun() {
   const sc = getScenario('case1');
@@ -265,7 +315,7 @@ function startRun() {
   });
   clearBodies();
   mode = 'running';
-  acc = 0; hitStop = 0; trauma = 0; zoomPunch = 1; lastEventTick = 0;
+  acc = 0; hitStop = 0; slowmo = 0; slowmoUsed = false; trauma = 0; zoomPunch = 1; lastEventTick = 0;
   smokeC.removeChildren().forEach((s) => s.destroy());
   fxAddC.removeChildren().forEach((s) => s.destroy());
   els.checksum.style.display = 'none';
@@ -278,6 +328,7 @@ function clearBodies() {
   sprites.clear();
   fuseGlows.forEach((g) => g.destroy());
   fuseGlows.clear();
+  prevState.clear();
   ropeG.clear();
 }
 
@@ -308,7 +359,7 @@ function texOf(b) {
   return TEX.glow;
 }
 
-function syncBodies() {
+function syncBodies(alpha = 1) {
   if (!sim) return;
   for (const b of sim.world.bodies) {
     let sp = sprites.get(b.id);
@@ -327,17 +378,23 @@ function syncBodies() {
       glow.visible = false;
       fxAddC.addChild(glow);
       fuseGlows.set(b.id, glow);
+      prevState.set(b.id, { x: b.x, y: b.y, angle: b.angle }); // 新生实体无上一帧 → 自插值
     }
     sp.visible = b.alive;
     if (!b.alive) { fuseGlows.get(b.id).visible = false; continue; }
-    sp.position.set(b.x, b.y);
+    // 插值：渲染位置 = lerp(上一 tick, 当前 tick, alpha) —— 60Hz 模拟在任意刷新率下都顺滑
+    const p = prevState.get(b.id);
+    const x = p ? p.x + (b.x - p.x) * alpha : b.x;
+    const y = p ? p.y + (b.y - p.y) * alpha : b.y;
+    const ang = p ? lerpAngle(p.angle, b.angle, alpha) : b.angle;
+    sp.position.set(x, y);
     const pointUp = b.kind === 'explosive'; // 立式纹理：angle=-PI/2 → 不旋转
-    sp.rotation = pointUp ? b.angle + Math.PI / 2 : b.angle;
+    sp.rotation = pointUp ? ang + Math.PI / 2 : ang;
     const glow = fuseGlows.get(b.id);
     const lit = b.kind === 'explosive' && b.data.lit && !b.data.exploded;
     glow.visible = lit;
     if (lit) {
-      glow.position.set(b.x, b.y - radiusOf(b) * 1.4);
+      glow.position.set(x, y - radiusOf(b) * 1.4);
       glow.alpha = 0.55 + 0.35 * Math.sin(performance.now() / 1000 * 40 + b.id);
     }
   }
@@ -372,6 +429,7 @@ function addPart(layer, tex, opt) {
     ttl: opt.ttl ?? 0.5, life: 0,
     s0: opt.size ?? 2, s1: opt.size2 ?? opt.size ?? 2,
     a0: opt.alpha ?? 1, spin: opt.spin ?? 0,
+    ease: opt.ease ?? false, flick: opt.flick ?? false, ph: opt.ph ?? 0,
   });
 }
 
@@ -380,15 +438,20 @@ const DEPTH_TINT = [0xffffff, 0xffd27a, 0xff9a4d, 0xff6a3d, 0xff4433];
 function fxExplosion(x, y, power, blastRadius, depth) {
   // 参数按实测校准：case1 爆炸 power 45-70、blastRadius 50-70 世界单位（盒宽 300）
   const tint = DEPTH_TINT[Math.min(depth, DEPTH_TINT.length - 1)];
-  addPart(fxAddC, TEX.glow, { x, y, size: blastRadius * 1.7, ttl: 0.18, tint, alpha: 0.95 });
-  addPart(fxAddC, TEX.ring, { x, y, size: blastRadius * 0.35, size2: blastRadius * 2.1, ttl: 0.38, tint, alpha: 0.9 });
-  const n = 20 + Math.min(depth, 4) * 6;
+  // 双层闪光：小而烈的核心 + 大而柔的光晕（缓出消隐）
+  addPart(fxAddC, TEX.glow, { x, y, size: blastRadius * 0.65, size2: blastRadius * 0.95, ttl: 0.15, tint: 0xffffff, alpha: 1 });
+  addPart(fxAddC, TEX.glow, { x, y, size: blastRadius * 1.7, size2: blastRadius * 2.2, ttl: 0.24, tint, alpha: 0.55 });
+  // 冲击环：缓出扩张（快起慢收，冲击感）
+  addPart(fxAddC, TEX.ring, { x, y, size: blastRadius * 0.3, size2: blastRadius * 1.7, ttl: 0.36, tint, alpha: 0.85, ease: true });
+  // 火花：加量 + 闪烁（每颗独立相位）
+  const n = 26 + Math.min(depth, 4) * 8;
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2;
-    const v = 60 + Math.random() * 170;
+    const v = 60 + Math.random() * 190;
     addPart(fxAddC, TEX.spark, {
-      x, y, size: 0.9 + Math.random() * 1.4, ttl: 0.4 + Math.random() * 0.5,
-      vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, g: 260, tint, alpha: 1,
+      x, y, size: 0.9 + Math.random() * 1.5, ttl: 0.45 + Math.random() * 0.55,
+      vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, g: 260, tint,
+      alpha: 1, flick: true, ph: Math.random() * Math.PI * 2,
     });
   }
   for (let i = 0; i < 5; i++) {
@@ -401,7 +464,23 @@ function fxExplosion(x, y, power, blastRadius, depth) {
   trauma = Math.min(1, trauma + 0.18 + power / 300);
   zoomPunch = Math.max(zoomPunch, 1.03 + power / 2000);
   if ((power >= 60 || depth >= 2) && hitStop <= 0) hitStop = 0.12; // 大威力/深连锁顿帧（时间缩放，不碰模拟）
+  if (depth >= 2 && !slowmoUsed) {
+    slowmoUsed = true; // 一局一次：深连锁慢镜头（同主游戏 R5/R13 语义）
+    slowmo = 0.55;
+    zoomPunch = Math.max(zoomPunch, 1.1);
+  }
   triggerShock(x, y, Math.min(0.9, 0.25 + power / 140));
+  // 纸屑碎片：炮仗纸筒炸开的碎纸（普通混合，翻滚下落）
+  const nDebris = 6 + Math.min(depth, 4) * 2;
+  for (let i = 0; i < nDebris; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const v = 40 + Math.random() * 110;
+    addPart(smokeC, TEX.debris, {
+      x, y, size: 0.8 + Math.random() * 0.9, ttl: 0.9 + Math.random() * 0.5,
+      vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, g: 200,
+      spin: (Math.random() - 0.5) * 22, alpha: 0.95, add: false,
+    });
+  }
 }
 
 function handleEvents(events) {
@@ -428,6 +507,11 @@ function handleEvents(events) {
 }
 
 function stepOnce() {
+  // 插值基线：步进前快照（prev=tick N，步进后=tick N+1，渲染在两者之间插值）
+  for (const b of sim.world.bodies) {
+    if (!b.alive) continue;
+    prevState.set(b.id, { x: b.x, y: b.y, angle: b.angle });
+  }
   sim.step();
   if (sim.eventsThisStep.length) lastEventTick = sim.tick;
   handleEvents(sim.eventsThisStep);
@@ -461,16 +545,20 @@ let perfAcc = 0, perfN = 0, statTimer = 0;
 app.ticker.add((t) => {
   const dt = Math.min(t.deltaMS, 50) / 1000;
   const t0 = performance.now();
+  let alpha = 1;
   if (mode === 'running' && sim) {
     hitStop = Math.max(0, hitStop - dt);
-    const scale = hitStop > 0 ? 0.06 : 1;
+    slowmo = Math.max(0, slowmo - dt);
+    // 顿帧 > 慢镜头 > 实时（时间缩放只改步进节奏，tick 内容不变 —— 确定性不破）
+    const scale = hitStop > 0 ? 0.06 : slowmo > 0 ? 0.35 : 1;
     acc += dt * scale;
     let steps = 0;
     while (acc >= DT && steps < 4) { acc -= DT; steps++; stepOnce(); }
+    alpha = Math.min(1, acc / DT); // 渲染停在两 tick 之间的位置
     if (sim.tick - lastEventTick > 180) finishRun();
   }
-  syncBodies(); // 物体/引信辉光/绳子逐帧同步（sim 状态 → sprite）
-  // 粒子推进（真实时间）：宽度 s0→s1 线性插值
+  syncBodies(alpha); // 物体/引信辉光/绳子逐帧同步（插值 → 任意刷新率都顺滑）
+  // 粒子推进（真实时间）：宽度 s0→s1 插值（ease=缓出），alpha 平方衰减 × 可选闪烁
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
     p.life += dt;
@@ -478,11 +566,13 @@ app.ticker.add((t) => {
     p.vy += p.g * dt;
     p.sp.x += p.vx * dt;
     p.sp.y += p.vy * dt;
-    const k = p.life / p.ttl;
-    const w = p.s0 + (p.s1 - p.s0) * k;
+    let k = p.life / p.ttl;
+    const w = p.s0 + (p.s1 - p.s0) * (p.ease ? 1 - (1 - k) ** 3 : k);
     p.sp.width = w; p.sp.height = w;
     if (p.spin) p.sp.rotation += p.spin * dt;
-    p.sp.alpha = p.a0 * (1 - k * k);
+    let a = p.a0 * (1 - k * k);
+    if (p.flick) a *= 0.65 + 0.35 * Math.sin(p.life * 80 + p.ph);
+    p.sp.alpha = a;
   }
   // 震屏（trauma² 平滑正弦）+ zoom punch 回落
   trauma = Math.max(0, trauma - dt * 1.8);
@@ -500,6 +590,10 @@ app.ticker.add((t) => {
     const u = shockFilter.resources.shockU;
     u.uniforms.uTime = shockT;
     if (shockT >= 1) shockFilter.enabled = false;
+  }
+  // 真 bloom：世界当前帧渲染进半分辨率 RT（bloomSprite 自带 BlurFilter 加法叠回）；静止场景跳过重渲染
+  if (mode === 'running' || parts.length > 0) {
+    app.renderer.render({ container: worldC, target: bloomRT, clear: true });
   }
   // 统计与性能读数
   statTimer += dt;
