@@ -3,8 +3,8 @@ import tseslint from 'typescript-eslint';
 import globals from 'globals';
 
 export default tseslint.config(
-  // src/**/*.js 是 tsc 的编译产物，不检查
-  { ignores: ['node_modules/', 'src/**/*.js', '.shots/'] },
+  // src/**/*.js 是 tsc 的编译产物，不检查；slice/ 是 PixiJS 垂直切片实验（纯 JS，独立评审）
+  { ignores: ['node_modules/', 'src/**/*.js', '.shots/', 'slice/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
