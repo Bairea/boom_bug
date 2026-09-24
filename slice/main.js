@@ -12,6 +12,7 @@ import {
   Sprite,
   Texture,
   Graphics,
+  Text,
   Filter,
   GlProgram,
   UniformGroup,
@@ -60,24 +61,41 @@ const TEX = {
     radial(ctx, w, h, [[0, 'rgba(255,255,255,1)'], [0.4, 'rgba(255,255,255,.7)'], [1, 'rgba(255,255,255,0)']])),
   smoke: canvasTex(128, 128, (ctx, w, h) =>
     radial(ctx, w, h, [[0, 'rgba(200,200,205,.8)'], [0.6, 'rgba(180,180,188,.35)'], [1, 'rgba(170,170,180,0)']])),
-  debris: canvasTex(32, 32, (ctx) => {
-    // 纸屑碎片（炮仗纸筒炸开的碎纸）
-    ctx.fillStyle = '#f2e9dc';
-    ctx.fillRect(6, 10, 20, 12);
-    ctx.fillStyle = 'rgba(0,0,0,.18)';
-    ctx.fillRect(6, 18, 20, 4);
+  // 原版 flash：三层加法渐变（白核 → 橙圈 → 深橙），色标逐项照抄 particles.ts
+  flash: canvasTex(256, 256, (ctx, w, h) => {
+    const g = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    g.addColorStop(0, 'rgba(255,252,238,0.95)');
+    g.addColorStop(0.3, 'rgba(255,190,90,0.75)');
+    g.addColorStop(0.7, 'rgba(255,110,40,0.32)');
+    g.addColorStop(1, 'rgba(255,80,30,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
   }),
-  ring: canvasTex(128, 128, (ctx, w, h) => {
-    ctx.strokeStyle = 'rgba(255,255,255,.95)';
+  // 原版 ring：双描边冲击环（外柔内锐，金调）——线宽比例照抄（4.5 / 1.2 @64 半径）
+  ringGold: canvasTex(128, 128, (ctx, w, h) => {
+    ctx.strokeStyle = 'rgba(255,200,130,0.3)';
     ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(w / 2, h / 2, w / 2 - 8, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(255,255,255,.25)';
-    ctx.lineWidth = 9;
-    ctx.beginPath();
-    ctx.arc(w / 2, h / 2, w / 2 - 12, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, w / 2 - 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,235,190,0.85)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, w / 2 - 6, 0, Math.PI * 2); ctx.stroke();
+  }),
+  // 时间涟漪蓝环（慢镜头聚光灯）
+  ringBlue: canvasTex(128, 128, (ctx, w, h) => {
+    ctx.strokeStyle = 'rgba(126,200,255,0.3)';
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, w / 2 - 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(190,230,255,0.9)';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.arc(w / 2, h / 2, w / 2 - 6, 0, Math.PI * 2); ctx.stroke();
+  }),
+  // 焦痕：地面战损记忆（黑径向，12s 淡去）
+  scorch: canvasTex(128, 128, (ctx, w, h) =>
+    radial(ctx, w, h, [[0, 'rgba(12,10,8,0.62)'], [0.55, 'rgba(16,13,10,0.42)'], [1, 'rgba(20,16,12,0)']])),
+  // 纸屑：白底矩形（ tint 分色：金/红/青白）
+  debris: canvasTex(32, 32, (ctx) => {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(4, 11, 24, 11);
   }),
   roach: canvasTex(128, 128, (ctx) => {
     // 玩具蟑螂：棕色渐变壳 + 高光 + 头部（朝右）
@@ -192,11 +210,21 @@ const bg = new Sprite(bgTex);
 bg.scale.set(960 / bgTex.width); // 1:1
 worldC.addChild(bg);
 
+const scorchC = new Container();    // 焦痕（战损记忆，12s 淡去）—— bg 之上、物体之下
 const ropeG = new Graphics();       // 绳子（最底层线材）
 const bodyC = new Container();      // 物体 sprite
-const smokeC = new Container();     // 普通混合：烟
-const fxAddC = new Container();     // 加法混合：辉光/火花/冲击环
-worldC.addChild(ropeG, bodyC, smokeC, fxAddC);
+const smokeC = new Container();     // 普通混合：烟/纸屑/扬尘
+const fxAddC = new Container();     // 加法混合：闪光/冲击环/余烬
+const sparkG = new Graphics();      // 火花线拖尾（每帧重画，加法混合）
+sparkG.blendMode = 'add';
+const floatLayer = new Container(); // 连锁浮字
+worldC.addChild(scorchC, ropeG, bodyC, smokeC, fxAddC, sparkG, floatLayer);
+
+// 全屏白闪（爆炸打击感，原版 state.flash 语义：gain power/300 cap 0.38，衰减 3.4/s）
+const flashOverlay = new Sprite(Texture.WHITE);
+flashOverlay.width = 960; flashOverlay.height = 576;
+flashOverlay.alpha = 0;
+app.stage.addChild(flashOverlay);
 
 // 亮度阈值 pass：只有亮部（闪光/火花/引信辉光）能进 bloom，暗背景/物体归零 —— 否则整帧灰雾
 const thresholdFilter = new Filter({
@@ -291,9 +319,13 @@ let acc = 0;
 let hitStop = 0;
 let slowmo = 0;
 let slowmoUsed = false;
+let slowmoCenter = null;
 let lastEventTick = 0;
 let trauma = 0;
 let zoomPunch = 1;
+let flashV = 0; // 全屏白闪强度（原版 state.flash）
+let panX = 0;   // 方向性推镜（世界单位，弹簧回中）
+let panY = 0;
 const sprites = new Map(); // bodyId -> Sprite
 const fuseGlows = new Map(); // bodyId -> Sprite（点燃辉光）
 const prevState = new Map(); // bodyId -> {x,y,angle}（上一 tick 状态，渲染插值用）
@@ -314,20 +346,33 @@ function startRun() {
     entities: buildEntitiesFor(sc.entities, { noAutoIgnite: sc.noAutoIgnite }),
   });
   clearBodies();
+  clearFx();
   mode = 'running';
-  acc = 0; hitStop = 0; slowmo = 0; slowmoUsed = false; trauma = 0; zoomPunch = 1; lastEventTick = 0;
-  smokeC.removeChildren().forEach((s) => s.destroy());
-  fxAddC.removeChildren().forEach((s) => s.destroy());
+  acc = 0; hitStop = 0; slowmo = 0; slowmoUsed = false; slowmoCenter = null;
+  trauma = 0; zoomPunch = 1; lastEventTick = 0; flashV = 0; panX = 0; panY = 0;
   els.checksum.style.display = 'none';
   els.ignite.disabled = true;
   els.status.textContent = '🔥 实验进行中……（本切片无交互点火 —— 专注观感对比，同 seed 必同灾难）';
 }
 
+function clearFx() {
+  for (const p of parts) { p.sp?.destroy(); p.core?.destroy(); }
+  parts.length = 0;
+  for (const s of scorches) s.sp.destroy();
+  scorches.length = 0;
+  for (const f of floatTexts) f.t.destroy();
+  floatTexts.length = 0;
+  sparkG.clear();
+  smokeC.removeChildren().forEach((s) => s.destroy());
+  fxAddC.removeChildren().forEach((s) => s.destroy());
+  scorchC.removeChildren().forEach((s) => s.destroy());
+  floatLayer.removeChildren().forEach((s) => s.destroy());
+}
+
 function clearBodies() {
   sprites.forEach((sp) => sp.destroy());
   sprites.clear();
-  fuseGlows.forEach((g) => g.destroy());
-  fuseGlows.clear();
+  fuseGlows.clear(); // sprite 生命周期已由 clearFx 统一销毁（都在 fxAddC 下）
   prevState.clear();
   ropeG.clear();
 }
@@ -411,97 +456,185 @@ function syncBodies(alpha = 1) {
   ropeG.stroke({ width: 0.7, color: 0x8a6b46, alpha: 0.9, cap: 'round' });
 }
 
-// ---- 粒子池（世界坐标，单位 = 世界单位） ----
+// ============================================================
+// 粒子系统：逐项移植 ui/particles.ts 原版配方（type 驱动，update/draw 对齐）
+// ============================================================
 const parts = [];
-function addPart(layer, tex, opt) {
-  if (parts.length > 700) return;
-  const sp = new Sprite(tex);
-  sp.anchor.set(0.5);
-  sp.blendMode = opt.add === false ? 'normal' : 'add';
-  sp.position.set(opt.x, opt.y);
-  sp.width = opt.size ?? 2; sp.height = opt.size ?? 2;
-  if (opt.tint != null) sp.tint = opt.tint;
-  sp.alpha = opt.alpha ?? 1;
-  layer.addChild(sp);
-  parts.push({
-    sp, layer,
-    vx: opt.vx ?? 0, vy: opt.vy ?? 0, g: opt.g ?? 0,
-    ttl: opt.ttl ?? 0.5, life: 0,
-    s0: opt.size ?? 2, s1: opt.size2 ?? opt.size ?? 2,
-    a0: opt.alpha ?? 1, spin: opt.spin ?? 0,
-    ease: opt.ease ?? false, flick: opt.flick ?? false, ph: opt.ph ?? 0,
-  });
+function addP(p) {
+  if (parts.length > 600) parts.shift(); // 原版同款上限
+  parts.push(p);
 }
 
-const DEPTH_TINT = [0xffffff, 0xffd27a, 0xff9a4d, 0xff6a3d, 0xff4433];
+function mkSp(tex, layer, x, y, blend = 'add') {
+  const sp = new Sprite(tex);
+  sp.anchor.set(0.5);
+  sp.blendMode = blend;
+  sp.position.set(x, y);
+  layer.addChild(sp);
+  return sp;
+}
 
-function fxExplosion(x, y, power, blastRadius, depth) {
-  // 参数按实测校准：case1 爆炸 power 45-70、blastRadius 50-70 世界单位（盒宽 300）
-  const tint = DEPTH_TINT[Math.min(depth, DEPTH_TINT.length - 1)];
-  // 双层闪光：小而烈的核心 + 大而柔的光晕（缓出消隐）
-  addPart(fxAddC, TEX.glow, { x, y, size: blastRadius * 0.65, size2: blastRadius * 0.95, ttl: 0.15, tint: 0xffffff, alpha: 1 });
-  addPart(fxAddC, TEX.glow, { x, y, size: blastRadius * 1.7, size2: blastRadius * 2.2, ttl: 0.24, tint, alpha: 0.55 });
-  // 冲击环：缓出扩张（快起慢收，冲击感）
-  addPart(fxAddC, TEX.ring, { x, y, size: blastRadius * 0.3, size2: blastRadius * 1.7, ttl: 0.36, tint, alpha: 0.85, ease: true });
-  // 火花：加量 + 闪烁（每颗独立相位）
-  const n = 26 + Math.min(depth, 4) * 8;
+// 原版 particles.explosion(x, y, power) —— r = 6+power*0.18（power 45-70 → r≈14-19）
+function fxBurst(x, y, power) {
+  const r = 6 + power * 0.18;
+  // 闪光：四段渐变主辉光 + 白核收缩（life 0.14）
+  {
+    const sp = mkSp(TEX.flash, fxAddC, x, y);
+    const core = mkSp(TEX.glow, fxAddC, x, y);
+    core.tint = 0xfffff4;
+    addP({ type: 'flash', sp, core, x, y, r: r * 0.8, life: 0.14, age: 0 });
+  }
+  // 冲击环：金双描边，r*0.4 起步、vr=r*7、life 0.45
+  addP({ type: 'ring', sp: mkSp(TEX.ringGold, fxAddC, x, y), x, y, r: r * 0.4, vr: r * 7, life: 0.45, age: 0 });
+  // 火花：min(30, 10+power*0.28) 颗，线拖尾渐冷色（sparkG 层），重力 700、抬升 -60
+  const n = Math.min(30, (10 + power * 0.28) | 0);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2;
-    const v = 60 + Math.random() * 190;
-    addPart(fxAddC, TEX.spark, {
-      x, y, size: 0.9 + Math.random() * 1.5, ttl: 0.45 + Math.random() * 0.55,
-      vx: Math.cos(a) * v, vy: Math.sin(a) * v - 40, g: 260, tint,
-      alpha: 1, flick: true, ph: Math.random() * Math.PI * 2,
-    });
+    const sp = 60 + Math.random() * 240;
+    addP({ type: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 60, life: 0.35 + Math.random() * 0.4, age: 0 });
   }
+  // 余烬：5 颗慢速上飘 + 热浮力 + 正弦摆动 + 闪烁
   for (let i = 0; i < 5; i++) {
-    addPart(smokeC, TEX.smoke, {
-      x: x + (Math.random() - 0.5) * blastRadius * 0.8, y: y + (Math.random() - 0.5) * 4,
-      size: 4 + Math.random() * 5, size2: 12 + Math.random() * 8, ttl: 1.1 + Math.random() * 0.9,
-      alpha: 0.32, vx: (Math.random() - 0.5) * 12, vy: -10 - Math.random() * 14, add: false,
-    });
+    const ex = x + (Math.random() - 0.5) * r;
+    const ey = y + (Math.random() - 0.5) * r * 0.6;
+    addP({ type: 'ember', sp: mkSp(TEX.glow, fxAddC, ex, ey), x: ex, y: ey,
+      vx: (Math.random() - 0.5) * 26, vy: -24 - Math.random() * 40,
+      r: 0.8 + Math.random() * 1.2, life: 0.7 + Math.random() * 0.7, age: 0, seed: Math.random() * 10 });
   }
-  trauma = Math.min(1, trauma + 0.18 + power / 300);
-  zoomPunch = Math.max(zoomPunch, 1.03 + power / 2000);
-  if ((power >= 60 || depth >= 2) && hitStop <= 0) hitStop = 0.12; // 大威力/深连锁顿帧（时间缩放，不碰模拟）
-  if (depth >= 2 && !slowmoUsed) {
-    slowmoUsed = true; // 一局一次：深连锁慢镜头（同主游戏 R5/R13 语义）
-    slowmo = 0.55;
-    zoomPunch = Math.max(zoomPunch, 1.1);
-  }
-  triggerShock(x, y, Math.min(0.9, 0.25 + power / 140));
-  // 纸屑碎片：炮仗纸筒炸开的碎纸（普通混合，翻滚下落）
-  const nDebris = 6 + Math.min(depth, 4) * 2;
-  for (let i = 0; i < nDebris; i++) {
+  // 碎片：min(10, 4+power*0.06) 颗纸屑，上抛 -120、重力 620、翻滚；金/红/青白三色
+  const nd = Math.min(10, (4 + power * 0.06) | 0);
+  for (let i = 0; i < nd; i++) {
     const a = Math.random() * Math.PI * 2;
-    const v = 40 + Math.random() * 110;
-    addPart(smokeC, TEX.debris, {
-      x, y, size: 0.8 + Math.random() * 0.9, ttl: 0.9 + Math.random() * 0.5,
-      vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, g: 200,
-      spin: (Math.random() - 0.5) * 22, alpha: 0.95, add: false,
-    });
+    const sp = 90 + Math.random() * 200;
+    const hue = Math.random();
+    const d = mkSp(TEX.debris, smokeC, x, y, 'normal');
+    d.tint = hue < 0.55 ? 0xe8c15a : hue < 0.8 ? 0xc0392b : 0xaad7f5;
+    addP({ type: 'debris', sp: d, x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 120,
+      r: 0.9 + Math.random() * 1.4, rot: Math.random() * Math.PI * 2, vrot: (Math.random() - 0.5) * 18,
+      life: 0.5 + Math.random() * 0.5, age: 0 });
   }
+  // 烟：7 团暖灰（tone 107,91,78），持续长大（r+=6/s）
+  for (let i = 0; i < 7; i++) {
+    const sx = x + (Math.random() - 0.5) * r;
+    const sy = y + (Math.random() - 0.5) * r;
+    const s = mkSp(TEX.smoke, smokeC, sx, sy, 'normal');
+    s.tint = 0x6b5b4e;
+    addP({ type: 'smoke', sp: s, x: sx, y: sy, vx: (Math.random() - 0.5) * 30, vy: -20 - Math.random() * 30,
+      r: 3 + Math.random() * 5, life: 0.9 + Math.random() * 0.6, age: 0, warm: 0.7 });
+  }
+}
+
+// 原版 particles.spark(x, y, n)：小型火花迸溅（击倒/引信火星）
+function fxSpark(x, y, n = 6) {
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 30 + Math.random() * 90;
+    addP({ type: 'spark', x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40, life: 0.3 + Math.random() * 0.25, age: 0 });
+  }
+}
+
+// 原版 particles.puff(x, y)：小烟团
+function fxPuff(x, y) {
+  for (let i = 0; i < 4; i++) {
+    const px = x + (Math.random() - 0.5) * 6;
+    const py = y + (Math.random() - 0.5) * 6;
+    const s = mkSp(TEX.smoke, smokeC, px, py, 'normal');
+    s.tint = 0x666666;
+    addP({ type: 'smoke', sp: s, x: px, y: py, vx: (Math.random() - 0.5) * 20, vy: -10 - Math.random() * 15,
+      r: 2 + Math.random() * 3, life: 0.5 + Math.random() * 0.3, age: 0, warm: 0 });
+  }
+}
+
+// 原版 particles.dust(x, floorY)：贴地扬尘浪
+function fxDust(x, floorY) {
+  for (let i = 0; i < 8; i++) {
+    const dir = i < 4 ? -1 : 1;
+    const dx = x + dir * Math.random() * 4;
+    const dy = floorY - Math.random() * 2;
+    const s = mkSp(TEX.smoke, smokeC, dx, dy, 'normal');
+    s.tint = 0x8a8378;
+    addP({ type: 'dust', sp: s, x: dx, y: dy, vx: dir * (30 + Math.random() * 70), vy: -8 - Math.random() * 22,
+      r: 2 + Math.random() * 4, life: 0.5 + Math.random() * 0.4, age: 0 });
+  }
+}
+
+// 原版 particles.rocketTrail(x, y)：火箭尾迹烟（每两 tick）
+function fxRocketTrail(x, y) {
+  const s = mkSp(TEX.smoke, smokeC, x + (Math.random() - 0.5) * 2, y + (Math.random() - 0.5) * 2, 'normal');
+  s.tint = 0x8a7563;
+  addP({ type: 'smoke', sp: s, x: s.x, y: s.y, vx: (Math.random() - 0.5) * 8, vy: 6 + Math.random() * 10,
+    r: 1.2 + Math.random() * 1.4, life: 0.45 + Math.random() * 0.35, age: 0, warm: 0.35 });
+}
+
+// 原版 timeRing(x, y) + 第二蓝环：慢镜头聚光灯的时间涟漪
+function fxTimeRing(x, y) {
+  addP({ type: 'ring', sp: mkSp(TEX.ringBlue, fxAddC, x, y), x, y, r: 4, vr: 55, life: 0.9, age: 0 });
+  addP({ type: 'ring', sp: mkSp(TEX.ringBlue, fxAddC, x, y), x, y, r: 1.5, vr: 34, life: 0.8, age: 0 });
+}
+
+// ---- 焦痕（原版 state.scorches：最多 24 个，12s 淡去）----
+const scorches = [];
+function addScorch(x, y, power) {
+  const sp = mkSp(TEX.scorch, scorchC, x, Math.min(y + 4, 178), 'normal');
+  const r = 5 + power * 0.12;
+  sp.width = sp.height = r * 2;
+  scorches.push({ sp, age: 0, ttl: 12 });
+  if (scorches.length > 24) { scorches[0].sp.destroy(); scorches.shift(); }
+}
+
+// ---- 连锁浮字（原版 state.floatTexts：先弹后升淡出）----
+const floatTexts = [];
+function addFloatText(x, y, str) {
+  const t = new Text({
+    text: str,
+    style: { fontFamily: 'system-ui, sans-serif', fontSize: 12, fontWeight: '700',
+      fill: 0xffe9c4, stroke: { color: 0x4a1d08, width: 3 } },
+  });
+  t.anchor.set(0.5);
+  t.position.set(x, y - 4);
+  t.rotation = -0.04;
+  floatLayer.addChild(t);
+  floatTexts.push({ t, age: 0, ttl: 1.1 });
+  if (floatTexts.length > 8) { floatTexts[0].t.destroy(); floatTexts.shift(); }
+}
+
+// ---- 爆炸事件 → 表现层（逐项移植 applyEventPresentation 的 explosion 分支）----
+function fxExplosionEvent(x, y, power, depth) {
+  fxBurst(x, y, power);
+  addScorch(x, y, power);
+  // 镜头推近一点，随时间回弹
+  zoomPunch = Math.min(1.08, zoomPunch + power / 2600);
+  // 反馈分级：威力决定 trauma/白闪；大威力才给顿帧
+  trauma = Math.min(1, trauma + 0.22 + Math.min(0.55, power / 200));
+  flashV = Math.min(0.38, flashV + Math.min(0.32, power / 300));
+  // 方向性推镜：冲击波往爆点反方向推一下（弹簧回中）
+  const kick = Math.min(2.5, power / 80);
+  panX = Math.max(-4, Math.min(4, panX - ((x - VIEW_W / 2) / (VIEW_W / 2)) * kick));
+  panY = Math.max(-3, Math.min(3, panY - ((y - VIEW_H / 2) / (VIEW_H / 2)) * kick));
+  if (power >= 40) hitStop = Math.max(hitStop, 0.05 + Math.min(0.05, (power - 40) / 900));
+  // 贴地爆炸 → 地面扬尘浪
+  if (y > 130 && power >= 30) fxDust(x, 178);
+  // 连锁 ≥2 → 慢镜头（一局一次）+ 时间涟漪 + 浮字
+  if (depth >= 2 && !slowmoUsed) {
+    slowmoUsed = true;
+    slowmo = Math.max(slowmo, 0.7);
+    slowmoCenter = { x, y };
+    fxTimeRing(x, y);
+  }
+  if (depth >= 2) addFloatText(x, y, `连锁×${depth}`);
+  triggerShock(x, y, Math.min(0.9, 0.25 + power / 140)); // 切片自有：屏幕空间畸变（原版没有）
 }
 
 function handleEvents(events) {
   for (const e of events) {
-    if (e.type === 'explosion') fxExplosion(e.x, e.y, e.power, e.blastRadius, e.depth ?? 0);
+    if (e.type === 'explosion') fxExplosionEvent(e.x, e.y, e.power, e.depth ?? 0);
     else if (e.type === 'chainIgnite') {
-      addPart(fxAddC, TEX.ring, { x: e.x, y: e.y, size: 3, size2: 9, ttl: 0.25, tint: 0xffd27a, alpha: 0.8 });
-      trauma = Math.min(1, trauma + 0.1);
+      fxSpark(e.x, e.y, 4); // 原版 R209：殉爆引燃瞬间火花 + 微 trauma
+      trauma = Math.min(1, trauma + 0.06);
     } else if (e.type === 'knockout') {
-      for (let i = 0; i < 8; i++) {
-        const a = Math.random() * Math.PI * 2;
-        addPart(fxAddC, TEX.spark, {
-          x: e.x, y: e.y, size: 0.8, ttl: 0.3 + Math.random() * 0.25,
-          vx: Math.cos(a) * (30 + Math.random() * 60), vy: Math.sin(a) * (30 + Math.random() * 60) - 30, g: 220,
-          tint: 0xffb35c,
-        });
-      }
-      addPart(smokeC, TEX.smoke, { x: e.x, y: e.y, size: 3, size2: 7, ttl: 0.7, alpha: 0.4, vy: -12, add: false });
-      trauma = Math.min(1, trauma + 0.07);
+      fxSpark(e.x, e.y, 8); // 原版：击倒故障火花
     } else if (e.type === 'multiKill') {
-      addPart(fxAddC, TEX.ring, { x: e.x, y: e.y, size: 8, ttl: 0.5, tint: 0xff6a3d, alpha: 0.85, grow: 1 });
+      addFloatText(e.x, e.y, `一爆多杀 ×${e.count}`);
     }
   }
 }
@@ -520,10 +653,10 @@ function stepOnce() {
     for (const b of sim.world.bodies) {
       if (!b.alive || b.kind !== 'explosive') continue;
       if ((b.data.burn ?? 0) > 0 && (b.data.etype === 'skyrocket' || b.data.etype === 'bottle')) {
-        addPart(smokeC, TEX.smoke, { x: b.x, y: b.y, size: 2.2, size2: 5, ttl: 0.5, alpha: 0.4, vy: -6, add: false });
+        fxRocketTrail(b.x, b.y);
       }
       if (b.data.lit && b.data.etype === 'firecracker' && sim.tick % 9 === 0) {
-        addPart(fxAddC, TEX.spark, { x: b.x, y: b.y - 2, size: 0.8, ttl: 0.3, vy: -20, g: 80, tint: 0xffd27a });
+        fxSpark(b.x, b.y - 1, 1);
       }
     }
   }
@@ -558,32 +691,109 @@ app.ticker.add((t) => {
     if (sim.tick - lastEventTick > 180) finishRun();
   }
   syncBodies(alpha); // 物体/引信辉光/绳子逐帧同步（插值 → 任意刷新率都顺滑）
-  // 粒子推进（真实时间）：宽度 s0→s1 插值（ease=缓出），alpha 平方衰减 × 可选闪烁
+  // ---- 粒子推进：逐类型移植 particles.ts update()（重力/浮力/长大/衰减全部对齐原版数值）----
   for (let i = parts.length - 1; i >= 0; i--) {
     const p = parts[i];
-    p.life += dt;
-    if (p.life >= p.ttl) { p.layer.removeChild(p.sp); p.sp.destroy(); parts.splice(i, 1); continue; }
-    p.vy += p.g * dt;
-    p.sp.x += p.vx * dt;
-    p.sp.y += p.vy * dt;
-    let k = p.life / p.ttl;
-    const w = p.s0 + (p.s1 - p.s0) * (p.ease ? 1 - (1 - k) ** 3 : k);
-    p.sp.width = w; p.sp.height = w;
-    if (p.spin) p.sp.rotation += p.spin * dt;
-    let a = p.a0 * (1 - k * k);
-    if (p.flick) a *= 0.65 + 0.35 * Math.sin(p.life * 80 + p.ph);
-    p.sp.alpha = a;
+    p.age += dt;
+    if (p.age >= p.life) {
+      if (p.sp) { p.sp.parent?.removeChild(p.sp); p.sp.destroy(); }
+      if (p.core) { p.core.destroy(); }
+      parts.splice(i, 1);
+      continue;
+    }
+    const k = 1 - p.age / p.life;
+    if (p.type === 'spark') {
+      p.vy += 700 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    } else if (p.type === 'smoke') {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.r += 6 * dt;
+      p.sp.position.set(p.x, p.y);
+      p.sp.width = p.sp.height = p.r * 2;
+      p.sp.alpha = k * (0.3 + p.warm * 0.14);
+    } else if (p.type === 'flash') {
+      // 三层渐变闪光整体淡出 + 白核收缩（原版 draw 的两段）
+      p.sp.width = p.sp.height = p.r * 2;
+      p.sp.alpha = k;
+      p.core.position.set(p.x, p.y);
+      p.core.width = p.core.height = Math.max(0.2, p.r * 0.34 * 2 * k);
+      p.core.alpha = 0.9 * k;
+    } else if (p.type === 'ring') {
+      p.r += p.vr * dt;
+      p.sp.width = p.sp.height = p.r * 2;
+      p.sp.alpha = k; // 原版线宽随 k 变细 —— 纹理近似：整体 alpha 线性衰减
+    } else if (p.type === 'ember') {
+      p.vy -= 26 * dt; // 热浮力
+      p.x += p.vx * dt + Math.sin(p.age * 9 + p.seed) * 14 * dt;
+      p.y += p.vy * dt;
+      const flicker = 0.55 + 0.45 * Math.sin(p.age * 22 + p.seed * 7);
+      p.sp.position.set(p.x, p.y);
+      p.sp.width = p.sp.height = p.r * 3.8;
+      p.sp.tint = 0xff8c3c;
+      p.sp.alpha = k * 0.75 * flicker;
+    } else if (p.type === 'debris') {
+      p.vy += 620 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vrot * dt;
+      p.sp.position.set(p.x, p.y);
+      p.sp.rotation = p.rot;
+      p.sp.width = p.r * 2; p.sp.height = p.r * 0.9;
+      p.sp.alpha = Math.min(1, k * 1.6);
+    } else if (p.type === 'dust') {
+      p.vy += 60 * dt; p.vx *= 1 - 1.6 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.r += 9 * dt;
+      p.sp.position.set(p.x, p.y);
+      p.sp.width = p.r * 2; p.sp.height = p.r; // 椭圆压扁（原版 r × r*0.5 直径比）
+      p.sp.alpha = k * 0.16;
+    }
   }
-  // 震屏（trauma² 平滑正弦）+ zoom punch 回落
-  trauma = Math.max(0, trauma - dt * 1.8);
-  zoomPunch += (1 - zoomPunch) * Math.min(1, dt * 6);
-  const sh = trauma * trauma;
-  const now = performance.now() / 1000;
+  // 火花线拖尾：每帧重画（渐冷色三档 + 头部辉光点，原版 draw spark 分支）
+  sparkG.clear();
+  for (const p of parts) {
+    if (p.type !== 'spark') continue;
+    const k = 1 - p.age / p.life;
+    const heat = k * k;
+    const col = heat > 0.6 ? 0xfff3c4 : heat > 0.3 ? 0xffb347 : 0xff7840;
+    sparkG.moveTo(p.x, p.y);
+    sparkG.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03);
+    sparkG.stroke({ width: 1.4, color: col, alpha: k, cap: 'round' });
+    sparkG.circle(p.x, p.y, 2.6);
+    sparkG.fill({ color: 0xffb450, alpha: k * 0.85 });
+  }
+  // 焦痕淡出
+  for (let i = scorches.length - 1; i >= 0; i--) {
+    const s = scorches[i];
+    s.age += dt;
+    if (s.age >= s.ttl) { s.sp.destroy(); scorches.splice(i, 1); continue; }
+    s.sp.alpha = 0.8 * (1 - s.age / s.ttl);
+  }
+  // 浮字：先弹后升淡出
+  for (let i = floatTexts.length - 1; i >= 0; i--) {
+    const f = floatTexts[i];
+    f.age += dt;
+    if (f.age >= f.ttl) { f.t.destroy(); floatTexts.splice(i, 1); continue; }
+    const k = f.age / f.ttl;
+    f.t.y -= 12 * dt;
+    f.t.scale.set(f.age < 0.12 ? 0.6 + f.age / 0.12 * 0.5 : 1.1 - Math.min(0.1, (f.age - 0.12) * 0.5));
+    f.t.alpha = Math.min(1, k * 2.2);
+  }
+  // ---- 相机：原版 trauma² 分层正弦 + 方向性推镜弹簧 + 慢镜头向爆心缓推 ----
+  trauma = Math.max(0, trauma - dt * 1.7);
+  flashV = Math.max(0, flashV - dt * 3.4);
+  flashOverlay.alpha = flashV;
+  zoomPunch += (1 - zoomPunch) * Math.min(1, dt * (slowmo > 0 ? 3 : 6));
+  if (slowmo > 0 && slowmoCenter) {
+    const tx = Math.max(-6, Math.min(6, (slowmoCenter.x - VIEW_W / 2) * 0.2));
+    const ty = Math.max(-4, Math.min(4, (slowmoCenter.y - VIEW_H / 2) * 0.2));
+    panX += (tx - panX) * Math.min(1, dt * 3.2);
+    panY += (ty - panY) * Math.min(1, dt * 3.2);
+  } else {
+    panX += (0 - panX) * Math.min(1, dt * 5);
+    panY += (0 - panY) * Math.min(1, dt * 5);
+  }
+  const t2 = trauma * trauma;
+  const ts = performance.now() / 1000;
+  const shakeX = 12 * t2 * (0.6 * Math.sin(ts * 23.7) + 0.4 * Math.sin(ts * 41.1 + 1.3));
+  const shakeY = 8 * t2 * (0.6 * Math.sin(ts * 29.3 + 0.7) + 0.4 * Math.sin(ts * 47.9));
+  const shakeRoll = 0.035 * t2 * Math.sin(ts * 19.1 + 2.1);
+  worldC.rotation = shakeRoll;
   worldC.scale.set(S * zoomPunch);
-  worldC.position.set(
-    480 + (Math.sin(now * 47) * 5 + Math.sin(now * 31 + 1.7) * 3) * sh,
-    270 + (Math.sin(now * 41 + 0.9) * 5 + Math.sin(now * 23 + 2.3) * 3) * sh,
-  );
+  worldC.position.set(480 + shakeX + panX * S, 270 + shakeY + panY * S);
   // 冲击波 uniform
   if (shockT < 1) {
     shockT = Math.min(1, shockT + dt / 0.45);
@@ -611,9 +821,10 @@ els.ignite.addEventListener('click', () => { if (mode !== 'running') startRun();
 els.reset.addEventListener('click', reset);
 function reset() {
   sim = null; mode = 'edit';
-  smokeC.removeChildren().forEach((s) => s.destroy());
-  fxAddC.removeChildren().forEach((s) => s.destroy());
+  clearFx();
   clearBodies();
+  flashV = 0; panX = 0; panY = 0; trauma = 0; zoomPunch = 1;
+  flashOverlay.alpha = 0;
   els.ignite.disabled = false;
   els.status.textContent = '就绪 —— 案例1（seed 4103）已装载，按「点燃」开跑（与 Canvas 版同输入同节奏）';
   els.checksum.style.display = 'none';
